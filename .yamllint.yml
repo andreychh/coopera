@@ -1,0 +1,16 @@
+extends: default
+rules:
+  document-start: disable
+  line-length: disable
+  indentation:
+    spaces: 2
+    indent-sequences: consistent
+    check-multi-line-strings: false
+  brackets:
+    min-spaces-inside: 1
+    max-spaces-inside: 1
+  truthy:
+    level: warning
+    allowed-values: [ 'true', 'false' ]
+  empty-lines:
+    max: 0
