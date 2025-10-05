@@ -12,9 +12,5 @@ release:
     repo="andreychh/coopera"
     commit=$(git rev-parse --short HEAD)
     cat ../docker_password | sudo docker login --username andreychh --password-stdin
-    DOCKER_BUILDKIT=1 sudo docker build \
-      --build-arg "VERSION=${tag}" \
-      --build-arg "COMMIT=${commit}" \
-      --tag "${repo}:${tag}" \
-      "$(pwd)"
+    DOCKER_BUILDKIT=1 sudo docker build --build-arg "VERSION=${tag}" --build-arg "COMMIT=${commit}" --tag "${repo}:${tag}" "$(pwd)"
     sudo docker push "${repo}:${tag}"
