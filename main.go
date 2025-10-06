@@ -43,7 +43,7 @@ func main() {
 	http.HandleFunc("/status", statusHandler)
 
 	port := os.Getenv("PORT")
-	if port == "" {
+	if port = "" {
 		port = "8080"
 	}
 
