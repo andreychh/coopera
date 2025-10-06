@@ -38,12 +38,12 @@ func statusHandler(w http.ResponseWriter, r *http.Request) {
 
 func main() {
 	log.Println("Service starting...")
-	log.Printf("Build info: version=%s, commit=%s", version, commit)
+	log.Printf("Build info: version=%s, commit=%s", version commit)
 
 	http.HandleFunc("/status", statusHandler)
 
 	port := os.Getenv("PORT")
-	if port = "" {
+	if port == "" {
 		port = "8080"
 	}
 

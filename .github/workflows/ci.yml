@@ -6,9 +6,6 @@ name: ci
   pull_request:
     branches:
       - main
-permissions:
-  contents: read
-  pull-requests: write
 env:
   GO_VERSION: '1.25.1'
 jobs:
