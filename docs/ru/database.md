@@ -12,25 +12,24 @@
 ![Диаграмма схемы данных](scheme.png)
 
 Диаграмма создана с помощью [dbdiagram.io](https://dbdiagram.io).
+
 Интерактивная версия доступна по [ссылке](https://dbdiagram.io/d/68ee44512e68d21b4161cdb3).
 
 ## 2. Сущности
 
-* **`members`** — Глобальный справочник пользователей системы.
+* **`members`** — Пользователи.
 
-* **`teams`** — Хранит команды, созданные пользователями.
+* **`teams`** — Команды.
 
 * **`memberships`** — Связывает пользователей (`members`) и команды (`teams`).
     - Уникальность пары (`team_id`, `member_id`) гарантирует, что пользователь не может вступить в одну команду дважды.
-* **`tasks`** — Задачи с определенным "весом" в баллах (`points`).
 
-* **`requests`** — Заявка на выполнение конкретной задачи.
-    - `deadline`: Крайний срок, используемый для логики уведомлений и автоматического назначения.
+* **`tasks`** — Задачи.
 
-* **`reports`** — Отчет о выполнении заявки.
-    - Уникальность `request_id` гарантирует, что на одну заявку может быть только один отчет.
+* **`reports`** — Отчёты о выполнении задач.
+    - Уникальность `task_id` гарантирует, что на одну задачу может быть только один отчет.
 
-* **`approvals`** — Голос участника за или против отчета.
+* **`approvals`** — Голоса участников за или против отчета.
     - Уникальность пары (`report_id`, `voter_id`) предотвращает повторное голосование.
 
 ## 3. Ключевые проектные решения
@@ -42,7 +41,7 @@
 - **Кэширование баллов**: Поле `memberships.total_points` — это намеренное использование денормализации. Оно кэширует
   баллы пользователя, чтобы избежать дорогостоящих вычислений в реальном времени.
 
-- **Разделенные поля статусов**: Статус заявки (`request`), например `open` или `completed`, отделен от статуса отчета (
+- **Разделенные поля статусов**: Статус задачи (`task`), например `open` или `completed`, отделен от статуса отчета (
   `report`), например `in_review` или `disputed`. Это правильно моделирует две разные машины состояний: одну для
   жизненного цикла задачи и другую для процесса её проверки.
 
@@ -53,7 +52,7 @@
 ```dbml
 Table members {
   id int [pk, increment]
-  telegram_id varchar [unique, not null, note: 'Идентификатор пользователя в Telegram']
+  telegram_id varchar [unique, not null]
   created_at timestamp [default: `now()`]
 }
 
@@ -68,10 +67,9 @@ Table memberships {
   id int [pk, increment]
   team_id int [ref: > teams.id, not null]
   member_id int [ref: > members.id, not null]
-  role enum ('manager', 'member') [not null]
+  role enum('manager', 'member') [not null]
   total_points int [default: 0]
   created_at timestamp [default: `now()`]
-  
   indexes {
     (team_id, member_id) [unique]
   }
@@ -81,28 +79,20 @@ Table tasks {
   id int [pk, increment]
   team_id int [ref: > teams.id, not null]
   description varchar [not null]
-  points int [not null, note: 'Вес задачи в баллах']
-  created_at timestamp [default: `now()`]
-  created_by int [ref: > memberships.id]
-}
-
-Table requests {
-  id int [pk, increment]
-  task_id int [ref: > tasks.id, not null]
-  status enum ('open', 'assigned', 'completed', 'archived') [not null, default: 'open']
-  assigned_to int [ref: > memberships.id, note: 'Может быть NULL, если заявка свободна']
+  points int [not null]
+  status enum('open', 'assigned', 'completed', 'archived') [not null, default: 'open']
+  assigned_to int [ref: > memberships.id]
   created_by int [ref: > memberships.id, not null]
   created_at timestamp [default: `now()`]
   updated_at timestamp
-  deadline timestamp
 }
 
 Table reports {
   id int [pk, increment]
-  request_id int [ref: > requests.id, not null, unique]
+  task_id int [ref: > tasks.id, not null, unique]
   created_by int [ref: > memberships.id, not null]
   description text
-  status enum ('in_review', 'disputed', 'approved', 'rejected') [not null, default: 'in_review']
+  status enum('in_review', 'disputed', 'approved', 'rejected') [not null, default: 'in_review']
   created_at timestamp [default: `now()`]
 }
 
@@ -110,10 +100,9 @@ Table approvals {
   id int [pk, increment]
   report_id int [ref: > reports.id, not null]
   voter_id int [ref: > memberships.id, not null]
-  decision enum ('approved', 'rejected') [not null]
+  decision enum('approved', 'rejected') [not null]
   comment text
   created_at timestamp [default: `now()`]
-  
   indexes {
     (report_id, voter_id) [unique]
   }
