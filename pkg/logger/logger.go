@@ -22,6 +22,7 @@ type Logger struct {
 	warnLogger  *log.Logger
 	errorLogger *log.Logger
 	fatalLogger *log.Logger
+	unused      int
 }
 
 func NewLogger(level int) *Logger {
