@@ -41,7 +41,12 @@ jobs:
         with:
           version: v2.5
           args: --output.sarif.path=golangci-lint.sarif
+      - uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: golangci-lint.sarif
       - uses: actions/upload-artifact@v5
+        if: always()
         with:
           name: lint-report
           path: golangci-lint.sarif
