@@ -42,7 +42,7 @@ jobs:
           version: v2.5
           args: |
             --output.sarif.path=golangci-lint.sarif
-            --issues-exit-code 0
+            --issues-exit-code=0
       - uses: actions/upload-artifact@v5
         with:
           name: lint-report
