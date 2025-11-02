@@ -1,102 +1,108 @@
 package app
 
 import (
-	"encoding/json"
+	"context"
 	"fmt"
 	"log"
 	"net/http"
 	"os"
+	"os/signal"
 	"strconv"
+	"syscall"
 	"time"
 
-	"github.com/andreychh/coopera-backend/internal/adapter/controller/telegram_api"
-	"github.com/andreychh/coopera-backend/internal/adapter/repository/postgres"
-	"github.com/andreychh/coopera-backend/pkg/logger"
+	"github.com/andreychh/coopera/internal/adapter/controller/telegram_api"
+	"github.com/andreychh/coopera/internal/adapter/controller/web_api"
+	repomembership "github.com/andreychh/coopera/internal/adapter/repository/membership_repo"
+	"github.com/andreychh/coopera/internal/adapter/repository/postgres"
+	"github.com/andreychh/coopera/internal/adapter/repository/postgres/dao"
+	repoteams "github.com/andreychh/coopera/internal/adapter/repository/team_repo"
+	repouser "github.com/andreychh/coopera/internal/adapter/repository/user_repo"
+	"github.com/andreychh/coopera/internal/usecase/memberships"
+	"github.com/andreychh/coopera/internal/usecase/team"
+	"github.com/andreychh/coopera/internal/usecase/user"
+	"github.com/andreychh/coopera/pkg/logger"
+	"github.com/andreychh/coopera/pkg/migrator"
+	"github.com/go-playground/validator/v10"
 	"github.com/joho/godotenv"
 )
 
-// Build information, injected at compile time.
-var (
-	version = "(devel)"
-	commit  = "none"
-)
-
-// StatusResponse is the structure of our /status endpoint response.
-type StatusResponse struct {
-	Status    string    `json:"status"`
-	Version   string    `json:"version"`
-	Commit    string    `json:"commit"`
-	Timestamp time.Time `json:"timestamp"`
-}
-
-func statusHandler(w http.ResponseWriter, r *http.Request) {
-	response := StatusResponse{
-		Status:    "ok",
-		Timestamp: time.Now().UTC(),
-		Version:   version,
-		Commit:    commit,
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	if err := json.NewEncoder(w).Encode(response); err != nil {
-		log.Printf("ERROR: could not encode status response: %v", err)
-	}
-}
-
 func Start() error {
-	log.Println("Service starting...")
-	log.Printf("Build info: version=%s, commit=%s", version, commit)
-
-	err := godotenv.Load("config/dev/.env")
-
-	if err != nil {
-		return fmt.Errorf("error loading .env file")
+	if err := godotenv.Load("config/dev/.env"); err != nil {
+		return fmt.Errorf("error loading .env: %w", err)
 	}
 
-	logLevel, err := strconv.Atoi(os.Getenv("LOG_LEVEL"))
-	if err != nil {
+	logLevel, _ := strconv.Atoi(os.Getenv("LOG_LEVEL"))
+	if logLevel == 0 {
 		logLevel = logger.INFO
 	}
 	logService := logger.NewLogger(logLevel)
 
-	botToken := os.Getenv("TELEGRAM_BOT_TOKEN")
-	if botToken == "" {
-		logService.Fatal("Bot token not found in environment variables")
-	}
-
 	dsn := os.Getenv("DATABASE_URL")
 	if dsn == "" {
-		logService.Fatal("Database URL not found in environment variables")
+		return fmt.Errorf("DATABASE_URL not set")
 	}
 
-	_, err = postgres.NewDB(dsn)
+	migrationsPath := os.Getenv("MIGRATIONS_PATH")
+	if err := migrator.Migrate(migrationsPath, dsn, os.Getenv("DB_SCHEMA")); err != nil {
+		return fmt.Errorf("migration error: %w", err)
+	}
+
+	db, err := postgres.NewDB(dsn)
 	if err != nil {
 		return err
 	}
 
+	validate := validator.New()
+	web_api.InitValidator(validate)
+
+	userRepo := repouser.NewUserRepository(*dao.NewUserDAO(db))
+	teamRepo := repoteams.NewTeamRepository(*dao.NewTeamDAO(db))
+	memberRepo := repomembership.NewMembershipRepository(*dao.NewMembershipDAO(db))
+
+	userUC := user.NewUserUsecase(userRepo, db)
+	memberUC := memberships.NewMembershipsUsecase(memberRepo, db)
+	teamUC := team.NewTeamUsecase(teamRepo, memberUC, db)
+
+	router := web_api.NewRouter(userUC, teamUC, memberUC).SetupRoutes()
+
+	// Telegram controller
+	botToken := os.Getenv("TELEGRAM_BOT_TOKEN")
 	tgContr, err := telegram_api.NewTelegramController(logService, botToken)
 	if err != nil {
 		return err
 	}
-
 	go func() {
-		err = tgContr.Start()
-		if err != nil {
-			log.Printf("err in bot")
+		if err := tgContr.Start(); err != nil {
+			log.Printf("telegram bot error: %v", err)
 		}
 	}()
-
-	http.HandleFunc("/status", statusHandler)
 
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "8080"
 	}
-
-	log.Printf("Server starting on port %s...", port)
-	if err := http.ListenAndServe(":"+port, nil); err != nil {
-		log.Fatalf("FATAL: could not start server: %v", err)
+	srv := &http.Server{
+		Addr:        ":" + port,
+		Handler:     router,
+		IdleTimeout: 60 * time.Second,
 	}
 
-	return nil
+	// Graceful shutdown
+	go func() {
+		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			log.Fatalf("server error: %v", err)
+		}
+	}()
+	log.Println("HTTP server started on port", os.Getenv("PORT"))
+
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+	<-quit
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	log.Println("Shutting down...")
+	return srv.Shutdown(ctx)
 }

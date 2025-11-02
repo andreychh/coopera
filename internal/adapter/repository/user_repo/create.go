@@ -1,0 +1,32 @@
+package user_repo
+
+import (
+	"context"
+	"github.com/andreychh/coopera/internal/adapter/repository/converter"
+	"github.com/andreychh/coopera/internal/adapter/repository/postgres/dao"
+	"github.com/andreychh/coopera/internal/entity"
+)
+
+type UserRepository struct {
+	UserDAO dao.UserRepository
+}
+
+func NewUserRepository(userDAO dao.UserRepository) *UserRepository {
+	return &UserRepository{
+		UserDAO: userDAO,
+	}
+}
+
+func (ur *UserRepository) CreateRepo(ctx context.Context, euser entity.UserEntity) (entity.UserEntity, error) {
+	userModel := converter.FromEntityToModel(euser)
+	enuser, err := ur.UserDAO.Create(ctx, userModel)
+	if err != nil {
+		return entity.UserEntity{}, err
+	}
+
+	return enuser, nil
+}
+
+func (ur *UserRepository) GetByTelegramIDRepo(ctx context.Context, telegramID int64) (entity.UserEntity, error) {
+	return ur.UserDAO.GetByTelegramID(ctx, telegramID)
+}

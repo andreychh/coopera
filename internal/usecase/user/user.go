@@ -1,0 +1,56 @@
+package user
+
+import (
+	"context"
+	"fmt"
+	"github.com/andreychh/coopera/internal/entity"
+	"github.com/andreychh/coopera/internal/usecase"
+)
+
+type UserUsecase struct {
+	txManager      usecase.TransactionManager
+	userRepository usecase.UserRepository
+}
+
+func NewUserUsecase(userRepository usecase.UserRepository, txManager usecase.TransactionManager) *UserUsecase {
+	return &UserUsecase{
+		txManager:      txManager,
+		userRepository: userRepository,
+	}
+}
+
+func (uc *UserUsecase) CreateUsecase(ctx context.Context, euser entity.UserEntity) (entity.UserEntity, error) {
+	var createdUser entity.UserEntity
+
+	err := uc.txManager.WithinTransaction(ctx, func(txCtx context.Context) error {
+		var err error
+		createdUser, err = uc.userRepository.CreateRepo(txCtx, euser)
+		if err != nil {
+			return fmt.Errorf("failed to create user: %w", err)
+		}
+		return nil
+	})
+	if err != nil {
+		return entity.UserEntity{}, err
+	}
+
+	return createdUser, nil
+}
+
+func (uc *UserUsecase) GetUsecase(ctx context.Context, euser entity.UserEntity) (entity.UserEntity, error) {
+	var user entity.UserEntity
+
+	err := uc.txManager.WithinTransaction(ctx, func(txCtx context.Context) error {
+		var err error
+		user, err = uc.userRepository.GetByTelegramIDRepo(txCtx, euser.TelegramID)
+		if err != nil {
+			return fmt.Errorf("failed to get user: %w", err)
+		}
+		return nil
+	})
+	if err != nil {
+		return entity.UserEntity{}, err
+	}
+
+	return user, nil
+}
