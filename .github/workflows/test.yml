@@ -20,8 +20,3 @@ jobs:
         run: go build -v ./...
       - name: Run tests with coverage
         run: go test -v -coverprofile=coverage.out ./...
-      - uses: actions/upload-artifact@v5
-        with:
-          name: coverage-report-${{ github.sha }}
-          path: coverage.out
-          retention-days: 1
