@@ -1,15 +1,17 @@
 BEGIN;
 
-CREATE TYPE team_role AS ENUM ('manager', 'member');
+CREATE SCHEMA coopera;
 
-CREATE TABLE users
+CREATE TYPE coopera.team_role AS ENUM ('manager', 'member');
+
+CREATE TABLE coopera.users
 (
     id          SERIAL PRIMARY KEY,
     telegram_id BIGINT UNIQUE NOT NULL,
     created_at  TIMESTAMP WITH TIME ZONE DEFAULT (NOW() AT TIME ZONE 'utc')
 );
 
-CREATE TABLE teams
+CREATE TABLE coopera.teams
 (
     id         SERIAL PRIMARY KEY,
     name       VARCHAR(50) NOT NULL,
@@ -18,26 +20,26 @@ CREATE TABLE teams
 
     CONSTRAINT fk_created_by
         FOREIGN KEY (created_by)
-            REFERENCES users (id)
+            REFERENCES coopera.users (id)
             ON DELETE RESTRICT
 );
 
-CREATE TABLE memberships
+CREATE TABLE coopera.memberships
 (
     id         SERIAL PRIMARY KEY,
-    team_id    INTEGER   NOT NULL,
-    member_id  INTEGER   NOT NULL,
-    role       team_role NOT NULL,
+    team_id    INTEGER           NOT NULL,
+    member_id  INTEGER           NOT NULL,
+    role       coopera.team_role NOT NULL,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT (NOW() AT TIME ZONE 'utc'),
 
     CONSTRAINT fk_team
         FOREIGN KEY (team_id)
-            REFERENCES teams (id)
+            REFERENCES coopera.teams (id)
             ON DELETE CASCADE,
 
     CONSTRAINT fk_member
         FOREIGN KEY (member_id)
-            REFERENCES users (id)
+            REFERENCES coopera.users (id)
             ON DELETE CASCADE,
 
     CONSTRAINT unique_membership

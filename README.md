@@ -17,7 +17,7 @@ docker-compose up -d postgres migrate
 После того как база данных запущена, используйте эту переменную окружения на вашей хост-машине для подключения к БД:
 
 ```bash
-DATABASE_URL="postgres://user:password@localhost:5432/database?sslmode=disable"
+DATABASE_URL="postgres://user:password@localhost:5432/database?sslmode=disable&search_path=coopera"
 ```
 
 ## Управление схемой (Миграции)
