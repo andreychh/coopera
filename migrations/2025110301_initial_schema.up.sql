@@ -1,17 +1,17 @@
 BEGIN;
 
-CREATE SCHEMA coopera;
+CREATE SCHEMA IF NOT EXISTS coopera;
 
 CREATE TYPE coopera.team_role AS ENUM ('manager', 'member');
 
-CREATE TABLE coopera.users
+CREATE TABLE IF NOT EXISTS coopera.users
 (
     id          SERIAL PRIMARY KEY,
     telegram_id BIGINT UNIQUE NOT NULL,
     created_at  TIMESTAMP WITH TIME ZONE DEFAULT (NOW() AT TIME ZONE 'utc')
 );
 
-CREATE TABLE coopera.teams
+CREATE TABLE IF NOT EXISTS coopera.teams
 (
     id         SERIAL PRIMARY KEY,
     name       VARCHAR(50) NOT NULL,
@@ -24,7 +24,7 @@ CREATE TABLE coopera.teams
             ON DELETE RESTRICT
 );
 
-CREATE TABLE coopera.memberships
+CREATE TABLE IF NOT EXISTS coopera.memberships
 (
     id         SERIAL PRIMARY KEY,
     team_id    INTEGER           NOT NULL,
