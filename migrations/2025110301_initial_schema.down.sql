@@ -1,5 +1,9 @@
+BEGIN;
+
 DROP TABLE IF EXISTS memberships;
 DROP TABLE IF EXISTS teams;
 DROP TABLE IF EXISTS users;
 
 DROP TYPE IF EXISTS team_role;
+
+COMMIT;

@@ -1,3 +1,5 @@
+BEGIN;
+
 CREATE TYPE team_role AS ENUM ('manager', 'member');
 
 CREATE TABLE users
@@ -41,3 +43,5 @@ CREATE TABLE memberships
     CONSTRAINT unique_membership
         UNIQUE (team_id, member_id)
 );
+
+COMMIT;
