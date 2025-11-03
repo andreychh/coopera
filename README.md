@@ -1,46 +1,46 @@
 # Coopera
 
-## Local Development Setup
+## Настройка локальной среды
 
-You need **Docker** and **Docker Compose**.
+Для начала работы вам понадобятся только установленные **Docker** и **Docker Compose**.
 
-### 1\. Initial Setup and Database Start
+### 1\. Инициализация БД и старт
 
-Run once to start PostgreSQL and apply all schema migrations:
+Запустите эту команду, чтобы инициализировать PostgreSQL и применить все миграции схемы БД:
 
 ```bash
 docker-compose up -d postgres migrate
 ```
 
-### 2\. Run the Go Application
+### 2\. Запуск Go-приложения
 
-After the database is running, use this variable on your host machine to connect the application:
+После того как база данных запущена, используйте эту переменную окружения на вашей хост-машине для подключения к БД:
 
 ```bash
 DATABASE_URL="postgres://user:password@localhost:5432/database?sslmode=disable"
 ```
 
-## Schema Management
+## Управление схемой (Миграции)
 
-### 1\. Apply New Migrations
+### 1\. Применение новых миграций
 
-To apply any pending schema changes:
+Чтобы применить любые ожидающие изменения схемы:
 
 ```bash
 docker-compose run --rm migrate up
 ```
 
-### 2\. Rollback the Last Migration
+### 2\. Откат последней миграции
 
-To undo the most recent schema change:
+Для отмены самого последнего изменения:
 
 ```bash
 docker-compose run --rm migrate down 1
 ```
 
-### 3\. Stop All Services
+### 3\. Остановка всех сервисов
 
-To stop and remove all running containers and networks:
+Чтобы остановить и удалить все запущенные контейнеры и сети:
 
 ```bash
 docker-compose down
