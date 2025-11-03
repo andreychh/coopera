@@ -27,7 +27,10 @@ DATABASE_URL="postgres://user:password@localhost:5432/database?sslmode=disable&s
 Чтобы применить любые ожидающие изменения схемы:
 
 ```bash
-docker-compose run --rm migrate up
+docker-compose run --rm migrate \
+    -path /migrations \
+    -database "postgres://user:password@postgres:5432/database?sslmode=disable" \
+    up
 ```
 
 ### 2\. Откат последней миграции
@@ -35,7 +38,10 @@ docker-compose run --rm migrate up
 Для отмены самого последнего изменения:
 
 ```bash
-docker-compose run --rm migrate down 1
+docker-compose run --rm migrate \
+    -path /migrations \
+    -database "postgres://user:password@postgres:5432/database?sslmode=disable" \
+    down 1
 ```
 
 ### 3\. Остановка всех сервисов
