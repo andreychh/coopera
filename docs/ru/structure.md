@@ -74,7 +74,6 @@
 
 [![WhatsApp Image 2025-10-30 at 00.47.01.jpg](https://s3.iimg.su/s/29/gv1wOYAx9O1QzWrDn2pgcFft0dOQ1hPFyRnfRMqw.jpg)](https://iimg.su/i/v1wOYA)
 
-
 ## 2. Роли и ответственности
 
 В данном разделе описывается организация проектной группы. Четкие требования к квалификации, ролям и ответственностям
