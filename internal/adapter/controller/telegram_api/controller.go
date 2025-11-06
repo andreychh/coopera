@@ -2,16 +2,17 @@ package telegram_api
 
 import (
 	"fmt"
-	"github.com/andreychh/coopera/pkg/logger"
-	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"strings"
 	"sync"
+
+	"github.com/andreychh/coopera/pkg/logger"
+	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 )
 
 type TelegramController struct {
 	bot    *tgbotapi.BotAPI
 	logger *logger.Logger
-	mu     sync.Mutex
+	_      sync.Mutex
 }
 
 func NewTelegramController(logger *logger.Logger, botToken string) (*TelegramController, error) {

@@ -1,1 +1,53 @@
-# coopera
+# Coopera
+
+## Настройка локальной среды
+
+Для начала работы вам понадобятся только установленные **Docker** и **Docker Compose**.
+
+### 1\. Инициализация БД и старт
+
+Запустите эту команду, чтобы инициализировать PostgreSQL и применить все миграции схемы БД:
+
+```bash
+docker-compose up -d postgres migrate
+```
+
+### 2\. Запуск Go-приложения
+
+После того как база данных запущена, используйте эту переменную окружения на вашей хост-машине для подключения к БД:
+
+```bash
+DATABASE_URL="postgres://user:password@localhost:5432/database?sslmode=disable&search_path=coopera"
+```
+
+## Управление схемой (Миграции)
+
+### 1\. Применение новых миграций
+
+Чтобы применить любые ожидающие изменения схемы:
+
+```bash
+docker-compose run --rm migrate \
+    -path /migrations \
+    -database "postgres://user:password@postgres:5432/database?sslmode=disable" \
+    up
+```
+
+### 2\. Откат последней миграции
+
+Для отмены самого последнего изменения:
+
+```bash
+docker-compose run --rm migrate \
+    -path /migrations \
+    -database "postgres://user:password@postgres:5432/database?sslmode=disable" \
+    down 1
+```
+
+### 3\. Остановка всех сервисов
+
+Чтобы остановить и удалить все запущенные контейнеры и сети:
+
+```bash
+docker-compose down
+```
