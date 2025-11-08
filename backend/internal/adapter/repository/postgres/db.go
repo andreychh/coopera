@@ -3,8 +3,9 @@ package postgres
 import (
 	"context"
 	"fmt"
-	"github.com/andreychh/coopera/internal/usecase"
-	"github.com/andreychh/coopera/pkg/logger"
+
+	"github.com/andreychh/coopera-backend/internal/usecase"
+	"github.com/andreychh/coopera-backend/pkg/logger"
 	"github.com/jackc/pgx/v4"
 	"github.com/jackc/pgx/v4/pgxpool"
 )
