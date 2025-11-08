@@ -14,12 +14,12 @@ COPY . .
 RUN go build -ldflags="\
     -X 'main.version=${VERSION}' \
     -X 'main.commit=${COMMIT}'" \
-    -o /coopera .
+    -o /coopera-backend ./cmd/main.go
 
 FROM alpine:3.21
 
-COPY --from=builder /coopera /coopera
+COPY --from=builder /coopera-backend /coopera-backend
 
 EXPOSE 8080
 
-ENTRYPOINT ["/coopera"]
+ENTRYPOINT ["/coopera-backend"]
