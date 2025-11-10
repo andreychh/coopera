@@ -16,7 +16,7 @@ RUN go build -ldflags="\
     -X 'main.commit=${COMMIT}'" \
     -o /coopera-backend ./cmd/main.go
 
-FROM alpine:3.21
+FROM alpine:3.22
 
 COPY --from=builder /coopera-backend /coopera-backend
 

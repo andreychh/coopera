@@ -9,7 +9,7 @@ COPY . .
 
 RUN go build -o /coopera-bot ./cmd/main.go
 
-FROM alpine:3.21
+FROM alpine:3.22
 
 COPY --from=builder /coopera-bot /coopera-bot
 
