@@ -3,15 +3,16 @@ package app
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/andreychh/coopera/internal/adapter/controller/telegram_api"
-	"github.com/andreychh/coopera/internal/adapter/repository/postgres"
-	"github.com/andreychh/coopera/pkg/logger"
-	"github.com/joho/godotenv"
 	"log"
 	"net/http"
 	"os"
 	"strconv"
 	"time"
+
+	"github.com/andreychh/coopera-backend/internal/adapter/controller/telegram_api"
+	"github.com/andreychh/coopera-backend/internal/adapter/repository/postgres"
+	"github.com/andreychh/coopera-backend/pkg/logger"
+	"github.com/joho/godotenv"
 )
 
 // Build information, injected at compile time.

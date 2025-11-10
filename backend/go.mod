@@ -1,4 +1,4 @@
-module github.com/andreychh/coopera
+module github.com/andreychh/coopera-backend
 
 go 1.25.1
 

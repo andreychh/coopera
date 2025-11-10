@@ -1,8 +1,9 @@
 package main
 
 import (
-	"github.com/andreychh/coopera/internal/app"
 	"log"
+
+	"github.com/andreychh/coopera-backend/internal/app"
 )
 
 func main() {

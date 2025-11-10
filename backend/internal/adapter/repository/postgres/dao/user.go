@@ -2,8 +2,9 @@ package dao
 
 import (
 	"context"
-	"github.com/andreychh/coopera/internal/adapter/repository/model/postgres"
-	"github.com/andreychh/coopera/pkg/logger"
+
+	"github.com/andreychh/coopera-backend/internal/adapter/repository/model/postgres"
+	"github.com/andreychh/coopera-backend/pkg/logger"
 )
 
 type UserDAO struct {

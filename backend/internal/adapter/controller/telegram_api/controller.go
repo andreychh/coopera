@@ -5,7 +5,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/andreychh/coopera/pkg/logger"
+	"github.com/andreychh/coopera-backend/pkg/logger"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 )
 

@@ -6,18 +6,37 @@ name: golangci-lint
   pull_request:
     branches:
       - main
-permissions:
-  contents: read
+env:
+  GO_VERSION: '1.25.1'
 jobs:
-  golangci-lint:
+  detect-modules:
     timeout-minutes: 15
     runs-on: ubuntu-24.04
+    outputs:
+      modules: ${{ steps.set-modules.outputs.modules }}
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-go@v6
         with:
-          go-version: '1.25.1'
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+      - id: set-modules
+        run: echo "modules=$(go list -m -json | jq -s '.' | jq -c '[.[].Dir]')" >> "$GITHUB_OUTPUT"
+  golangci-lint:
+    needs: detect-modules
+    timeout-minutes: 15
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        module: ${{ fromJSON(needs.detect-modules.outputs.modules) }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-go@v6
+        with:
+          go-version: ${{ env.GO_VERSION }}
           cache: true
       - uses: golangci/golangci-lint-action@v8
         with:
           version: v2.5
+          working-directory: ${{ matrix.module }}
