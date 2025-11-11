@@ -1,7 +1,14 @@
 package main
 
-import "fmt"
+import (
+	"log"
+
+	"github.com/andreychh/coopera-bot/internal/app"
+)
 
 func main() {
-	fmt.Println("Bot started")
+	err := app.Start()
+	if err != nil {
+		log.Fatalf("starting app: %v\n", err)
+	}
 }
