@@ -16,7 +16,8 @@ func Start() error {
 	}
 	store := Store()
 	dialogues := Dialogues(store)
-	tree := Tree(bot, dialogues)
+	forms := Forms(store)
+	tree := Tree(bot, dialogues, forms)
 	updates := Updates(bot)
 	engine := Engine(tree, updates)
 	engine.Start(context.Background())
