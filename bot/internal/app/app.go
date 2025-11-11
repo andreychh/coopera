@@ -9,7 +9,7 @@ import (
 )
 
 func Start() error {
-	_ = godotenv.Load("../.env.bot")
+	_ = godotenv.Load(".env.bot")
 	bot, err := Bot(os.Getenv("TELEGRAM_BOT_TOKEN"))
 	if err != nil {
 		return fmt.Errorf("initializing telegram bot: %w", err)
