@@ -8,7 +8,7 @@ import (
 	"github.com/andreychh/coopera-bot/pkg/botlib/composition"
 	"github.com/andreychh/coopera-bot/pkg/botlib/core"
 	"github.com/andreychh/coopera-bot/pkg/botlib/updates"
-	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
+	telegram "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 )
 
 type topicInCondition struct {
@@ -16,7 +16,7 @@ type topicInCondition struct {
 	topics    []Topic
 }
 
-func (t topicInCondition) Holds(ctx context.Context, update tgbotapi.Update) (bool, error) {
+func (t topicInCondition) Holds(ctx context.Context, update telegram.Update) (bool, error) {
 	id, available := updates.ChatID(update)
 	if !available {
 		return false, fmt.Errorf("(%T) getting chat ID: %w", t, updates.ErrNoChatID)

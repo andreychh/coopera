@@ -1,4 +1,4 @@
-package forms
+package updates
 
 import (
 	"context"
@@ -7,7 +7,6 @@ import (
 
 	"github.com/andreychh/coopera-bot/pkg/botlib/composition"
 	"github.com/andreychh/coopera-bot/pkg/botlib/core"
-	"github.com/andreychh/coopera-bot/pkg/botlib/updates"
 	telegram "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 )
 
@@ -16,9 +15,9 @@ type textMatchesRegexpCondition struct {
 }
 
 func (r textMatchesRegexpCondition) Holds(_ context.Context, update telegram.Update) (bool, error) {
-	text, available := updates.Text(update)
+	text, available := Text(update)
 	if !available {
-		return false, fmt.Errorf("(%T) getting message text: %w", r, updates.ErrNoText)
+		return false, fmt.Errorf("(%T) getting message text: %w", r, ErrNoText)
 	}
 	matched, err := regexp.MatchString(r.pattern, text)
 	if err != nil {
@@ -32,5 +31,5 @@ func TextMatchesRegexp(pattern string) core.Condition {
 }
 
 func SafeTextMatchesRegexp(pattern string) core.Condition {
-	return composition.All(updates.HasText(), TextMatchesRegexp(pattern))
+	return composition.All(HasText(), TextMatchesRegexp(pattern))
 }

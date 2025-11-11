@@ -19,7 +19,7 @@ func (s startDialogueAction) Perform(ctx context.Context, update telegram.Update
 	if !available {
 		return fmt.Errorf("(%T) getting chat ID: %w", s, updates.ErrNoChatID)
 	}
-	_, err := s.dialogues.StartDialogue(ctx, id, s.topic)
+	err := s.dialogues.Dialogue(id).ChangeTopic(ctx, s.topic)
 	if err != nil {
 		return fmt.Errorf(
 			"(%T->%T) starting dialogue for chat id #%d with topic %s: %w",
