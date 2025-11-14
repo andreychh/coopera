@@ -7,6 +7,7 @@ import (
 
 	"github.com/andreychh/coopera-bot/pkg/botlib/composition"
 	"github.com/andreychh/coopera-bot/pkg/botlib/core"
+	"github.com/andreychh/coopera-bot/pkg/botlib/updates/attributes"
 	telegram "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 )
 
@@ -15,9 +16,9 @@ type textMatchesRegexpCondition struct {
 }
 
 func (r textMatchesRegexpCondition) Holds(_ context.Context, update telegram.Update) (bool, error) {
-	text, available := Text(update)
-	if !available {
-		return false, fmt.Errorf("(%T) getting message text: %w", r, ErrNoText)
+	text, err := attributes.Text(update).Value()
+	if err != nil {
+		return false, fmt.Errorf("(%T) getting message text: %w", r, err)
 	}
 	matched, err := regexp.MatchString(r.pattern, text)
 	if err != nil {

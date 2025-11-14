@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	"github.com/andreychh/coopera-bot/pkg/botlib/core"
-	"github.com/andreychh/coopera-bot/pkg/botlib/updates"
+	"github.com/andreychh/coopera-bot/pkg/botlib/updates/attributes"
 	telegram "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 )
 
@@ -15,11 +15,11 @@ type startDialogueAction struct {
 }
 
 func (s startDialogueAction) Perform(ctx context.Context, update telegram.Update) error {
-	id, available := updates.ChatID(update)
-	if !available {
-		return fmt.Errorf("(%T) getting chat ID: %w", s, updates.ErrNoChatID)
+	id, err := attributes.ChatID(update).Value()
+	if err != nil {
+		return fmt.Errorf("(%T) getting chat ID: %w", s, err)
 	}
-	err := s.dialogues.Dialogue(id).ChangeTopic(ctx, s.topic)
+	err = s.dialogues.Dialogue(id).ChangeTopic(ctx, s.topic)
 	if err != nil {
 		return fmt.Errorf(
 			"(%T->%T) starting dialogue for chat id #%d with topic %s: %w",

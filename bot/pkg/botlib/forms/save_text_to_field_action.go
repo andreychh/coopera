@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	"github.com/andreychh/coopera-bot/pkg/botlib/core"
-	"github.com/andreychh/coopera-bot/pkg/botlib/updates"
+	"github.com/andreychh/coopera-bot/pkg/botlib/updates/attributes"
 	telegram "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 )
 
@@ -15,15 +15,15 @@ type saveTextToFieldAction struct {
 }
 
 func (s saveTextToFieldAction) Perform(ctx context.Context, update telegram.Update) error {
-	id, available := updates.ChatID(update)
-	if !available {
-		return fmt.Errorf("(%T) getting chat ID: %w", s, updates.ErrNoChatID)
+	id, err := attributes.ChatID(update).Value()
+	if err != nil {
+		return fmt.Errorf("(%T) getting chat ID: %w", s, err)
 	}
-	text, available := updates.Text(update)
-	if !available {
-		return fmt.Errorf("(%T) getting message text: %w", s, updates.ErrNoText)
+	text, err := attributes.Text(update).Value()
+	if err != nil {
+		return fmt.Errorf("(%T) getting message text: %w", s, err)
 	}
-	err := s.forms.Form(id).Field(s.name).ChangeValue(ctx, text)
+	err = s.forms.Form(id).Field(s.name).ChangeValue(ctx, text)
 	if err != nil {
 		return fmt.Errorf(
 			"(%T->%T) saving text %q to field %q of form(%d): %w",
