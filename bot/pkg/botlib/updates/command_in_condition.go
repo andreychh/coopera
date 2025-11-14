@@ -6,6 +6,7 @@ import (
 
 	"github.com/andreychh/coopera-bot/pkg/botlib/composition"
 	"github.com/andreychh/coopera-bot/pkg/botlib/core"
+	"github.com/andreychh/coopera-bot/pkg/botlib/updates/attributes"
 	telegram "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 )
 
@@ -14,9 +15,9 @@ type commandInCondition struct {
 }
 
 func (a commandInCondition) Holds(_ context.Context, update telegram.Update) (bool, error) {
-	command, available := Command(update)
-	if !available {
-		return false, fmt.Errorf("(%T) getting command: %w", a, ErrNoCommand)
+	command, err := attributes.Command(update).Value()
+	if err != nil {
+		return false, fmt.Errorf("(%T) getting command: %w", a, err)
 	}
 	for _, cmd := range a.commands {
 		if cmd == command {
