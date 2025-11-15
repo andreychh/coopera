@@ -22,3 +22,7 @@ func (r *MembershipRepository) AddMemberRepo(ctx context.Context, m entity.Membe
 func (r *MembershipRepository) GetMembersRepo(ctx context.Context, teamID int32) ([]entity.MembershipEntity, error) {
 	return r.dao.GetMembers(ctx, teamID)
 }
+
+func (r *MembershipRepository) DeleteMemberRepo(ctx context.Context, membership entity.MembershipEntity) error {
+	return r.dao.DeleteMember(ctx, converter.FromEntityToModelMembership(membership))
+}

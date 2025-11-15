@@ -19,6 +19,14 @@ func (r *TeamRepository) CreateRepo(ctx context.Context, e entity.TeamEntity) (e
 	return r.dao.Create(ctx, converter.FromEntityToModelTeam(e))
 }
 
+func (r *TeamRepository) DeleteRepo(ctx context.Context, teamID int32) error {
+	return r.dao.Delete(ctx, teamID)
+}
+
 func (r *TeamRepository) GetByIDRepo(ctx context.Context, teamID int32) (entity.TeamEntity, error) {
 	return r.dao.GetByID(ctx, teamID)
+}
+
+func (r *TeamRepository) ExistsByName(ctx context.Context, name string) (bool, error) {
+	return r.dao.ExistsByName(ctx, name)
 }

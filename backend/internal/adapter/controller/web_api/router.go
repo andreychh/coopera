@@ -34,17 +34,19 @@ func (r *Router) SetupRoutes() http.Handler {
 
 	router.Route("/api/v1", func(api chi.Router) {
 		api.Route("/users", func(users chi.Router) {
-			users.Post("/", r.userController.Create)
-			users.Get("/", r.userController.Get)
+			users.Post("/", middleware.ErrorHandler(r.userController.Create))
+			users.Get("/", middleware.ErrorHandler(r.userController.Get))
 		})
 
 		api.Route("/teams", func(teams chi.Router) {
-			teams.Post("/", r.teamController.Create)
-			teams.Get("/", r.teamController.Get)
+			teams.Post("/", middleware.ErrorHandler(r.teamController.Create))
+			teams.Get("/", middleware.ErrorHandler(r.teamController.Get))
+			teams.Delete("/", middleware.ErrorHandler(r.teamController.Delete))
 		})
 
 		api.Route("/memberships", func(members chi.Router) {
-			members.Post("/", r.membershipController.AddMember)
+			members.Post("/", middleware.ErrorHandler(r.membershipController.AddMember))
+			members.Delete("/", middleware.ErrorHandler(r.membershipController.DeleteMember))
 		})
 	})
 

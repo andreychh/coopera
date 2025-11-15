@@ -2,19 +2,21 @@ package memberships
 
 import (
 	"context"
+	"fmt"
 	"github.com/andreychh/coopera/internal/entity"
 	"github.com/andreychh/coopera/internal/usecase"
+	appErr "github.com/andreychh/coopera/pkg/errors"
 )
 
 type MembershipsUsecase struct {
-	txManager            usecase.TransactionManager
+	txManager            usecase.TransactionManageRepository
 	membershipRepository usecase.MembershipRepository
 }
 
-func NewMembershipsUsecase(mRepo usecase.MembershipRepository, txManager usecase.TransactionManager) *MembershipsUsecase {
+func NewMembershipsUsecase(memberRepo usecase.MembershipRepository, txManager usecase.TransactionManageRepository) *MembershipsUsecase {
 	return &MembershipsUsecase{
 		txManager:            txManager,
-		membershipRepository: mRepo,
+		membershipRepository: memberRepo,
 	}
 }
 
@@ -23,12 +25,69 @@ func (uc *MembershipsUsecase) AddMemberUsecase(ctx context.Context, membership e
 		membership.Role = entity.RoleMember
 	}
 
-	// Оборачиваем вызов репозитория в транзакцию
 	return uc.txManager.WithinTransaction(ctx, func(txCtx context.Context) error {
-		return uc.membershipRepository.AddMemberRepo(txCtx, membership)
+		if err := uc.membershipRepository.AddMemberRepo(txCtx, membership); err != nil {
+			return fmt.Errorf("failed to add member: %w", err)
+		}
+		return nil
+	})
+}
+
+func (uc *MembershipsUsecase) DeleteMemberUsecase(ctx context.Context, membership entity.MembershipEntity, currentUserID int32) error {
+	return uc.txManager.WithinTransaction(ctx, func(txCtx context.Context) error {
+		members, err := uc.membershipRepository.GetMembersRepo(txCtx, membership.TeamID)
+		if err != nil {
+			return fmt.Errorf("failed to get members: %w", err)
+		}
+
+		var (
+			managerID int32
+			found     bool
+		)
+
+		for _, m := range members {
+			if m.Role == entity.RoleManager {
+				managerID = m.MemberID
+			}
+			if m.MemberID == membership.MemberID {
+				found = true
+			}
+		}
+
+		if !found {
+			return appErr.ErrNotFound
+		}
+
+		if currentUserID != managerID && currentUserID != membership.MemberID {
+			return appErr.ErrNoPermissionToDelete
+		}
+
+		if membership.MemberID == managerID && currentUserID == managerID {
+			return appErr.ErrUserOwner
+		}
+
+		if err := uc.membershipRepository.DeleteMemberRepo(txCtx, membership); err != nil {
+			return fmt.Errorf("failed to delete member: %w", err)
+		}
+
+		return nil
 	})
 }
 
 func (uc *MembershipsUsecase) GetMembersUsecase(ctx context.Context, teamID int32) ([]entity.MembershipEntity, error) {
-	return uc.membershipRepository.GetMembersRepo(ctx, teamID)
+	var members []entity.MembershipEntity
+
+	err := uc.txManager.WithinTransaction(ctx, func(txCtx context.Context) error {
+		var err error
+		members, err = uc.membershipRepository.GetMembersRepo(txCtx, teamID)
+		if err != nil {
+			return fmt.Errorf("failed to get members: %w", err)
+		}
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return members, nil
 }

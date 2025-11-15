@@ -27,6 +27,10 @@ func (ur *UserRepository) CreateRepo(ctx context.Context, euser entity.UserEntit
 	return enuser, nil
 }
 
+func (ur *UserRepository) DeleteRepo(ctx context.Context, userID int32) error {
+	return ur.UserDAO.Delete(ctx, userID)
+}
+
 func (ur *UserRepository) GetByTelegramIDRepo(ctx context.Context, telegramID int64) (entity.UserEntity, error) {
 	return ur.UserDAO.GetByTelegramID(ctx, telegramID)
 }

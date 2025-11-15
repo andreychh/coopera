@@ -3,8 +3,8 @@ package team
 import "github.com/andreychh/coopera/internal/entity"
 
 type CreateTeamRequest struct {
-	ID   int32  `json:"id" validate:"required"`
-	Name string `json:"name" validate:"required"`
+	UserID int32  `json:"user_id" validate:"required"`
+	Name   string `json:"name" validate:"required"`
 }
 
 type CreateTeamResponse struct {
@@ -17,7 +17,7 @@ type CreateTeamResponse struct {
 func ToEntityCreateTeamRequest(req *CreateTeamRequest) *entity.TeamEntity {
 	return &entity.TeamEntity{
 		Name:      req.Name,
-		CreatedBy: req.ID,
+		CreatedBy: req.UserID,
 	}
 }
 

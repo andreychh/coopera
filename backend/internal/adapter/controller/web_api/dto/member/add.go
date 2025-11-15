@@ -6,7 +6,7 @@ import (
 
 type AddMemberRequest struct {
 	TeamID   int32 `json:"team_id" validate:"required"`
-	MemberID int32 `json:"member_id" validate:"required"`
+	MemberID int32 `json:"user_id" validate:"required"`
 }
 
 type AddMemberResponse struct {

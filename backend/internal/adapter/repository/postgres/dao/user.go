@@ -2,11 +2,15 @@ package dao
 
 import (
 	"context"
+	"errors"
 	"fmt"
+
 	"github.com/andreychh/coopera/internal/adapter/repository/converter"
+	repoErr "github.com/andreychh/coopera/internal/adapter/repository/errors"
 	"github.com/andreychh/coopera/internal/adapter/repository/model/user_model"
 	"github.com/andreychh/coopera/internal/adapter/repository/postgres"
 	"github.com/andreychh/coopera/internal/entity"
+	"github.com/jackc/pgconn"
 )
 
 type UserRepository struct {
@@ -14,9 +18,7 @@ type UserRepository struct {
 }
 
 func NewUserDAO(db *postgres.DB) *UserRepository {
-	return &UserRepository{
-		db: db,
-	}
+	return &UserRepository{db: db}
 }
 
 func (ur *UserRepository) Create(ctx context.Context, muser user_model.User) (entity.UserEntity, error) {
@@ -26,24 +28,53 @@ func (ur *UserRepository) Create(ctx context.Context, muser user_model.User) (en
 		RETURNING id, telegram_id, created_at
 	`
 
-	// Всегда работаем через транзакцию из контекста
 	tx, ok := ctx.Value(postgres.TransactionKey{}).(postgres.Transaction)
 	if !ok {
-		return entity.UserEntity{}, fmt.Errorf("transaction not found in context")
+		return entity.UserEntity{}, repoErr.ErrTransactionNotFound
 	}
 
 	var userModel user_model.User
-	err := tx.QueryRow(ctx, query, muser.TelegramID).Scan(
+	if err := tx.QueryRow(ctx, query, muser.TelegramID).Scan(
 		&userModel.ID,
 		&userModel.TelegramID,
 		&userModel.CreatedAt,
-	)
+	); err != nil {
 
-	if err != nil {
-		return entity.UserEntity{}, fmt.Errorf("failed to create user_model: %w", err)
+		var pgErr *pgconn.PgError
+		if errors.As(err, &pgErr) {
+			switch pgErr.Code {
+			case "23505": // unique_violation
+				return entity.UserEntity{}, repoErr.ErrAlreadyExists
+			}
+		}
+
+		return entity.UserEntity{}, fmt.Errorf("%w: %v", repoErr.ErrFailCreate, err)
 	}
 
 	return converter.FromModelToEntity(userModel), nil
+}
+
+func (ur *UserRepository) Delete(ctx context.Context, userID int32) error {
+	const query = `
+		DELETE FROM coopera.users
+		WHERE id = $1
+	`
+
+	tx, ok := ctx.Value(postgres.TransactionKey{}).(postgres.Transaction)
+	if !ok {
+		return repoErr.ErrTransactionNotFound
+	}
+
+	cmdTag, err := tx.Exec(ctx, query, userID)
+	if err != nil {
+		return fmt.Errorf("%w: %v", repoErr.ErrFailDelete, err)
+	}
+
+	if cmdTag.RowsAffected() == 0 {
+		return repoErr.ErrNotFound
+	}
+
+	return nil
 }
 
 func (ur *UserRepository) GetByTelegramID(ctx context.Context, telegramID int64) (entity.UserEntity, error) {
@@ -57,15 +88,14 @@ func (ur *UserRepository) GetByTelegramID(ctx context.Context, telegramID int64)
 		WHERE u.telegram_id = $1
 	`
 
-	// тоже извлекаем транзакцию из контекста
 	tx, ok := ctx.Value(postgres.TransactionKey{}).(postgres.Transaction)
 	if !ok {
-		return entity.UserEntity{}, fmt.Errorf("transaction not found in context")
+		return entity.UserEntity{}, repoErr.ErrTransactionNotFound
 	}
 
 	rows, err := tx.Query(ctx, query, telegramID)
 	if err != nil {
-		return entity.UserEntity{}, fmt.Errorf("query failed: %w", err)
+		return entity.UserEntity{}, fmt.Errorf("%w: %v", repoErr.ErrFailGet, err)
 	}
 	defer rows.Close()
 
@@ -85,10 +115,10 @@ func (ur *UserRepository) GetByTelegramID(ctx context.Context, telegramID int64)
 			&teamName,
 			&role,
 		); err != nil {
-			return entity.UserEntity{}, err
+			return entity.UserEntity{}, fmt.Errorf("%w: %v", repoErr.ErrFailGet, err)
 		}
 
-		if teamID != nil {
+		if teamID != nil && teamName != nil && role != nil {
 			user.Teams = append(user.Teams, user_model.TeamWithRole{
 				ID:   *teamID,
 				Name: *teamName,
@@ -98,7 +128,7 @@ func (ur *UserRepository) GetByTelegramID(ctx context.Context, telegramID int64)
 	}
 
 	if user.ID == 0 {
-		return entity.UserEntity{}, fmt.Errorf("user not found")
+		return entity.UserEntity{}, repoErr.ErrNotFound
 	}
 
 	return converter.FromModelToEntityWithTeams(user), nil

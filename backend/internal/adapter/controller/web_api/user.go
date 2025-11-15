@@ -1,6 +1,8 @@
 package web_api
 
 import (
+	"github.com/andreychh/coopera/pkg/errors"
+	"github.com/go-playground/validator/v10"
 	"net/http"
 
 	userdto "github.com/andreychh/coopera/internal/adapter/controller/web_api/dto/user"
@@ -17,38 +19,55 @@ func NewUserController(userUseCase usecase.UserUseCase) *UserController {
 	}
 }
 
-// Create — создаёт нового пользователя
-func (uc *UserController) Create(w http.ResponseWriter, r *http.Request) {
+func (uc *UserController) Create(w http.ResponseWriter, r *http.Request) error {
 	var req userdto.CreateUserRequest
-
 	if err := BindRequest(r, &req); err != nil {
-		writeValidationError(w, err)
-		return
+		if ve, ok := err.(validator.ValidationErrors); ok {
+			return errors.WrapValidationError(ve)
+		}
+		return errors.ErrInvalidInput
 	}
 
 	user, err := uc.userUseCase.CreateUsecase(r.Context(), *userdto.ToEntity(&req))
 	if err != nil {
-		writeJSON(w, http.StatusInternalServerError, map[string]string{
-			"error": err.Error(),
-		})
-		return
+		return err
 	}
 
 	writeJSON(w, http.StatusCreated, userdto.ToCreateUserResponse(&user))
+	return nil
 }
 
-func (uc *UserController) Get(w http.ResponseWriter, r *http.Request) {
+func (uc *UserController) Get(w http.ResponseWriter, r *http.Request) error {
 	var req userdto.GetUserRequest
 	if err := BindRequest(r, &req); err != nil {
-		writeValidationError(w, err)
-		return
+		if ve, ok := err.(validator.ValidationErrors); ok {
+			return errors.WrapValidationError(ve)
+		}
+		return errors.ErrInvalidInput
 	}
 
 	user, err := uc.userUseCase.GetUsecase(r.Context(), *userdto.ToEntity(&req))
 	if err != nil {
-		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
-		return
+		return err
 	}
 
 	writeJSON(w, http.StatusOK, userdto.ToGetUserResponse(&user))
+	return nil
+}
+
+func (uc *UserController) Delete(w http.ResponseWriter, r *http.Request) error {
+	var req userdto.DeleteUserRequest
+	if err := BindRequest(r, &req); err != nil {
+		if ve, ok := err.(validator.ValidationErrors); ok {
+			return errors.WrapValidationError(ve)
+		}
+		return errors.ErrInvalidInput
+	}
+
+	if err := uc.userUseCase.DeleteUsecase(r.Context(), req.ID); err != nil {
+		return err
+	}
+
+	writeJSON(w, http.StatusNoContent, nil)
+	return nil
 }
