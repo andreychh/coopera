@@ -17,3 +17,7 @@ func (b boolean) Marshal() ([]byte, error) {
 func Boolean(value bool) repr.Primitive {
 	return boolean{value: value}
 }
+
+func Bool(value bool) repr.Structure {
+	return StructureOf(Boolean(value))
+}

@@ -17,3 +17,7 @@ func (s string_) Marshal() ([]byte, error) {
 func String(value string) repr.Primitive {
 	return string_{value: value}
 }
+
+func Str(value string) repr.Structure {
+	return StructureOf(String(value))
+}

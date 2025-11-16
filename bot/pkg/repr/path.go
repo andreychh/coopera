@@ -66,3 +66,7 @@ func (p path) Tail() Path {
 func PathOf(s string) Path {
 	return path{raw: s}
 }
+
+func EmptyPath() Path {
+	return path{raw: ""}
+}
