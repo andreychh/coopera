@@ -23,6 +23,9 @@ func (r Recipient) Method() string {
 	return r.origin.Method()
 }
 
-func To(id int64) Content {
-	return Recipient{id: id}
+func To(content Content, recipientID int64) Content {
+	return Recipient{
+		origin: content,
+		id:     recipientID,
+	}
 }
