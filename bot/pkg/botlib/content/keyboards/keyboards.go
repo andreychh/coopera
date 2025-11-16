@@ -1,9 +1,15 @@
 package keyboards
 
-import (
-	"github.com/andreychh/coopera-bot/pkg/repr"
-)
+import "github.com/andreychh/coopera-bot/pkg/botlib/content"
 
 type Keyboard interface {
-	AsObject() repr.Object
+	content.Content
+}
+
+type InlineKeyboard interface {
+	Keyboard
+}
+
+type ReplyKeyboard interface {
+	Keyboard
 }

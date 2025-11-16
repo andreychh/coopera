@@ -9,10 +9,16 @@ type urlPhotoContent struct {
 	url string
 }
 
-func (u urlPhotoContent) AsObject() repr.Object {
-	return json.Object().WithField("photo", json.String(u.url))
+func (u urlPhotoContent) Structure() repr.Structure {
+	return json.Object(json.Fields{
+		"photo": json.Str(u.url),
+	})
 }
 
-func URLPhoto(url string) ObjectContent {
+func (u urlPhotoContent) Method() string {
+	return "sendPhoto"
+}
+
+func URLPhoto(url string) Content {
 	return urlPhotoContent{url: url}
 }

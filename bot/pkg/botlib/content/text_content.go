@@ -9,10 +9,16 @@ type textContent struct {
 	text string
 }
 
-func (t textContent) AsObject() repr.Object {
-	return json.Object().WithField("text", json.String(t.text))
+func (t textContent) Structure() repr.Structure {
+	return json.Object(json.Fields{
+		"text": json.Str(t.text),
+	})
 }
 
-func Text(text string) ObjectContent {
+func (t textContent) Method() string {
+	return "sendMessage"
+}
+
+func Text(text string) Content {
 	return textContent{text: text}
 }

@@ -27,3 +27,10 @@ type Segment interface {
 var ErrCannotGet = errors.New("cannot get value at the specified path")
 var ErrCannotUpdate = errors.New("cannot update value at the specified path")
 var ErrCannotMerge = errors.New("cannot merge value at the specified path")
+
+func Must(s Structure, err error) Structure {
+	if err != nil {
+		panic(err)
+	}
+	return s
+}

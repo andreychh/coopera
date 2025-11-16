@@ -10,10 +10,11 @@ type urlButton struct {
 	url  string
 }
 
-func (u urlButton) AsObject() repr.Object {
-	return json.Object().
-		WithField("text", json.String(u.text)).
-		WithField("url", json.String(u.url))
+func (u urlButton) Structure() repr.Structure {
+	return json.Object(json.Fields{
+		"text": json.Str(u.text),
+		"url":  json.Str(u.url),
+	})
 }
 
 func URLButton(text string, url string) InlineButton {

@@ -14,12 +14,12 @@ func (m buttonMatrix) WithRow(row ButtonRow) ButtonMatrix {
 	return buttonMatrix{Rows: slices.With(m.Rows, row)}
 }
 
-func (m buttonMatrix) AsArray() repr.Array {
-	array := json.Array()
-	for _, row := range m.Rows {
-		array = array.WithElement(row.AsArray())
+func (m buttonMatrix) Structure() repr.Structure {
+	elements := make([]repr.Structure, len(m.Rows))
+	for i, row := range m.Rows {
+		elements[i] = row.Structure()
 	}
-	return array
+	return json.Array(elements...)
 }
 
 func Matrix(rows ...ButtonRow) ButtonMatrix {

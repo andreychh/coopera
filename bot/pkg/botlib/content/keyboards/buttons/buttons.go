@@ -6,16 +6,16 @@ import (
 
 type ButtonMatrix interface {
 	WithRow(row ButtonRow) ButtonMatrix
-	AsArray() repr.Array
+	Structure() repr.Structure
 }
 
 type ButtonRow interface {
 	WithButton(button Button) ButtonRow
-	AsArray() repr.Array
+	Structure() repr.Structure
 }
 
 type Button interface {
-	AsObject() repr.Object
+	Structure() repr.Structure
 }
 
 type InlineButton interface {

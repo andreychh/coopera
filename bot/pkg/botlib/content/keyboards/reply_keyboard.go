@@ -7,28 +7,28 @@ import (
 	"github.com/andreychh/coopera-bot/pkg/repr/json"
 )
 
-type inlineKeyboard struct {
+type replyKeyboard struct {
 	origin  content.Content
 	buttons buttons.ButtonMatrix
 }
 
-func (i inlineKeyboard) Structure() repr.Structure {
-	return repr.Must(i.origin.Structure().Extend(
+func (r replyKeyboard) Structure() repr.Structure {
+	return repr.Must(r.origin.Structure().Extend(
 		repr.EmptyPath(),
 		json.Object(json.Fields{
 			"reply_markup": json.Object(json.Fields{
-				"inline_keyboard": i.buttons.Structure(),
+				"keyboard": r.buttons.Structure(),
 			}),
 		}),
 	))
 }
 
-func (i inlineKeyboard) Method() string {
-	return i.origin.Method()
+func (r replyKeyboard) Method() string {
+	return r.origin.Method()
 }
 
-func Inline(content content.Content, buttons buttons.ButtonMatrix) content.Content {
-	return inlineKeyboard{
+func Reply(content content.Content, buttons buttons.ButtonMatrix) content.Content {
+	return replyKeyboard{
 		origin:  content,
 		buttons: buttons,
 	}

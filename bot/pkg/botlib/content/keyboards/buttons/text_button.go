@@ -9,9 +9,10 @@ type textButton struct {
 	text string
 }
 
-func (t textButton) AsObject() repr.Object {
-	return json.Object().
-		WithField("text", json.String(t.text))
+func (t textButton) Structure() repr.Structure {
+	return json.Object(json.Fields{
+		"text": json.Str(t.text),
+	})
 }
 
 func TextButton(text string) ReplyButton {

@@ -10,10 +10,11 @@ type callbackButton struct {
 	callbackData string
 }
 
-func (c callbackButton) AsObject() repr.Object {
-	return json.Object().
-		WithField("text", json.String(c.text)).
-		WithField("callback_data", json.String(c.callbackData))
+func (c callbackButton) Structure() repr.Structure {
+	return json.Object(json.Fields{
+		"text":          json.Str(c.text),
+		"callback_data": json.Str(c.callbackData),
+	})
 }
 
 func CallbackButton(text string, callbackData string) InlineButton {
