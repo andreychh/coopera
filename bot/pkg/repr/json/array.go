@@ -2,6 +2,7 @@ package json
 
 import (
 	"bytes"
+	"fmt"
 
 	"github.com/andreychh/coopera-bot/pkg/repr"
 	"github.com/andreychh/coopera-bot/pkg/slices"
@@ -26,6 +27,28 @@ func (a array) Encode() ([]byte, error) {
 	}
 	buf.WriteByte(']')
 	return buf.Bytes(), nil
+}
+
+func (a array) Update(path repr.Path, value repr.Encodable) (repr.Encodable, error) {
+	if path.Empty() {
+		return value, nil
+	}
+	index, err := path.Index()
+	if err != nil {
+		return nil, err
+	}
+	if !a.correctIndex(index) {
+		return nil, fmt.Errorf("index %d out of bounds", index)
+	}
+	updated, err := a.elements[index].Update(path.Tail(), value)
+	if err != nil {
+		return nil, err
+	}
+	return array{elements: slices.WithReplaced(a.elements, index, updated)}, nil
+}
+
+func (a array) correctIndex(index int) bool {
+	return index >= 0 && index < len(a.elements)
 }
 
 func (a array) WithElement(element repr.Encodable) repr.Array {
