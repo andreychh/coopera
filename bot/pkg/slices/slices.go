@@ -6,3 +6,10 @@ func With[T any](slice []T, elements ...T) []T {
 	result = append(result, elements...)
 	return result
 }
+
+func WithReplaced[T any](slice []T, index int, value T) []T {
+	result := make([]T, 0, len(slice))
+	result = append(result, slice...)
+	result[index] = value
+	return result
+}
