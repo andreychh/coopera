@@ -4,13 +4,13 @@ import (
 	"github.com/andreychh/coopera-bot/pkg/repr"
 )
 
-type ButtonMatrix interface {
-	WithRow(row ButtonRow) ButtonMatrix
+type ButtonMatrix[T Button] interface {
+	WithRow(row ButtonRow[T]) ButtonMatrix[T]
 	Structure() repr.Structure
 }
 
-type ButtonRow interface {
-	WithButton(button Button) ButtonRow
+type ButtonRow[T Button] interface {
+	WithButton(button T) ButtonRow[T]
 	Structure() repr.Structure
 }
 

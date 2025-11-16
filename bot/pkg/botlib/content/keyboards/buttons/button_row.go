@@ -6,15 +6,15 @@ import (
 	"github.com/andreychh/coopera-bot/pkg/slices"
 )
 
-type buttonRow struct {
-	buttons []Button
+type buttonRow[T Button] struct {
+	buttons []T
 }
 
-func (r buttonRow) WithButton(button Button) ButtonRow {
-	return buttonRow{buttons: slices.With(r.buttons, button)}
+func (r buttonRow[T]) WithButton(button T) ButtonRow[T] {
+	return buttonRow[T]{buttons: slices.With(r.buttons, button)}
 }
 
-func (r buttonRow) Structure() repr.Structure {
+func (r buttonRow[T]) Structure() repr.Structure {
 	elements := make([]repr.Structure, len(r.buttons))
 	for i, btn := range r.buttons {
 		elements[i] = btn.Structure()
@@ -22,6 +22,6 @@ func (r buttonRow) Structure() repr.Structure {
 	return json.Array(elements...)
 }
 
-func Row(buttons ...Button) ButtonRow {
-	return buttonRow{buttons: buttons}
+func Row[T Button](buttons ...T) ButtonRow[T] {
+	return buttonRow[T]{buttons: buttons}
 }

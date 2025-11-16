@@ -9,7 +9,7 @@ import (
 
 type inlineKeyboard struct {
 	origin  content.Content
-	buttons buttons.ButtonMatrix
+	buttons buttons.ButtonMatrix[buttons.InlineButton]
 }
 
 func (i inlineKeyboard) Structure() repr.Structure {
@@ -27,7 +27,7 @@ func (i inlineKeyboard) Method() string {
 	return i.origin.Method()
 }
 
-func Inline(content content.Content, buttons buttons.ButtonMatrix) content.Content {
+func Inline(content content.Content, buttons buttons.ButtonMatrix[buttons.InlineButton]) InlineKeyboard {
 	return inlineKeyboard{
 		origin:  content,
 		buttons: buttons,

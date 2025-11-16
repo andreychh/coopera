@@ -9,7 +9,7 @@ import (
 
 type replyKeyboard struct {
 	origin  content.Content
-	buttons buttons.ButtonMatrix
+	buttons buttons.ButtonMatrix[buttons.ReplyButton]
 }
 
 func (r replyKeyboard) Structure() repr.Structure {
@@ -27,7 +27,7 @@ func (r replyKeyboard) Method() string {
 	return r.origin.Method()
 }
 
-func Reply(content content.Content, buttons buttons.ButtonMatrix) content.Content {
+func Reply(content content.Content, buttons buttons.ButtonMatrix[buttons.ReplyButton]) ReplyKeyboard {
 	return replyKeyboard{
 		origin:  content,
 		buttons: buttons,
