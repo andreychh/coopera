@@ -14,37 +14,27 @@ func (p path) Empty() bool {
 	return p.raw == ""
 }
 
-func (p path) Index() (int, error) {
+func (p path) Head() (Segment, error) {
 	if p.raw == "" {
-		return 0, fmt.Errorf("path is empty")
+		return nil, fmt.Errorf("path is empty")
 	}
 	if p.raw[0] == '[' {
 		end := strings.IndexByte(p.raw, ']')
 		if end == -1 {
-			return 0, fmt.Errorf("unclosed bracket in path")
+			return nil, fmt.Errorf("unclosed bracket in path")
 		}
 		indexStr := p.raw[1:end]
 		index, err := strconv.Atoi(indexStr)
 		if err != nil {
-			return 0, fmt.Errorf("invalid index: %s", indexStr)
+			return nil, fmt.Errorf("invalid index %q: %w", indexStr, err)
 		}
-		return index, nil
-	}
-	return 0, fmt.Errorf("expected index, got key")
-}
-
-func (p path) Key() (string, error) {
-	if p.raw == "" {
-		return "", fmt.Errorf("path is empty")
-	}
-	if p.raw[0] == '[' {
-		return "", fmt.Errorf("expected key, got index")
+		return indexSegment{value: index}, nil
 	}
 	end := strings.IndexAny(p.raw, ".[")
 	if end == -1 {
-		return p.raw, nil
+		return keySegment{value: p.raw}, nil
 	}
-	return p.raw[:end], nil
+	return keySegment{value: p.raw[:end]}, nil
 }
 
 func (p path) Tail() Path {
@@ -73,6 +63,6 @@ func (p path) Tail() Path {
 	return path{raw: rest}
 }
 
-func NewPath(s string) Path {
+func PathOf(s string) Path {
 	return path{raw: s}
 }

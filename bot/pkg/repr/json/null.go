@@ -6,17 +6,10 @@ import (
 
 type null struct{}
 
-func (n null) Encode() ([]byte, error) {
+func (n null) Marshal() ([]byte, error) {
 	return []byte("null"), nil
 }
 
-func (n null) Update(path repr.Path, value repr.Encodable) (repr.Encodable, error) {
-	if !path.Empty() {
-		return nil, repr.ErrCannotUpdate
-	}
-	return value, nil
-}
-
-func Null() repr.Encodable {
+func Null() repr.Primitive {
 	return null{}
 }

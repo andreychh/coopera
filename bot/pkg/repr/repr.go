@@ -2,30 +2,28 @@ package repr
 
 import "errors"
 
-type Encodable interface {
-	Encode() ([]byte, error)
-	Update(path Path, value Encodable) (Encodable, error)
+type Primitive interface {
+	Marshal() ([]byte, error)
 }
 
-type Array interface {
-	Encodable
-	WithElement(element Encodable) Array
-	Extend(array Array) Array
-	AsSlice() []Encodable
-}
-
-type Object interface {
-	Encodable
-	WithField(key string, value Encodable) Object
-	Merge(other Object) Object
-	AsMap() map[string]Encodable
+type Structure interface {
+	Marshal() ([]byte, error)
+	At(path Path) (Structure, error)
+	Update(path Path, value Structure) (Structure, error)
+	Extend(path Path, other Structure) (Structure, error)
 }
 
 type Path interface {
 	Empty() bool
-	Index() (int, error)
-	Key() (string, error)
+	Head() (Segment, error)
 	Tail() Path
 }
 
-var ErrCannotUpdate = errors.New("cannot update into this type")
+type Segment interface {
+	Index() (int, bool)
+	Key() (string, bool)
+}
+
+var ErrCannotGet = errors.New("cannot get value at the specified path")
+var ErrCannotUpdate = errors.New("cannot update value at the specified path")
+var ErrCannotMerge = errors.New("cannot merge value at the specified path")

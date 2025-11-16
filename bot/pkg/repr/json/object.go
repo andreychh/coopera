@@ -2,110 +2,136 @@ package json
 
 import (
 	"bytes"
+	"fmt"
+	"maps"
+	"slices"
 
 	"github.com/andreychh/coopera-bot/pkg/repr"
-	"github.com/andreychh/coopera-bot/pkg/slices"
 )
 
 type object struct {
-	fields []field
+	fields Fields
 }
 
-func (o object) Encode() ([]byte, error) {
+func (o object) Marshal() ([]byte, error) {
 	var buf bytes.Buffer
 	buf.WriteByte('{')
-	for i, fld := range o.fields {
+	for i, key := range slices.Sorted(maps.Keys(o.fields)) {
 		if i > 0 {
 			buf.WriteByte(',')
 		}
-		encoded, err := fld.Encode()
+		keyData, err := String(key).Marshal()
 		if err != nil {
 			return nil, err
 		}
-		buf.Write(encoded)
+		buf.Write(keyData)
+		buf.WriteByte(':')
+		valueData, err := o.fields[key].Marshal()
+		if err != nil {
+			return nil, err
+		}
+		buf.Write(valueData)
 	}
 	buf.WriteByte('}')
 	return buf.Bytes(), nil
 }
 
-func (o object) Update(path repr.Path, value repr.Encodable) (repr.Encodable, error) {
+func (o object) At(path repr.Path) (repr.Structure, error) {
+	if path.Empty() {
+		return o, nil
+	}
+	key, err := o.key(path)
+	if err != nil {
+		return nil, err
+	}
+	value, exists := o.fields[key]
+	if !exists {
+		return nil, fmt.Errorf("field %q not found", key)
+	}
+	return value.At(path.Tail())
+}
+
+func (o object) Update(path repr.Path, value repr.Structure) (repr.Structure, error) {
 	if path.Empty() {
 		return value, nil
 	}
-	key, err := path.Key()
+	key, err := o.key(path)
 	if err != nil {
 		return nil, err
 	}
-	for i, fld := range o.fields {
-		if fld.key == key {
-			updated, err := fld.value.Update(path.Tail(), value)
-			if err != nil {
-				return nil, err
-			}
-			return object{fields: slices.WithReplaced(o.fields, i, field{key: key, value: updated})}, nil
-		}
+	existing, exists := o.fields[key]
+	if !exists {
+		return nil, fmt.Errorf("field %q not found", key)
 	}
-	return nil, repr.ErrCannotUpdate
-}
-
-func (o object) WithField(key string, value repr.Encodable) repr.Object {
-	return object{fields: slices.With(o.fields, field{key: key, value: value})}
-}
-
-func (o object) Merge(other repr.Object) repr.Object {
-	otherMap := other.AsMap()
-	merged := make([]field, 0, len(o.fields)+len(otherMap))
-	seen := make(map[string]bool)
-	for _, f := range o.fields {
-		if newValue, exists := otherMap[f.key]; exists {
-			merged = append(merged, field{key: f.key, value: newValue})
-		} else {
-			merged = append(merged, f)
-		}
-		seen[f.key] = true
-	}
-	for key, value := range otherMap {
-		if !seen[key] {
-			merged = append(merged, field{key: key, value: value})
-		}
-	}
-	return object{fields: merged}
-}
-
-func (o object) AsMap() map[string]repr.Encodable {
-	result := make(map[string]repr.Encodable, len(o.fields))
-	for _, f := range o.fields {
-		result[f.key] = f.value
-	}
-	return result
-}
-
-func Object() repr.Object {
-	return object{fields: []field{}}
-}
-
-type field struct {
-	key   string
-	value repr.Encodable
-}
-
-func (f field) Update(path repr.Path, value repr.Encodable) repr.Encodable {
-	// TODO implement me
-	panic("implement me")
-}
-
-func (f field) Encode() ([]byte, error) {
-	key, err := String(f.key).Encode()
+	updated, err := existing.Update(path.Tail(), value)
 	if err != nil {
 		return nil, err
 	}
-	value, err := f.value.Encode()
+	newFields := make(Fields, len(o.fields))
+	for k, v := range o.fields {
+		newFields[k] = v
+	}
+	newFields[key] = updated
+	return object{fields: newFields}, nil
+}
+
+func (o object) Extend(path repr.Path, other repr.Structure) (repr.Structure, error) {
+	if path.Empty() {
+		otherObject, ok := other.(object)
+		if !ok {
+			return nil, fmt.Errorf("can only extend object with object, got %T", other)
+		}
+		merged := make(Fields, len(o.fields)+len(otherObject.fields))
+		for k, v := range o.fields {
+			merged[k] = v
+		}
+		for k, v := range otherObject.fields {
+			merged[k] = v
+		}
+		return object{fields: merged}, nil
+	}
+	key, err := o.key(path)
 	if err != nil {
 		return nil, err
 	}
-	result := make([]byte, 0, len(key)+1+len(value))
-	result = append(result, key...)
-	result = append(result, ':')
-	result = append(result, value...)
-	return result, nil
+	existing, exists := o.fields[key]
+	if !exists {
+		return nil, fmt.Errorf("field %q not found", key)
+	}
+	extended, err := existing.Extend(path.Tail(), other)
+	if err != nil {
+		return nil, err
+	}
+	newFields := make(Fields, len(o.fields))
+	for k, v := range o.fields {
+		newFields[k] = v
+	}
+	newFields[key] = extended
+	return object{fields: newFields}, nil
 }
+
+func (o object) key(path repr.Path) (string, error) {
+	head, err := path.Head()
+	if err != nil {
+		return "", fmt.Errorf("getting path head: %w", err)
+	}
+	key, ok := head.Key()
+	if !ok {
+		return "", fmt.Errorf("object path must be key, got %v", head)
+	}
+	return key, nil
+}
+
+func Object(fields Fields) repr.Structure {
+	copied := make(Fields, len(fields))
+	for k, v := range fields {
+		copied[k] = v
+	}
+	return object{fields: copied}
+}
+
+func EmptyObject() repr.Structure {
+	return object{fields: make(Fields)}
+}
+
+type Fields map[string]repr.Structure
