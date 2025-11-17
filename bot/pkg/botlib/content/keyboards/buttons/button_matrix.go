@@ -7,21 +7,21 @@ import (
 )
 
 type buttonMatrix[T Button] struct {
-	Rows []ButtonRow[T]
+	rows []ButtonRow[T]
 }
 
 func (m buttonMatrix[T]) WithRow(row ButtonRow[T]) ButtonMatrix[T] {
-	return buttonMatrix[T]{Rows: slices.With(m.Rows, row)}
+	return buttonMatrix[T]{rows: slices.With(m.rows, row)}
 }
 
 func (m buttonMatrix[T]) Structure() repr.Structure {
-	elements := make([]repr.Structure, len(m.Rows))
-	for i, row := range m.Rows {
+	elements := make([]repr.Structure, len(m.rows))
+	for i, row := range m.rows {
 		elements[i] = row.Structure()
 	}
 	return json.Array(elements...)
 }
 
 func Matrix[T Button](rows ...ButtonRow[T]) ButtonMatrix[T] {
-	return buttonMatrix[T]{Rows: rows}
+	return buttonMatrix[T]{rows: rows}
 }

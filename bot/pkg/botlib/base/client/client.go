@@ -27,13 +27,19 @@ func (h httpClient) Execute(ctx context.Context, method string, payload []byte) 
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
+	defer func() {
+		closeErr := resp.Body.Close()
+		if err == nil {
+			err = closeErr
+		}
+	}()
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return nil, err
 	}
-	if resp.StatusCode != 200 {
-		return nil, fmt.Errorf("telegram API error %d: %s", resp.StatusCode, body)
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		truncatedBody := h.truncateBody(body)
+		return nil, fmt.Errorf("telegram API error %d: %s", resp.StatusCode, truncatedBody)
 	}
 	return body, nil
 }
@@ -45,6 +51,14 @@ func (h httpClient) request(ctx context.Context, url string, reader io.Reader) (
 	}
 	request.Header.Set("Content-Type", "application/json")
 	return request, nil
+}
+
+func (h httpClient) truncateBody(body []byte) []byte {
+	const maxErrBody = 1024
+	if len(body) > maxErrBody {
+		return append(body[:maxErrBody], []byte("...(truncated)")...)
+	}
+	return body
 }
 
 func HTTPClient(token string) Client {

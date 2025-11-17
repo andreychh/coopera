@@ -24,6 +24,6 @@ func (c caption) Method() string {
 	return c.origin.Method()
 }
 
-func Caption(text string) content.Content {
-	return caption{text: text}
+func Caption(content content.Content, text string) content.Content {
+	return caption{origin: content, text: text}
 }
