@@ -13,17 +13,20 @@ import (
 type Router struct {
 	userController       *UserController
 	teamController       *TeamController
+	taskController       *TaskController
 	membershipController *MembershipController
 }
 
 func NewRouter(
 	userUseCase usecase.UserUseCase,
 	teamUseCase usecase.TeamUseCase,
+	taskUseCase usecase.TaskUseCase,
 	membershipUseCase usecase.MembershipUseCase,
 ) *Router {
 	return &Router{
 		userController:       NewUserController(userUseCase),
 		teamController:       NewTeamController(teamUseCase),
+		taskController:       NewTaskController(taskUseCase),
 		membershipController: NewMembershipController(membershipUseCase),
 	}
 }
@@ -47,6 +50,12 @@ func (r *Router) SetupRoutes() http.Handler {
 		api.Route("/memberships", func(members chi.Router) {
 			members.Post("/", middleware.ErrorHandler(r.membershipController.AddMember))
 			members.Delete("/", middleware.ErrorHandler(r.membershipController.DeleteMember))
+		})
+
+		api.Route("/tasks", func(tasks chi.Router) {
+			tasks.Post("/", middleware.ErrorHandler(r.taskController.Create))
+			//tasks.Get("/", middleware.ErrorHandler(r.taskController.Get))
+			//tasks.Delete("/", middleware.ErrorHandler(r.taskController.Delete))
 		})
 	})
 

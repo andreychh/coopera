@@ -31,3 +31,7 @@ type MembershipRepository interface {
 	DeleteMemberRepo(ctx context.Context, membership entity.MembershipEntity) error
 	GetMembersRepo(ctx context.Context, teamID int32) ([]entity.MembershipEntity, error)
 }
+
+type TaskRepository interface {
+	CreateRepo(ctx context.Context, task entity.Task) (entity.Task, error)
+}

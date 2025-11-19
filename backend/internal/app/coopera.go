@@ -3,6 +3,7 @@ package app
 import (
 	"context"
 	"fmt"
+	"github.com/andreychh/coopera/internal/usecase/task"
 	"log"
 	"net/http"
 	"os"
@@ -16,6 +17,7 @@ import (
 	repomembership "github.com/andreychh/coopera/internal/adapter/repository/membership_repo"
 	"github.com/andreychh/coopera/internal/adapter/repository/postgres"
 	"github.com/andreychh/coopera/internal/adapter/repository/postgres/dao"
+	repotask "github.com/andreychh/coopera/internal/adapter/repository/task_repo"
 	repoteams "github.com/andreychh/coopera/internal/adapter/repository/team_repo"
 	repouser "github.com/andreychh/coopera/internal/adapter/repository/user_repo"
 	"github.com/andreychh/coopera/internal/usecase/memberships"
@@ -58,13 +60,15 @@ func Start() error {
 
 	userRepo := repouser.NewUserRepository(*dao.NewUserDAO(db))
 	teamRepo := repoteams.NewTeamRepository(*dao.NewTeamDAO(db))
+	taskRepo := repotask.NewTaskRepository(*dao.NewTaskDAO(db))
 	memberRepo := repomembership.NewMembershipRepository(*dao.NewMembershipDAO(db))
 
 	userUC := user.NewUserUsecase(userRepo, db)
 	memberUC := memberships.NewMembershipsUsecase(memberRepo, db)
 	teamUC := team.NewTeamUsecase(teamRepo, memberUC, db)
+	taskUC := task.NewTaskUsecase(taskRepo, memberUC, db)
 
-	router := web_api.NewRouter(userUC, teamUC, memberUC).SetupRoutes()
+	router := web_api.NewRouter(userUC, teamUC, taskUC, memberUC).SetupRoutes()
 
 	// Telegram controller
 	botToken := os.Getenv("TELEGRAM_BOT_TOKEN")
