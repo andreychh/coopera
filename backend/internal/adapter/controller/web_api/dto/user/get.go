@@ -1,6 +1,6 @@
 package user
 
-import "github.com/andreychh/coopera/internal/entity"
+import "github.com/andreychh/coopera-backend/internal/entity"
 
 type GetUserRequest struct {
 	TelegramID int64 `form:"telegram_id" validate:"required"`

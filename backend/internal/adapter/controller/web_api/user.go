@@ -1,12 +1,12 @@
 package web_api
 
 import (
-	"github.com/andreychh/coopera/pkg/errors"
+	"github.com/andreychh/coopera-backend/pkg/errors"
 	"github.com/go-playground/validator/v10"
 	"net/http"
 
-	userdto "github.com/andreychh/coopera/internal/adapter/controller/web_api/dto/user"
-	"github.com/andreychh/coopera/internal/usecase"
+	userdto "github.com/andreychh/coopera-backend/internal/adapter/controller/web_api/dto/user"
+	"github.com/andreychh/coopera-backend/internal/usecase"
 )
 
 type UserController struct {

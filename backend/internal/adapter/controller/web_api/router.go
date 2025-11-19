@@ -1,12 +1,12 @@
 package web_api
 
 import (
-	"github.com/andreychh/coopera/internal/adapter/controller/web_api/middleware"
+	"github.com/andreychh/coopera-backend/internal/adapter/controller/web_api/middleware"
 	chimw "github.com/go-chi/chi/v5/middleware"
 	"net/http"
 	"time"
 
-	"github.com/andreychh/coopera/internal/usecase"
+	"github.com/andreychh/coopera-backend/internal/usecase"
 	"github.com/go-chi/chi/v5"
 )
 

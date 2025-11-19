@@ -3,7 +3,7 @@ package app
 import (
 	"context"
 	"fmt"
-	"github.com/andreychh/coopera/internal/usecase/task"
+	"github.com/andreychh/coopera-backend/internal/usecase/task"
 	"log"
 	"net/http"
 	"os"
@@ -12,27 +12,27 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/andreychh/coopera/internal/adapter/controller/telegram_api"
-	"github.com/andreychh/coopera/internal/adapter/controller/web_api"
-	repomembership "github.com/andreychh/coopera/internal/adapter/repository/membership_repo"
-	"github.com/andreychh/coopera/internal/adapter/repository/postgres"
-	"github.com/andreychh/coopera/internal/adapter/repository/postgres/dao"
-	repotask "github.com/andreychh/coopera/internal/adapter/repository/task_repo"
-	repoteams "github.com/andreychh/coopera/internal/adapter/repository/team_repo"
-	repouser "github.com/andreychh/coopera/internal/adapter/repository/user_repo"
-	"github.com/andreychh/coopera/internal/usecase/memberships"
-	"github.com/andreychh/coopera/internal/usecase/team"
-	"github.com/andreychh/coopera/internal/usecase/user"
-	"github.com/andreychh/coopera/pkg/logger"
-	"github.com/andreychh/coopera/pkg/migrator"
+	"github.com/andreychh/coopera-backend/internal/adapter/controller/telegram_api"
+	"github.com/andreychh/coopera-backend/internal/adapter/controller/web_api"
+	repomembership "github.com/andreychh/coopera-backend/internal/adapter/repository/membership_repo"
+	"github.com/andreychh/coopera-backend/internal/adapter/repository/postgres"
+	"github.com/andreychh/coopera-backend/internal/adapter/repository/postgres/dao"
+	repotask "github.com/andreychh/coopera-backend/internal/adapter/repository/task_repo"
+	repoteams "github.com/andreychh/coopera-backend/internal/adapter/repository/team_repo"
+	repouser "github.com/andreychh/coopera-backend/internal/adapter/repository/user_repo"
+	"github.com/andreychh/coopera-backend/internal/usecase/memberships"
+	"github.com/andreychh/coopera-backend/internal/usecase/team"
+	"github.com/andreychh/coopera-backend/internal/usecase/user"
+	"github.com/andreychh/coopera-backend/pkg/logger"
+	"github.com/andreychh/coopera-backend/pkg/migrator"
 	"github.com/go-playground/validator/v10"
-	"github.com/joho/godotenv"
 )
 
 func Start() error {
-	if err := godotenv.Load("config/dev/.env"); err != nil {
-		return fmt.Errorf("error loading .env: %w", err)
-	}
+	// для локалки
+	//if err := godotenv.Load("config/dev/.env"); err != nil {
+	//	return fmt.Errorf("error loading .env: %w", err)
+	//}
 
 	logLevel, _ := strconv.Atoi(os.Getenv("LOG_LEVEL"))
 	if logLevel == 0 {

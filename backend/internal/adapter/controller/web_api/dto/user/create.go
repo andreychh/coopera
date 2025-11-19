@@ -1,7 +1,7 @@
 package user
 
 import (
-	"github.com/andreychh/coopera/internal/entity"
+	"github.com/andreychh/coopera-backend/internal/entity"
 	"time"
 )
 

@@ -1,8 +1,8 @@
 package converter
 
 import (
-	"github.com/andreychh/coopera/internal/adapter/repository/model/membership_model"
-	"github.com/andreychh/coopera/internal/entity"
+	"github.com/andreychh/coopera-backend/internal/adapter/repository/model/membership_model"
+	"github.com/andreychh/coopera-backend/internal/entity"
 )
 
 func FromEntityToModelMembership(membership entity.MembershipEntity) membership_model.Membership {

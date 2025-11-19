@@ -2,10 +2,10 @@ package middleware
 
 import (
 	"encoding/json"
-	"github.com/andreychh/coopera/pkg/errors"
+	"github.com/andreychh/coopera-backend/pkg/errors"
 	"net/http"
 
-	"github.com/andreychh/coopera/internal/adapter/controller/web_api/error_mapper"
+	"github.com/andreychh/coopera-backend/internal/adapter/controller/web_api/error_mapper"
 )
 
 type HandlerFuncWithError func(w http.ResponseWriter, r *http.Request) error

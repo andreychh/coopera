@@ -2,9 +2,9 @@ package user_repo
 
 import (
 	"context"
-	"github.com/andreychh/coopera/internal/adapter/repository/converter"
-	"github.com/andreychh/coopera/internal/adapter/repository/postgres/dao"
-	"github.com/andreychh/coopera/internal/entity"
+	"github.com/andreychh/coopera-backend/internal/adapter/repository/converter"
+	"github.com/andreychh/coopera-backend/internal/adapter/repository/postgres/dao"
+	"github.com/andreychh/coopera-backend/internal/entity"
 )
 
 type UserRepository struct {

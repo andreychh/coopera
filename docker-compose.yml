@@ -1,6 +1,6 @@
 services:
   postgres:
-    image: postgres:18-alpine
+    image: postgres:15-alpine
     container_name: coopera_postgres
     environment:
       POSTGRES_USER: user
@@ -11,24 +11,12 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data/
     healthcheck:
-      test: [ "CMD-SHELL", "pg_isready -U user -d database" ]
+      test: ["CMD-SHELL", "pg_isready -U user -d database"]
       interval: 5s
       timeout: 5s
-      retries: 5
-  migrate:
-    image: migrate/migrate:v4.19.0
-    volumes:
-      - ./migrations:/migrations
-    command:
-      [
-        "-path", "/migrations",
-        "-database", "postgres://user:password@postgres:5432/database?sslmode=disable",
-        "up"
-      ]
-    depends_on:
-      postgres:
-        condition: service_healthy
-    restart: "no"
+      retries: 10
+      start_period: 20s
+
   backend:
     build:
       context: ./backend
@@ -37,21 +25,25 @@ services:
     ports:
       - "8080:8080"
     env_file:
-      - .env.backend
+      - .env.backend.example
+    volumes:
+      - ./backend/migrations:/migrations
     depends_on:
-      migrate:
-        condition: service_completed_successfully
+      postgres:
+        condition: service_healthy
     restart: always
+
   bot:
     build:
       context: ./bot
       dockerfile: Dockerfile
     container_name: coopera_bot
     env_file:
-      - .env.bot
+      - .env.bot.example
     depends_on:
       backend:
         condition: service_started
     restart: always
+
 volumes:
   postgres_data:

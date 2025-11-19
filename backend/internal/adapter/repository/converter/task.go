@@ -1,8 +1,8 @@
 package converter
 
 import (
-	taskModel "github.com/andreychh/coopera/internal/adapter/repository/model/task_model"
-	"github.com/andreychh/coopera/internal/entity"
+	taskModel "github.com/andreychh/coopera-backend/internal/adapter/repository/model/task_model"
+	"github.com/andreychh/coopera-backend/internal/entity"
 )
 
 func FromEntityToModelTask(task entity.Task) taskModel.Task {

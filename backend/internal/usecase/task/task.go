@@ -3,8 +3,8 @@ package task
 import (
 	"context"
 	"fmt"
-	"github.com/andreychh/coopera/internal/entity"
-	"github.com/andreychh/coopera/internal/usecase"
+	"github.com/andreychh/coopera-backend/internal/entity"
+	"github.com/andreychh/coopera-backend/internal/usecase"
 )
 
 type TaskUsecase struct {

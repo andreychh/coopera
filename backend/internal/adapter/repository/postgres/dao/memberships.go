@@ -4,11 +4,11 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/andreychh/coopera/internal/adapter/repository/converter"
-	repoErr "github.com/andreychh/coopera/internal/adapter/repository/errors"
-	"github.com/andreychh/coopera/internal/adapter/repository/model/membership_model"
-	"github.com/andreychh/coopera/internal/adapter/repository/postgres"
-	"github.com/andreychh/coopera/internal/entity"
+	"github.com/andreychh/coopera-backend/internal/adapter/repository/converter"
+	repoErr "github.com/andreychh/coopera-backend/internal/adapter/repository/errors"
+	"github.com/andreychh/coopera-backend/internal/adapter/repository/model/membership_model"
+	"github.com/andreychh/coopera-backend/internal/adapter/repository/postgres"
+	"github.com/andreychh/coopera-backend/internal/entity"
 )
 
 type MembershipDAO struct {

@@ -4,8 +4,8 @@ import (
 	"errors"
 	"net/http"
 
-	dbErr "github.com/andreychh/coopera/internal/adapter/repository/errors"
-	appErr "github.com/andreychh/coopera/pkg/errors"
+	dbErr "github.com/andreychh/coopera-backend/internal/adapter/repository/errors"
+	appErr "github.com/andreychh/coopera-backend/pkg/errors"
 )
 
 func MapErrorToHTTP(err error) (int, string) {

@@ -1,12 +1,12 @@
 package web_api
 
 import (
-	errors "github.com/andreychh/coopera/pkg/errors"
+	errors "github.com/andreychh/coopera-backend/pkg/errors"
 	"github.com/go-playground/validator/v10"
 	"net/http"
 
-	taskdto "github.com/andreychh/coopera/internal/adapter/controller/web_api/dto/task"
-	"github.com/andreychh/coopera/internal/usecase"
+	taskdto "github.com/andreychh/coopera-backend/internal/adapter/controller/web_api/dto/task"
+	"github.com/andreychh/coopera-backend/internal/usecase"
 )
 
 type TaskController struct {

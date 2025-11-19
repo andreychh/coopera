@@ -1,6 +1,6 @@
 package team
 
-import "github.com/andreychh/coopera/internal/entity"
+import "github.com/andreychh/coopera-backend/internal/entity"
 
 type CreateTeamRequest struct {
 	UserID int32  `json:"user_id" validate:"required"`

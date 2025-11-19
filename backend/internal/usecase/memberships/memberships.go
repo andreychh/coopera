@@ -3,9 +3,9 @@ package memberships
 import (
 	"context"
 	"fmt"
-	"github.com/andreychh/coopera/internal/entity"
-	"github.com/andreychh/coopera/internal/usecase"
-	appErr "github.com/andreychh/coopera/pkg/errors"
+	"github.com/andreychh/coopera-backend/internal/entity"
+	"github.com/andreychh/coopera-backend/internal/usecase"
+	appErr "github.com/andreychh/coopera-backend/pkg/errors"
 )
 
 type MembershipsUsecase struct {

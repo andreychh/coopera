@@ -1,6 +1,6 @@
 package team
 
-import "github.com/andreychh/coopera/internal/entity"
+import "github.com/andreychh/coopera-backend/internal/entity"
 
 type GetTeamRequest struct {
 	TeamID int32 `form:"team_id" validate:"required"`

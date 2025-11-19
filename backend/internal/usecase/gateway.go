@@ -2,7 +2,7 @@ package usecase
 
 import (
 	"context"
-	"github.com/andreychh/coopera/internal/entity"
+	"github.com/andreychh/coopera-backend/internal/entity"
 	"github.com/jackc/pgx/v4"
 )
 
