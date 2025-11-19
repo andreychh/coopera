@@ -38,7 +38,7 @@ type memoryTeam struct {
 }
 
 func (m memoryTeam) Details(ctx context.Context) (TeamDetails, error) {
-	return memoryTeamDetails{m.id, m.name}, nil
+	return memoryTeamDetails(m), nil
 }
 
 func (m memoryTeam) AddMember(ctx context.Context, user User) (Member, error) {
