@@ -1,11 +1,16 @@
 package app
 
 import (
-	"fmt"
 	"log/slog"
 
+	"github.com/andreychh/coopera-bot/internal/domain"
+	"github.com/andreychh/coopera-bot/internal/ui"
 	"github.com/andreychh/coopera-bot/pkg/botlib/base"
+	"github.com/andreychh/coopera-bot/pkg/botlib/base/bot"
+	"github.com/andreychh/coopera-bot/pkg/botlib/base/client"
+	"github.com/andreychh/coopera-bot/pkg/botlib/callbacks"
 	"github.com/andreychh/coopera-bot/pkg/botlib/composition"
+	"github.com/andreychh/coopera-bot/pkg/botlib/content"
 	"github.com/andreychh/coopera-bot/pkg/botlib/core"
 	"github.com/andreychh/coopera-bot/pkg/botlib/dialogues"
 	"github.com/andreychh/coopera-bot/pkg/botlib/engine"
@@ -14,7 +19,6 @@ import (
 	"github.com/andreychh/coopera-bot/pkg/botlib/logging"
 	"github.com/andreychh/coopera-bot/pkg/botlib/routing"
 	"github.com/andreychh/coopera-bot/pkg/botlib/updates"
-	telegram "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 )
 
 func Store() keyvalue.Store {
@@ -29,33 +33,43 @@ func Forms(store keyvalue.Store) forms.Forms {
 	return forms.KeyValueForms(store)
 }
 
-func Bot(token string) (*telegram.BotAPI, error) {
-	bot, err := telegram.NewBotAPI(token)
-	if err != nil {
-		return nil, fmt.Errorf("initializing bot: %w", err)
-	}
-	bot.Debug = true
-	return bot, nil
+func Client(token string) client.Client {
+	return client.HTTPClient(token)
 }
 
-func Updates(bot *telegram.BotAPI) telegram.UpdatesChannel {
-	u := telegram.NewUpdate(0)
-	u.Timeout = 60
-	return bot.GetUpdatesChan(u)
+func Bot(client client.Client) bot.Bot {
+	return bot.New(client)
 }
 
-func Tree(bot *telegram.BotAPI, d dialogues.Dialogues, f forms.Forms) core.Clause {
+func Community() domain.Community {
+	return domain.MemoryCommunity{}
+}
+
+func Tree(bot bot.Bot, c domain.Community, d dialogues.Dialogues, f forms.Forms) core.Clause {
 	return logging.LoggingClause(
 		routing.FirstExecuted(
 			routing.TerminalIf(
-				composition.All(
-					composition.Not(dialogues.SafeDialogueExists(d)),
-					updates.SafeCommandIs("start"),
-				),
+				composition.Not(dialogues.SafeDialogueExists(d)),
 				composition.Sequential(
+					domain.CreateUser(c),
 					dialogues.StartNeutralDialog(d),
-					base.SendMessage(bot, "Hello, new user! To create a team use /new_team command."),
+					domain.SendWelcomeMessage(bot),
+					ui.SendMainMenu(bot),
 				),
+			),
+			routing.TerminalIf(
+				composition.All(
+					callbacks.PrefixIs("change_menu"),
+					callbacks.ParamIs("menu_name", "teams"),
+				),
+				ui.SendTeamsMenu(bot, c),
+			),
+			routing.TerminalIf(
+				composition.All(
+					callbacks.PrefixIs("change_menu"),
+					callbacks.ParamIs("menu_name", "team"),
+				),
+				ui.SendTeamMenu(bot, c),
 			),
 			routing.TerminalIf(
 				composition.All(
@@ -64,7 +78,7 @@ func Tree(bot *telegram.BotAPI, d dialogues.Dialogues, f forms.Forms) core.Claus
 				),
 				composition.Sequential(
 					dialogues.ChangeTopic(d, "create_team-name"),
-					base.SendMessage(bot, "Let's create a new team! What is the name of your team?"),
+					base.SendContent(bot, content.Text("Let's create a new team! What is the name of your team?")),
 				),
 			),
 			routing.TerminalIf(
@@ -73,10 +87,10 @@ func Tree(bot *telegram.BotAPI, d dialogues.Dialogues, f forms.Forms) core.Claus
 					composition.Not(updates.SafeTextMatchesRegexp("^[A-Za-zА-Яа-я0-9_ -]{3,50}$")),
 				),
 				composition.Sequential(
-					base.SendMessage(bot,
+					base.SendContent(bot, content.Text(
 						"The team name is invalid. Please provide a name between 3 and 50 characters, "+
 							"using letters, numbers, spaces, hyphens, or underscores.",
-					),
+					)),
 				),
 			),
 			routing.TerminalIf(
@@ -84,7 +98,7 @@ func Tree(bot *telegram.BotAPI, d dialogues.Dialogues, f forms.Forms) core.Claus
 				composition.Sequential(
 					forms.SaveTextToField(f, "name"),
 					dialogues.ChangeTopic(d, dialogues.TopicNeutral),
-					base.SendMessage(bot, "Great! Your team has been created."),
+					base.SendContent(bot, content.Text("Great! Your team has been created.")),
 				),
 			),
 		),
@@ -92,10 +106,10 @@ func Tree(bot *telegram.BotAPI, d dialogues.Dialogues, f forms.Forms) core.Claus
 	)
 }
 
-func Engine(clause core.Clause, updates telegram.UpdatesChannel) engine.Engine {
+func Engine(token string, clause core.Clause) engine.Engine {
 	return engine.ShutdownEngine(
 		engine.SingleWorkerEngine(
-			clause, updates,
+			token, clause,
 		),
 	)
 }
