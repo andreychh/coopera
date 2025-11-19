@@ -1,0 +1,89 @@
+package dao
+
+import (
+	"context"
+	"fmt"
+
+	"github.com/andreychh/coopera-backend/internal/adapter/repository/converter"
+	repoErr "github.com/andreychh/coopera-backend/internal/adapter/repository/errors"
+	"github.com/andreychh/coopera-backend/internal/adapter/repository/model/membership_model"
+	"github.com/andreychh/coopera-backend/internal/adapter/repository/postgres"
+	"github.com/andreychh/coopera-backend/internal/entity"
+)
+
+type MembershipDAO struct {
+	db *postgres.DB
+}
+
+func NewMembershipDAO(db *postgres.DB) *MembershipDAO {
+	return &MembershipDAO{db: db}
+}
+
+func (r *MembershipDAO) AddMember(ctx context.Context, m membership_model.Membership) error {
+	const query = `
+		INSERT INTO coopera.memberships (team_id, member_id, role, created_at)
+		VALUES ($1, $2, $3, NOW())
+		ON CONFLICT (team_id, member_id) DO NOTHING
+	`
+	tx, ok := ctx.Value(postgres.TransactionKey{}).(postgres.Transaction)
+	if !ok {
+		return repoErr.ErrTransactionNotFound
+	}
+
+	if _, err := tx.Exec(ctx, query, m.TeamID, m.MemberID, m.Role); err != nil {
+		return fmt.Errorf("%w: %v", repoErr.ErrFailToAdd, err)
+	}
+
+	return nil
+}
+
+func (r *MembershipDAO) DeleteMember(ctx context.Context, m membership_model.Membership) error {
+	const query = `
+		DELETE FROM coopera.memberships
+		WHERE team_id = $1 AND member_id = $2
+	`
+
+	tx, ok := ctx.Value(postgres.TransactionKey{}).(postgres.Transaction)
+	if !ok {
+		return repoErr.ErrTransactionNotFound
+	}
+
+	result, err := tx.Exec(ctx, query, m.TeamID, m.MemberID)
+	if err != nil {
+		return fmt.Errorf("%w: %v", repoErr.ErrFailDelete, err)
+	}
+
+	if result.RowsAffected() == 0 {
+		return repoErr.ErrNotFound
+	}
+
+	return nil
+}
+
+func (r *MembershipDAO) GetMembers(ctx context.Context, teamID int32) ([]entity.MembershipEntity, error) {
+	const query = `
+		SELECT id, team_id, member_id, role, created_at
+		FROM coopera.memberships
+		WHERE team_id = $1
+	`
+	rows, err := r.db.Pool.Query(ctx, query, teamID)
+	if err != nil {
+		return nil, fmt.Errorf("%w: %v", repoErr.ErrFailGet, err)
+	}
+	defer rows.Close()
+
+	var members []entity.MembershipEntity
+	for rows.Next() {
+		var m membership_model.Membership
+		if err := rows.Scan(&m.ID, &m.TeamID, &m.MemberID, &m.Role, &m.CreatedAt); err != nil {
+			return nil, fmt.Errorf("%w: %v", repoErr.ErrFailToCastScan, err)
+		}
+		members = append(members, converter.FromModelToEntityMembership(m))
+	}
+
+	if len(members) == 0 {
+		return nil, repoErr.ErrNotFound
+	}
+
+	return members, nil
+}

@@ -10,7 +10,7 @@ import (
 	"github.com/jackc/pgx/v4/pgxpool"
 )
 
-var _ usecase.TransactionManager = (*DB)(nil)
+var _ usecase.TransactionManageRepository = (*DB)(nil)
 
 type DB struct {
 	Pool   *pgxpool.Pool
@@ -32,6 +32,10 @@ func (db *DB) WithinTransaction(ctx context.Context, fn func(txCtx context.Conte
 }
 
 func (db *DB) WithinTransactionWithIsolation(ctx context.Context, level pgx.TxIsoLevel, fn func(txCtx context.Context) error) error {
+	if ctx.Value(TransactionKey{}) != nil {
+		return fn(ctx)
+	}
+
 	tx, err := db.Pool.BeginTx(ctx, pgx.TxOptions{IsoLevel: level})
 	if err != nil {
 		return err
