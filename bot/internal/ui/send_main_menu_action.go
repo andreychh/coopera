@@ -5,14 +5,14 @@ import (
 	"fmt"
 
 	"github.com/andreychh/coopera-bot/internal/ui/menu"
-	"github.com/andreychh/coopera-bot/pkg/botlib/base/bot"
 	"github.com/andreychh/coopera-bot/pkg/botlib/core"
+	"github.com/andreychh/coopera-bot/pkg/botlib/tg"
 	"github.com/andreychh/coopera-bot/pkg/botlib/updates/attributes"
 	telegram "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 )
 
 type sendMainMenuAction struct {
-	bot bot.Bot
+	bot tg.Bot
 }
 
 func (s sendMainMenuAction) Perform(ctx context.Context, update telegram.Update) error {
@@ -27,6 +27,6 @@ func (s sendMainMenuAction) Perform(ctx context.Context, update telegram.Update)
 	return nil
 }
 
-func SendMainMenu(bot bot.Bot) core.Action {
+func SendMainMenu(bot tg.Bot) core.Action {
 	return sendMainMenuAction{bot: bot}
 }

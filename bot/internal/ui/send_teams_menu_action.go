@@ -6,14 +6,14 @@ import (
 
 	"github.com/andreychh/coopera-bot/internal/domain"
 	"github.com/andreychh/coopera-bot/internal/ui/menu"
-	"github.com/andreychh/coopera-bot/pkg/botlib/base/bot"
 	"github.com/andreychh/coopera-bot/pkg/botlib/core"
+	"github.com/andreychh/coopera-bot/pkg/botlib/tg"
 	"github.com/andreychh/coopera-bot/pkg/botlib/updates/attributes"
 	telegram "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 )
 
 type sendTeamsMenuAction struct {
-	bot       bot.Bot
+	bot       tg.Bot
 	community domain.Community
 }
 
@@ -53,7 +53,7 @@ func (s sendTeamsMenuAction) details(ctx context.Context, id int64) ([]domain.Te
 	return details, nil
 }
 
-func SendTeamsMenu(bot bot.Bot, community domain.Community) core.Action {
+func SendTeamsMenu(bot tg.Bot, community domain.Community) core.Action {
 	return sendTeamsMenuAction{
 		bot:       bot,
 		community: community,

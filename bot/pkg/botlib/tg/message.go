@@ -1,25 +1,21 @@
-package message
+package tg
 
 import (
 	"context"
 	"fmt"
 
-	"github.com/andreychh/coopera-bot/pkg/botlib/base/client"
 	"github.com/andreychh/coopera-bot/pkg/botlib/content"
+	"github.com/andreychh/coopera-bot/pkg/botlib/transport"
 	"github.com/andreychh/coopera-bot/pkg/repr/json"
 )
-
-type Message interface {
-	Edit(ctx context.Context, content content.Content) error
-	Delete(ctx context.Context) error
-}
 
 type message struct {
 	chatID     int64
 	messageID  int64
-	dataSource client.Client
+	dataSource transport.Client
 }
 
+// TODO: "editMessageText" is suitable only for text messages. Need to handle other types of messages.
 func (m message) Edit(ctx context.Context, cnt content.Content) error {
 	cnt = content.WithMessageID(content.WithChatID(cnt, m.chatID), m.messageID)
 	payload, err := cnt.Structure().Marshal()
@@ -48,7 +44,7 @@ func (m message) Delete(ctx context.Context) error {
 	return nil
 }
 
-func New(chatID int64, messageID int64, dataSource client.Client) Message {
+func NewMessage(chatID int64, messageID int64, dataSource transport.Client) Message {
 	return message{
 		chatID:     chatID,
 		messageID:  messageID,

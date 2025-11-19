@@ -1,4 +1,4 @@
-package client
+package transport
 
 import (
 	"bytes"
@@ -8,10 +8,6 @@ import (
 	"net/http"
 	"time"
 )
-
-type Client interface {
-	Execute(ctx context.Context, method string, payload []byte) ([]byte, error)
-}
 
 type httpClient struct {
 	baseURL   string

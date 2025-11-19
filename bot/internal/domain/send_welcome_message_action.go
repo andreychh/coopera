@@ -5,14 +5,14 @@ import (
 	"fmt"
 
 	"github.com/andreychh/coopera-bot/internal/ui/message"
-	"github.com/andreychh/coopera-bot/pkg/botlib/base/bot"
 	"github.com/andreychh/coopera-bot/pkg/botlib/core"
+	"github.com/andreychh/coopera-bot/pkg/botlib/tg"
 	"github.com/andreychh/coopera-bot/pkg/botlib/updates/attributes"
 	telegram "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 )
 
 type sendWelcomeMessageAction struct {
-	bot bot.Bot
+	bot tg.Bot
 }
 
 func (s sendWelcomeMessageAction) Perform(ctx context.Context, update telegram.Update) error {
@@ -27,6 +27,6 @@ func (s sendWelcomeMessageAction) Perform(ctx context.Context, update telegram.U
 	return nil
 }
 
-func SendWelcomeMessage(bot bot.Bot) core.Action {
+func SendWelcomeMessage(bot tg.Bot) core.Action {
 	return sendWelcomeMessageAction{bot: bot}
 }

@@ -6,8 +6,6 @@ import (
 	"github.com/andreychh/coopera-bot/internal/domain"
 	"github.com/andreychh/coopera-bot/internal/ui"
 	"github.com/andreychh/coopera-bot/pkg/botlib/base"
-	"github.com/andreychh/coopera-bot/pkg/botlib/base/bot"
-	"github.com/andreychh/coopera-bot/pkg/botlib/base/client"
 	"github.com/andreychh/coopera-bot/pkg/botlib/callbacks"
 	"github.com/andreychh/coopera-bot/pkg/botlib/composition"
 	"github.com/andreychh/coopera-bot/pkg/botlib/content"
@@ -18,6 +16,8 @@ import (
 	"github.com/andreychh/coopera-bot/pkg/botlib/keyvalue"
 	"github.com/andreychh/coopera-bot/pkg/botlib/logging"
 	"github.com/andreychh/coopera-bot/pkg/botlib/routing"
+	"github.com/andreychh/coopera-bot/pkg/botlib/tg"
+	"github.com/andreychh/coopera-bot/pkg/botlib/transport"
 	"github.com/andreychh/coopera-bot/pkg/botlib/updates"
 )
 
@@ -33,19 +33,19 @@ func Forms(store keyvalue.Store) forms.Forms {
 	return forms.KeyValueForms(store)
 }
 
-func Client(token string) client.Client {
-	return client.HTTPClient(token)
+func Client(token string) transport.Client {
+	return transport.HTTPClient(token)
 }
 
-func Bot(client client.Client) bot.Bot {
-	return bot.New(client)
+func Bot(client transport.Client) tg.Bot {
+	return tg.NewBot(client)
 }
 
 func Community() domain.Community {
 	return domain.MemoryCommunity{}
 }
 
-func Tree(bot bot.Bot, c domain.Community, d dialogues.Dialogues, f forms.Forms) core.Clause {
+func Tree(bot tg.Bot, c domain.Community, d dialogues.Dialogues, f forms.Forms) core.Clause {
 	return logging.LoggingClause(
 		routing.FirstExecuted(
 			routing.TerminalIf(

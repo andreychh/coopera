@@ -1,22 +1,16 @@
-package chat
+package tg
 
 import (
 	"context"
 	"fmt"
 
-	"github.com/andreychh/coopera-bot/pkg/botlib/base/client"
-	"github.com/andreychh/coopera-bot/pkg/botlib/base/message"
 	"github.com/andreychh/coopera-bot/pkg/botlib/content"
+	"github.com/andreychh/coopera-bot/pkg/botlib/transport"
 )
-
-type Chat interface {
-	Send(ctx context.Context, cnt content.Content) error
-	Message(id int64) message.Message
-}
 
 type chat struct {
 	id         int64
-	dataSource client.Client
+	dataSource transport.Client
 }
 
 func (c chat) Send(ctx context.Context, cnt content.Content) error {
@@ -32,11 +26,11 @@ func (c chat) Send(ctx context.Context, cnt content.Content) error {
 	return nil
 }
 
-func (c chat) Message(id int64) message.Message {
-	return message.New(c.id, id, c.dataSource)
+func (c chat) Message(id int64) Message {
+	return NewMessage(c.id, id, c.dataSource)
 }
 
-func New(id int64, dataSource client.Client) Chat {
+func NewChat(id int64, dataSource transport.Client) Chat {
 	return chat{
 		id:         id,
 		dataSource: dataSource,
