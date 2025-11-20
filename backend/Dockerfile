@@ -2,7 +2,6 @@ FROM golang:1.25.1-alpine3.21 AS builder
 
 WORKDIR /app
 
-# Arguments that will be passed from the CI script
 ARG VERSION="(devel)"
 ARG COMMIT="none"
 
@@ -18,7 +17,10 @@ RUN go build -ldflags="\
 
 FROM alpine:3.21
 
+WORKDIR /app
+
 COPY --from=builder /coopera-backend /coopera-backend
+COPY migrations ./migrations
 
 EXPOSE 8080
 
