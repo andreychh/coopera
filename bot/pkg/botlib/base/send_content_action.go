@@ -7,7 +7,7 @@ import (
 	"github.com/andreychh/coopera-bot/pkg/botlib/content"
 	"github.com/andreychh/coopera-bot/pkg/botlib/core"
 	"github.com/andreychh/coopera-bot/pkg/botlib/tg"
-	"github.com/andreychh/coopera-bot/pkg/botlib/updates/attributes"
+	"github.com/andreychh/coopera-bot/pkg/botlib/updates/attrs"
 	telegram "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 )
 
@@ -17,13 +17,13 @@ type sendContentAction struct {
 }
 
 func (s sendContentAction) Perform(ctx context.Context, update telegram.Update) error {
-	id, err := attributes.ChatID(update).Value()
-	if err != nil {
-		return fmt.Errorf("(%T) getting chat ID: %w", s, err)
+	id, exists := attrs.ChatID(update).Value()
+	if !exists {
+		return fmt.Errorf("getting chat ID from update: chat ID not found")
 	}
-	err = s.bot.Chat(id).Send(ctx, s.content)
+	err := s.bot.Chat(id).Send(ctx, s.content)
 	if err != nil {
-		return fmt.Errorf("(%T) sending content to chat id #%d: %w", s, id, err)
+		return fmt.Errorf("sending content to chat %d: %w", id, err)
 	}
 	return nil
 }
