@@ -1,7 +1,6 @@
 package attrs
 
 import (
-	"github.com/andreychh/coopera-bot/pkg/botlib/attrs"
 	"github.com/andreychh/coopera-bot/pkg/botlib/updates"
 	telegram "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 )
@@ -20,6 +19,6 @@ func (u updateTypeAttribute) Value() (updates.UpdateType, bool) {
 	return updates.UpdateTypeUnknown, false
 }
 
-func UpdateType(update telegram.Update) attrs.Attribute[updates.UpdateType] {
+func UpdateType(update telegram.Update) Attribute[updates.UpdateType] {
 	return updateTypeAttribute{update: update}
 }

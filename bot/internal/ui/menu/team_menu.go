@@ -17,10 +17,10 @@ func TeamMenu(team domain.TeamDetails) content.Content {
 		buttons.Matrix(
 			buttons.Row(buttons.CallbackButton(
 				"Members",
-				callbacks.Builder("change_menu").
+				callbacks.OutcomingData("change_menu").
 					With("menu_name", "members").
 					With("team_id", strconv.FormatInt(team.ID(), 10)).
-					Encode(),
+					String(),
 			)),
 		),
 	)

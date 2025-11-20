@@ -1,7 +1,6 @@
 package attrs
 
 import (
-	"github.com/andreychh/coopera-bot/pkg/botlib/attrs"
 	telegram "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 )
 
@@ -19,6 +18,6 @@ func (c commandAttribute) Value() (string, bool) {
 	return c.update.Message.Command(), true
 }
 
-func Command(update telegram.Update) attrs.Attribute[string] {
+func Command(update telegram.Update) Attribute[string] {
 	return commandAttribute{update: update}
 }

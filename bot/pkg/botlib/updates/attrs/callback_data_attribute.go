@@ -1,7 +1,6 @@
 package attrs
 
 import (
-	"github.com/andreychh/coopera-bot/pkg/botlib/attrs"
 	telegram "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 )
 
@@ -16,6 +15,6 @@ func (c callbackDataAttribute) Value() (string, bool) {
 	return c.update.CallbackQuery.Data, true
 }
 
-func CallbackData(update telegram.Update) attrs.Attribute[string] {
+func CallbackData(update telegram.Update) Attribute[string] {
 	return callbackDataAttribute{update: update}
 }

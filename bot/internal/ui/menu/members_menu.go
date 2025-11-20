@@ -31,9 +31,9 @@ func membersMatrix(members []domain.MemberDetails) buttons.ButtonMatrix[buttons.
 func memberButton(member domain.MemberDetails) buttons.InlineButton {
 	return buttons.CallbackButton(
 		member.Name(),
-		callbacks.Builder("change_menu").
+		callbacks.OutcomingData("change_menu").
 			With("menu_name", "member").
 			With("member_id", strconv.FormatInt(member.ID(), 10)).
-			Encode(),
+			String(),
 	)
 }

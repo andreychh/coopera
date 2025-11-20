@@ -14,7 +14,7 @@ func MainMenu() content.Content {
 			buttons.Row(buttons.CallbackButton("Statistics", "not_implemented")),
 			buttons.Row(buttons.CallbackButton(
 				"Teams",
-				callbacks.Builder("change_menu").With("menu_name", "teams").Encode(),
+				callbacks.OutcomingData("change_menu").With("menu_name", "teams").String(),
 			)),
 		),
 	)
