@@ -1,9 +1,10 @@
-package dialogues
+package keyvalue
 
 import (
 	"context"
 	"fmt"
 
+	"github.com/andreychh/coopera-bot/pkg/botlib/dialogues"
 	"github.com/andreychh/coopera-bot/pkg/botlib/keyvalue"
 )
 
@@ -12,7 +13,7 @@ type keyValueDialogue struct {
 	key        string
 }
 
-func (k keyValueDialogue) ChangeTopic(ctx context.Context, topic Topic) error {
+func (k keyValueDialogue) ChangeTopic(ctx context.Context, topic dialogues.Topic) error {
 	err := k.dataSource.Write(ctx, k.topicKey(), string(topic))
 	if err != nil {
 		return fmt.Errorf(
@@ -23,15 +24,15 @@ func (k keyValueDialogue) ChangeTopic(ctx context.Context, topic Topic) error {
 	return nil
 }
 
-func (k keyValueDialogue) Topic(ctx context.Context) (Topic, error) {
+func (k keyValueDialogue) Topic(ctx context.Context) (dialogues.Topic, error) {
 	topic, err := k.dataSource.Read(ctx, k.topicKey())
 	if err != nil {
-		return TopicNeutral, fmt.Errorf(
+		return dialogues.TopicNeutral, fmt.Errorf(
 			"(%T->%T) reading dialogue(%s) topic: %w",
 			k, k.dataSource, k.key, err,
 		)
 	}
-	return Topic(topic), nil
+	return dialogues.Topic(topic), nil
 }
 
 func (k keyValueDialogue) Exists(ctx context.Context) (bool, error) {

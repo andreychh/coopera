@@ -1,8 +1,9 @@
-package forms
+package keyvalue
 
 import (
 	"fmt"
 
+	"github.com/andreychh/coopera-bot/pkg/botlib/forms"
 	"github.com/andreychh/coopera-bot/pkg/botlib/keyvalue"
 )
 
@@ -11,7 +12,7 @@ type KeyValueForm struct {
 	key        string
 }
 
-func (k KeyValueForm) Field(name string) Field {
+func (k KeyValueForm) Field(name string) forms.Field {
 	return keyValueField{
 		dataSource: k.dataSource,
 		key:        k.fieldKey(name),
