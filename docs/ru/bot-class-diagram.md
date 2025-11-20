@@ -38,11 +38,17 @@ classDiagram
     class HTTPCommunity {
         -dataSource *http.Client
         +HTTPCommunity(client *http.Client)
+        +CreateUser(...)
+        +UserWithTelegramID(...)
+        +Team(...)
     }
     class HTTPUser {
         -id int
         -dataSource *http.Client
         +HTTPUser(client *http.Client, id int)
+        +Details(...)
+        +CreatedTeams(...)
+        +CreateTeam(...)
     }
 
 %% Отношения (связи):
@@ -86,17 +92,22 @@ classDiagram
     class HTTPBot {
         -dataSource *http.Client
         +HTTPBot(client *http.Client)
+        +Chat(...)
     }
     class HTTPChat {
         -id int
         -dataSource *http.Client
         +HTTPChat(id int, client *http.Client)
+        +Send(...)
+        +Message(...)
     }
     class HTTPMessage {
         -chatID int
         -messageID int
         -dataSource *http.Client
         +HTTPMessage(chatID int, messageID int, client *http.Client)
+        +Edit(...)
+        +Delete(...)
     }
 %% Отношения (связи):
 
@@ -114,7 +125,7 @@ classDiagram
 ```mermaid
 classDiagram
     direction TB
-%% Интерфейсы
+
     class Action {
         <<interface>>
         +Perform(ctx context.Context, update telegram.Update) error
@@ -180,45 +191,39 @@ classDiagram
 ```mermaid
 classDiagram
     direction TB
-%% Интерфейсы
+
     class Content {
         <<interface>>
-        +Structure() repr.Structure
+        +Structure() Structure
         +Method() string
-    }
-
-    class Keyboard {
-        <<interface>>
-        Content
     }
 
 %% Базовая реализация
     class textContent {
         -text string
-        +Structure()
-        +Method()
+        +Structure(...)
+        +Method(...)
     }
 
 %% Декораторы
     class replyingMessage {
         -id int
         -content Content
-        +Structure()
-        +Method()
+        +Structure(...)
+        +Method(...)
     }
 
     class inlineKeyboard {
         -origin Content
         -buttons ButtonMatrix
-        +Structure()
-        +Method()
+        +Structure(...)
+        +Method(...)
     }
 
 %% Реализация интерфейсов
     Content <|.. textContent
     Content <|.. replyingMessage
     Content <|.. inlineKeyboard
-    Keyboard <|-- inlineKeyboard: расширяет
 %% Отношения Декоратора/Композиции
 
 %% replyingMessage декорирует другой Content
