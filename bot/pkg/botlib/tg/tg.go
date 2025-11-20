@@ -12,7 +12,7 @@ type Bot interface {
 
 type Chat interface {
 	Send(ctx context.Context, cnt content.Content) error
-	Message(id int64) Message
+	Message(id int) Message
 }
 
 type Message interface {

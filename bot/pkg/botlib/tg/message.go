@@ -11,7 +11,7 @@ import (
 
 type message struct {
 	chatID     int64
-	messageID  int64
+	messageID  int
 	dataSource transport.Client
 }
 
@@ -32,7 +32,7 @@ func (m message) Edit(ctx context.Context, cnt content.Content) error {
 func (m message) Delete(ctx context.Context) error {
 	payload, err := json.Object(json.Fields{
 		"chat_id":    json.I64(m.chatID),
-		"message_id": json.I64(m.messageID),
+		"message_id": json.Int(m.messageID),
 	}).Marshal()
 	if err != nil {
 		return fmt.Errorf("marshaling delete message payload: %w", err)
@@ -44,7 +44,7 @@ func (m message) Delete(ctx context.Context) error {
 	return nil
 }
 
-func NewMessage(chatID int64, messageID int64, dataSource transport.Client) Message {
+func NewMessage(chatID int64, messageID int, dataSource transport.Client) Message {
 	return message{
 		chatID:     chatID,
 		messageID:  messageID,

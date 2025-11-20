@@ -26,7 +26,7 @@ func (c chat) Send(ctx context.Context, cnt content.Content) error {
 	return nil
 }
 
-func (c chat) Message(id int64) Message {
+func (c chat) Message(id int) Message {
 	return NewMessage(c.id, id, c.dataSource)
 }
 
