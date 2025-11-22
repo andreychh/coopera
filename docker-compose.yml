@@ -1,6 +1,6 @@
 services:
   postgres:
-    image: postgres:15-alpine
+    image: postgres:18-alpine
     container_name: coopera_postgres
     environment:
       POSTGRES_USER: user
@@ -11,12 +11,11 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data/
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U user -d database"]
+      test: [ "CMD-SHELL", "pg_isready -U user -d database" ]
       interval: 5s
       timeout: 5s
       retries: 10
       start_period: 20s
-
   backend:
     build:
       context: ./backend
@@ -25,21 +24,23 @@ services:
     ports:
       - "8080:8080"
     env_file:
-      - .env.backend.example
+      - .env.backend
     volumes:
       - ./backend/migrations:/migrations
     depends_on:
       postgres:
         condition: service_healthy
     restart: always
-
   bot:
     build:
       context: ./bot
       dockerfile: Dockerfile
     container_name: coopera_bot
     env_file:
-      - .env.bot.example
-
+      - .env.bot
+    depends_on:
+      backend:
+        condition: service_started
+    restart: always
 volumes:
   postgres_data:

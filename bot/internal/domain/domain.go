@@ -5,8 +5,8 @@ import (
 )
 
 type Community interface {
-	CreateUser(ctx context.Context, telegramID int64) (User, error)
-	UserWithTelegramID(telegramID int64) User
+	CreateUser(ctx context.Context, tgID int64, tgUsername string) (User, error)
+	UserWithTelegramID(tgID int64) User
 	Team(id int64) Team
 }
 
