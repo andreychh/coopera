@@ -3,7 +3,6 @@ package app
 import (
 	"context"
 	"fmt"
-	"github.com/andreychh/coopera-backend/internal/usecase/task"
 	"log"
 	"net/http"
 	"os"
@@ -12,7 +11,8 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/andreychh/coopera-backend/internal/adapter/controller/telegram_api"
+	"github.com/andreychh/coopera-backend/internal/usecase/task"
+
 	"github.com/andreychh/coopera-backend/internal/adapter/controller/web_api"
 	repomembership "github.com/andreychh/coopera-backend/internal/adapter/repository/membership_repo"
 	"github.com/andreychh/coopera-backend/internal/adapter/repository/postgres"
@@ -39,6 +39,7 @@ func Start() error {
 		logLevel = logger.INFO
 	}
 	logService := logger.NewLogger(logLevel)
+	_ = logService
 
 	dsn := os.Getenv("DATABASE_URL")
 	if dsn == "" {
@@ -71,16 +72,16 @@ func Start() error {
 	router := web_api.NewRouter(userUC, teamUC, taskUC, memberUC).SetupRoutes()
 
 	// Telegram controller
-	botToken := os.Getenv("TELEGRAM_BOT_TOKEN")
-	tgContr, err := telegram_api.NewTelegramController(logService, botToken)
-	if err != nil {
-		return err
-	}
-	go func() {
-		if err := tgContr.Start(); err != nil {
-			log.Printf("telegram bot error: %v", err)
-		}
-	}()
+	// botToken := os.Getenv("TELEGRAM_BOT_TOKEN")
+	// tgContr, err := telegram_api.NewTelegramController(logService, botToken)
+	// if err != nil {
+	// 	return err
+	// }
+	// go func() {
+	// 	if err := tgContr.Start(); err != nil {
+	// 		log.Printf("telegram bot error: %v", err)
+	// 	}
+	// }()
 
 	port := os.Getenv("PORT")
 	if port == "" {
