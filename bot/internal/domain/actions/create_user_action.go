@@ -19,7 +19,11 @@ func (c createUserAction) Perform(ctx context.Context, update telegram.Update) e
 	if !exists {
 		return fmt.Errorf("getting chat ID from update: chat ID not found")
 	}
-	_, err := c.community.CreateUser(ctx, id)
+	username, exists := attrs.Username(update).Value()
+	if !exists {
+		return fmt.Errorf("getting username from update: username not found")
+	}
+	_, err := c.community.CreateUser(ctx, id, username)
 	if err != nil {
 		return fmt.Errorf("creating user for chat %d: %w", id, err)
 	}

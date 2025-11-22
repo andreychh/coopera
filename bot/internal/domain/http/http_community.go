@@ -14,8 +14,11 @@ type httpCommunity struct {
 	client transport.Client
 }
 
-func (h httpCommunity) CreateUser(ctx context.Context, telegramID int64) (domain.User, error) {
-	payload, err := json.Object(json.Fields{"telegram_id": json.I64(telegramID)}).Marshal()
+func (h httpCommunity) CreateUser(ctx context.Context, tgID int64, tgUsername string) (domain.User, error) {
+	payload, err := json.Object(json.Fields{
+		"telegram_id": json.I64(tgID),
+		"Username":    json.Str(tgUsername),
+	}).Marshal()
 	if err != nil {
 		return nil, fmt.Errorf("marshaling payload: %w", err)
 	}
@@ -33,9 +36,9 @@ func (h httpCommunity) CreateUser(ctx context.Context, telegramID int64) (domain
 	}, nil
 }
 
-func (h httpCommunity) UserWithTelegramID(telegramID int64) domain.User {
+func (h httpCommunity) UserWithTelegramID(tgID int64) domain.User {
 	return &httpUserWithTelegramID{
-		telegramID: telegramID,
+		telegramID: tgID,
 		client:     h.client,
 	}
 }
