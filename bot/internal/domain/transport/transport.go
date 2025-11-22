@@ -3,11 +3,17 @@ package transport
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
 	"net/url"
+	"strings"
+
+	"github.com/tidwall/gjson"
 )
+
+var ErrRecordAlreadyExists = errors.New("record already exists")
 
 type Client interface {
 	Get(ctx context.Context, path string) ([]byte, error)
@@ -81,6 +87,20 @@ func (c httpClient) Post(ctx context.Context, path string, payload []byte) ([]by
 			err = closeErr
 		}
 	}()
+	if resp.StatusCode == http.StatusConflict {
+		body, err := io.ReadAll(resp.Body)
+		if err != nil {
+			return nil, fmt.Errorf("reading body: %w", err)
+		}
+		errorResult := gjson.GetBytes(body, "error")
+		if !errorResult.Exists() {
+			return nil, fmt.Errorf("error message does not exists in body")
+		}
+		msg := errorResult.String()
+		if strings.Contains(msg, "record already exists") {
+		}
+		return nil, ErrRecordAlreadyExists
+	}
 	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusCreated {
 		errorBody, _ := io.ReadAll(resp.Body)
 		return nil, fmt.Errorf("API returned status %d for POST %s. Body: %s",

@@ -30,7 +30,7 @@ func Tree(bot tg.Bot, c domain.Community, d dialogues.Dialogues, f forms.Forms) 
 				routing.TerminalIf(
 					composition.Not(dialoguesconditions.DialogueExists(d)),
 					composition.Sequential(
-						domainactions.CreateUser(c),
+						domainactions.CreateUser(domain.IdempotencyCommunity(c)),
 						dialoguesactions.StartNeutralDialog(d),
 						base.SendContent(bot, views.WelcomeMessage()),
 						base.SendContent(bot, views.MainMenu()),
