@@ -16,7 +16,7 @@ type TransactionManageRepository interface {
 type UserRepository interface {
 	CreateRepo(ctx context.Context, euser entity.UserEntity) (entity.UserEntity, error)
 	DeleteRepo(ctx context.Context, userID int32) error
-	GetByTelegramIDRepo(ctx context.Context, telegramID int64) (entity.UserEntity, error)
+	GetRepo(ctx context.Context, opts ...any) (entity.UserEntity, error)
 }
 
 type TeamRepository interface {

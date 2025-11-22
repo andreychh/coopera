@@ -8,6 +8,7 @@ CREATE TABLE IF NOT EXISTS coopera.users
 (
     id          SERIAL PRIMARY KEY,
     telegram_id BIGINT UNIQUE NOT NULL,
+    username    VARCHAR(50) UNIQUE NOT NULL,
     created_at  TIMESTAMP WITH TIME ZONE DEFAULT (NOW() AT TIME ZONE 'utc')
 );
 

@@ -40,10 +40,6 @@ services:
     container_name: coopera_bot
     env_file:
       - .env.bot.example
-    depends_on:
-      backend:
-        condition: service_started
-    restart: always
 
 volumes:
   postgres_data:

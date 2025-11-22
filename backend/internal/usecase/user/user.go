@@ -37,12 +37,12 @@ func (uc *UserUsecase) CreateUsecase(ctx context.Context, euser entity.UserEntit
 	return createdUser, nil
 }
 
-func (uc *UserUsecase) GetUsecase(ctx context.Context, euser entity.UserEntity) (entity.UserEntity, error) {
+func (uc *UserUsecase) GetUsecase(ctx context.Context, opts ...any) (entity.UserEntity, error) {
 	var user entity.UserEntity
 
 	err := uc.txManager.WithinTransaction(ctx, func(txCtx context.Context) error {
 		var err error
-		user, err = uc.userRepository.GetByTelegramIDRepo(txCtx, euser.TelegramID)
+		user, err = uc.userRepository.GetRepo(txCtx, opts...)
 		if err != nil {
 			return fmt.Errorf("failed to get user: %w", err)
 		}
