@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/andreychh/coopera-backend/internal/usecase/task"
+	"github.com/andreychh/coopera-backend/internal/usecase/user"
 	"log"
 	"net/http"
 	"os"
@@ -21,7 +22,6 @@ import (
 	repouser "github.com/andreychh/coopera-backend/internal/adapter/repository/user_repo"
 	"github.com/andreychh/coopera-backend/internal/usecase/memberships"
 	"github.com/andreychh/coopera-backend/internal/usecase/team"
-	"github.com/andreychh/coopera-backend/internal/usecase/user"
 	"github.com/andreychh/coopera-backend/pkg/logger"
 	"github.com/andreychh/coopera-backend/pkg/migrator"
 	"github.com/go-playground/validator/v10"
@@ -37,12 +37,41 @@ func Start() error {
 	if logLevel == 0 {
 		logLevel = logger.INFO
 	}
-	//logService := logger.NewLogger(logLevel)
+	logService := logger.NewLogger(logLevel)
 
-	dsn := os.Getenv("DATABASE_URL")
-	if dsn == "" {
-		return fmt.Errorf("DATABASE_URL not set")
+	dbHost := os.Getenv("DATABASE_HOST")
+	if dbHost == "" {
+		dbHost = "postgres"
 	}
+
+	dbUser := os.Getenv("DATABASE_USER")
+	if dbUser == "" {
+		return fmt.Errorf("DATABASE_USER not set")
+	}
+
+	dbPassword := os.Getenv("DATABASE_PASSWORD")
+	if dbPassword == "" {
+		return fmt.Errorf("DATABASE_PASSWORD not set")
+	}
+
+	dbPort := os.Getenv("DATABASE_PORT")
+	if dbPort == "" {
+		dbPort = "5432"
+	}
+
+	dbName := os.Getenv("DATABASE_NAME")
+	if dbName == "" {
+		dbName = "postgres"
+	}
+
+	dsn := fmt.Sprintf(
+		"postgres://%s:%s@%s:%s/%s?sslmode=disable&search_path=coopera",
+		dbUser,
+		dbPassword,
+		dbHost,
+		dbPort,
+		dbName,
+	)
 
 	migrationsPath := os.Getenv("MIGRATIONS_PATH")
 	if err := migrator.Migrate(migrationsPath, dsn, os.Getenv("DB_SCHEMA")); err != nil {
@@ -67,11 +96,11 @@ func Start() error {
 	teamUC := team.NewTeamUsecase(teamRepo, memberUC, db)
 	taskUC := task.NewTaskUsecase(taskRepo, memberUC, db)
 
-	router := web_api.NewRouter(userUC, teamUC, taskUC, memberUC).SetupRoutes()
+	router := web_api.NewRouter(userUC, teamUC, taskUC, memberUC, logService).SetupRoutes()
 
-	port := os.Getenv("PORT")
+	port := os.Getenv("BACKEND_PORT")
 	if port == "" {
-		port = "8080"
+		return fmt.Errorf("BACKEND_PORT not set")
 	}
 	srv := &http.Server{
 		Addr:        ":" + port,
@@ -84,7 +113,7 @@ func Start() error {
 			log.Fatalf("server error: %v", err)
 		}
 	}()
-	log.Println("HTTP server started on port", os.Getenv("PORT"))
+	log.Println("HTTP server started on port", os.Getenv("BACKEND_PORT"))
 
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)

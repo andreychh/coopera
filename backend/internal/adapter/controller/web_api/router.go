@@ -2,6 +2,7 @@ package web_api
 
 import (
 	"github.com/andreychh/coopera-backend/internal/adapter/controller/web_api/middleware"
+	"github.com/andreychh/coopera-backend/pkg/logger"
 	chimw "github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
 	"net/http"
@@ -17,6 +18,7 @@ type Router struct {
 	teamController       *TeamController
 	taskController       *TaskController
 	membershipController *MembershipController
+	logger               *logger.Logger
 }
 
 func NewRouter(
@@ -24,12 +26,14 @@ func NewRouter(
 	teamUseCase usecase.TeamUseCase,
 	taskUseCase usecase.TaskUseCase,
 	membershipUseCase usecase.MembershipUseCase,
+	logger *logger.Logger,
 ) *Router {
 	return &Router{
 		userController:       NewUserController(userUseCase),
 		teamController:       NewTeamController(teamUseCase),
 		taskController:       NewTaskController(taskUseCase),
 		membershipController: NewMembershipController(membershipUseCase),
+		logger:               logger,
 	}
 }
 
@@ -37,6 +41,9 @@ func (r *Router) SetupRoutes() http.Handler {
 	router := chi.NewRouter()
 
 	frontendURL := os.Getenv("FRONTEND_URL")
+	if frontendURL == "" {
+		r.logger.Fatal("FRONTEND_URL not set")
+	}
 	router.Use(cors.Handler(cors.Options{
 		AllowedOrigins:   []string{frontendURL},
 		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
