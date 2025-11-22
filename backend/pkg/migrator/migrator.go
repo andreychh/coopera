@@ -4,7 +4,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"io/ioutil"
+	"os"
 	"path/filepath"
 	"sort"
 	"strings"
@@ -25,7 +25,11 @@ func Migrate(path, dsn, schema string) error {
 	if err != nil {
 		return err
 	}
-	defer db.Close()
+	defer func() {
+		if cerr := db.Close(); cerr != nil {
+			fmt.Printf("warning: failed to close db: %v\n", cerr)
+		}
+	}()
 
 	// Устанавливаем search_path на схему проекта
 	if _, err := db.Exec(fmt.Sprintf(`CREATE SCHEMA IF NOT EXISTS %s; SET search_path TO %s;`, schema, schema)); err != nil {
@@ -53,7 +57,7 @@ func Migrate(path, dsn, schema string) error {
 
 		fmt.Printf("Applying migration:\n  Version: %s\n  Up: %s\n", m.Version, filepath.Base(m.UpPath))
 
-		sqlBytes, err := ioutil.ReadFile(m.UpPath)
+		sqlBytes, err := os.ReadFile(m.UpPath)
 		if err != nil {
 			return fmt.Errorf("failed to read %s: %w", m.UpPath, err)
 		}
@@ -89,7 +93,11 @@ func loadAppliedVersions(db *sql.DB, schema string) (map[string]bool, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
+	defer func() {
+		if cerr := rows.Close(); cerr != nil {
+			fmt.Printf("warning: failed to close rows: %v\n", cerr)
+		}
+	}()
 
 	applied := make(map[string]bool)
 	for rows.Next() {
@@ -104,7 +112,7 @@ func loadAppliedVersions(db *sql.DB, schema string) (map[string]bool, error) {
 
 // loadMigrations — читает файлы миграций из каталога
 func loadMigrations(path string) ([]Migration, error) {
-	files, err := ioutil.ReadDir(path)
+	files, err := os.ReadDir(path)
 	if err != nil {
 		return nil, err
 	}
