@@ -98,8 +98,8 @@ func (c httpClient) Post(ctx context.Context, path string, payload []byte) ([]by
 		}
 		msg := errorResult.String()
 		if strings.Contains(msg, "record already exists") {
+			return nil, ErrRecordAlreadyExists
 		}
-		return nil, ErrRecordAlreadyExists
 	}
 	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusCreated {
 		errorBody, _ := io.ReadAll(resp.Body)
