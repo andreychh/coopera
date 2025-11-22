@@ -1,9 +1,11 @@
 package app
 
 import (
+	nethttp "net/http"
+
 	"github.com/andreychh/coopera-bot/internal/domain"
 	"github.com/andreychh/coopera-bot/internal/domain/http"
-	t "github.com/andreychh/coopera-bot/internal/transport"
+	"github.com/andreychh/coopera-bot/internal/domain/transport"
 	"github.com/andreychh/coopera-bot/pkg/botlib/core"
 	"github.com/andreychh/coopera-bot/pkg/botlib/dialogues"
 	dialogueskeyvalue "github.com/andreychh/coopera-bot/pkg/botlib/dialogues/keyvalue"
@@ -12,7 +14,7 @@ import (
 	formskeyvalue "github.com/andreychh/coopera-bot/pkg/botlib/forms/keyvalue"
 	"github.com/andreychh/coopera-bot/pkg/botlib/keyvalue"
 	"github.com/andreychh/coopera-bot/pkg/botlib/tg"
-	"github.com/andreychh/coopera-bot/pkg/botlib/transport"
+	tgtransport "github.com/andreychh/coopera-bot/pkg/botlib/tg/transport"
 )
 
 func Store() keyvalue.Store {
@@ -27,16 +29,16 @@ func Forms(store keyvalue.Store) forms.Forms {
 	return formskeyvalue.KeyValueForms(store)
 }
 
-func Client(token string) transport.Client {
-	return transport.HTTPClient(token)
+func Client(token string) tgtransport.Client {
+	return tgtransport.HTTPClient(token)
 }
 
-func Bot(client transport.Client) tg.Bot {
+func Bot(client tgtransport.Client) tg.Bot {
 	return tg.NewBot(client)
 }
 
-func Community(client t.Client) domain.Community {
-	return http.Community(client)
+func Community(s string) domain.Community {
+	return http.Community(transport.HTTPClient(s, &nethttp.Client{}))
 }
 
 func Engine(token string, clause core.Clause) engine.Engine {

@@ -4,7 +4,7 @@ import (
 	"context"
 
 	"github.com/andreychh/coopera-bot/internal/domain"
-	"github.com/andreychh/coopera-bot/internal/transport"
+	"github.com/andreychh/coopera-bot/internal/domain/transport"
 )
 
 type httpTeam struct {

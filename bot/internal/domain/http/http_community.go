@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	"github.com/andreychh/coopera-bot/internal/domain"
-	"github.com/andreychh/coopera-bot/internal/transport"
+	"github.com/andreychh/coopera-bot/internal/domain/transport"
 	"github.com/andreychh/coopera-bot/pkg/repr/json"
 	"github.com/tidwall/gjson"
 )

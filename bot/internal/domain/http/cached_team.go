@@ -5,7 +5,7 @@ import (
 
 	"github.com/andreychh/coopera-bot/internal/domain"
 	"github.com/andreychh/coopera-bot/internal/domain/memory"
-	"github.com/andreychh/coopera-bot/internal/transport"
+	"github.com/andreychh/coopera-bot/internal/domain/transport"
 )
 
 type cachedTeam struct {

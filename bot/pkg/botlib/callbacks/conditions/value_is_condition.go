@@ -27,6 +27,7 @@ func (p valueIsCondition) Holds(_ context.Context, update telegram.Update) (bool
 	return value == p.value, nil
 }
 
+// ValueIs requires attrs.CallbackData
 func ValueIs(key string, value string) core.Condition {
 	return valueIsCondition{key: key, value: value}
 }

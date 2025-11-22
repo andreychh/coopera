@@ -5,9 +5,11 @@ import (
 	"fmt"
 
 	"github.com/andreychh/coopera-bot/pkg/botlib/content"
-	"github.com/andreychh/coopera-bot/pkg/botlib/transport"
+	"github.com/andreychh/coopera-bot/pkg/botlib/tg/transport"
 	"github.com/andreychh/coopera-bot/pkg/repr/json"
 )
+
+var ErrMessageCannotBeEdited = fmt.Errorf("message cannot be edited")
 
 type message struct {
 	chatID     int64
@@ -16,6 +18,7 @@ type message struct {
 }
 
 // TODO: "editMessageText" is suitable only for text messages. Need to handle other types of messages.
+// TODO: Handle ErrMessageCannotBeEdited when editing is not possible.
 func (m message) Edit(ctx context.Context, cnt content.Content) error {
 	cnt = content.WithMessageID(content.WithChatID(cnt, m.chatID), m.messageID)
 	payload, err := cnt.Structure().Marshal()

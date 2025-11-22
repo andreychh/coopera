@@ -1,6 +1,8 @@
 package tg
 
-import "github.com/andreychh/coopera-bot/pkg/botlib/transport"
+import (
+	"github.com/andreychh/coopera-bot/pkg/botlib/tg/transport"
+)
 
 type bot struct {
 	dataSource transport.Client

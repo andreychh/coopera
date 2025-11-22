@@ -28,6 +28,7 @@ func (t topicIsCondition) Holds(ctx context.Context, update telegram.Update) (bo
 	return topic == t.topic, nil
 }
 
+// TopicIs requires attrs.ChatID
 func TopicIs(dialogues dialogues.Dialogues, topic dialogues.Topic) core.Condition {
 	return topicIsCondition{dialogues: dialogues, topic: topic}
 }

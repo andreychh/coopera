@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	"github.com/andreychh/coopera-bot/pkg/botlib/content"
-	"github.com/andreychh/coopera-bot/pkg/botlib/transport"
+	"github.com/andreychh/coopera-bot/pkg/botlib/tg/transport"
 )
 
 type chat struct {
