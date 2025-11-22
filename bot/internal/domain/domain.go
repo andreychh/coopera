@@ -16,10 +16,14 @@ type User interface {
 }
 
 type Team interface {
-	ID(ctx context.Context) (int64, error)
-	Name(ctx context.Context) (string, error)
+	Details(ctx context.Context) (TeamDetails, error)
 	AddMember(ctx context.Context, user User) (Member, error)
 	Members(ctx context.Context) ([]Member, error)
+}
+
+type TeamDetails interface {
+	ID() int64
+	Name() string
 }
 
 type Member interface {
