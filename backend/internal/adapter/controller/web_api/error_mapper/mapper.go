@@ -29,6 +29,8 @@ func MapErrorToHTTP(err error) (int, string) {
 	// Ошибки репозитория / БД
 	case errors.Is(err, dbErr.ErrNotFound):
 		return http.StatusNotFound, err.Error()
+	case errors.Is(err, dbErr.ErrInvalidArgs):
+		return http.StatusBadRequest, err.Error()
 	case errors.Is(err, dbErr.ErrAlreadyExists):
 		return http.StatusConflict, err.Error()
 	case errors.Is(err, dbErr.ErrFailCreate) || errors.Is(err, dbErr.ErrFailDelete) ||

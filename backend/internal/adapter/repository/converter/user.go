@@ -5,18 +5,18 @@ import (
 	"github.com/andreychh/coopera-backend/internal/entity"
 )
 
-// FromEntityToModel преобразует entity в модель БД
 func FromEntityToModel(euser entity.UserEntity) user_model.User {
 	return user_model.User{
-		TelegramID: euser.TelegramID,
+		TelegramID: *euser.TelegramID,
+		Username:   *euser.Username,
 	}
 }
 
-// FromModelToEntity преобразует модель БД в entity
 func FromModelToEntity(muser user_model.User) entity.UserEntity {
 	return entity.UserEntity{
 		ID:         &muser.ID,
-		TelegramID: muser.TelegramID,
+		TelegramID: &muser.TelegramID,
+		Username:   &muser.Username,
 		CreatedAt:  &muser.CreatedAt,
 	}
 }
@@ -33,7 +33,8 @@ func FromModelToEntityWithTeams(m user_model.UserWithTeams) entity.UserEntity {
 
 	return entity.UserEntity{
 		ID:         &m.ID,
-		TelegramID: m.TelegramID,
+		TelegramID: &m.TelegramID,
+		Username:   &m.Username,
 		CreatedAt:  &m.CreatedAt,
 		Teams:      teams,
 	}

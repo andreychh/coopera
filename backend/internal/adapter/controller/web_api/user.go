@@ -1,6 +1,7 @@
 package web_api
 
 import (
+	"fmt"
 	"github.com/andreychh/coopera-backend/pkg/errors"
 	"github.com/go-playground/validator/v10"
 	"net/http"
@@ -28,7 +29,7 @@ func (uc *UserController) Create(w http.ResponseWriter, r *http.Request) error {
 		return errors.ErrInvalidInput
 	}
 
-	user, err := uc.userUseCase.CreateUsecase(r.Context(), *userdto.ToEntity(&req))
+	user, err := uc.userUseCase.CreateUsecase(r.Context(), *userdto.FromCreateUserRequest(&req))
 	if err != nil {
 		return err
 	}
@@ -46,7 +47,11 @@ func (uc *UserController) Get(w http.ResponseWriter, r *http.Request) error {
 		return errors.ErrInvalidInput
 	}
 
-	user, err := uc.userUseCase.GetUsecase(r.Context(), *userdto.ToEntity(&req))
+	if err := req.Validate(); err != nil {
+		return fmt.Errorf("%w: %v", errors.ErrInvalidInput, err)
+	}
+
+	user, err := uc.userUseCase.GetUsecase(r.Context(), req.TelegramID, req.UserName)
 	if err != nil {
 		return err
 	}
