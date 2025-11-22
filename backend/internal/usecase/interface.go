@@ -7,7 +7,7 @@ import (
 
 type UserUseCase interface {
 	CreateUsecase(ctx context.Context, euser entity.UserEntity) (entity.UserEntity, error)
-	GetUsecase(ctx context.Context, euser entity.UserEntity) (entity.UserEntity, error)
+	GetUsecase(ctx context.Context, opts ...any) (entity.UserEntity, error)
 	DeleteUsecase(ctx context.Context, userID int32) error
 }
 

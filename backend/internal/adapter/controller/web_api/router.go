@@ -3,7 +3,9 @@ package web_api
 import (
 	"github.com/andreychh/coopera-backend/internal/adapter/controller/web_api/middleware"
 	chimw "github.com/go-chi/chi/v5/middleware"
+	"github.com/go-chi/cors"
 	"net/http"
+	"os"
 	"time"
 
 	"github.com/andreychh/coopera-backend/internal/usecase"
@@ -33,6 +35,16 @@ func NewRouter(
 
 func (r *Router) SetupRoutes() http.Handler {
 	router := chi.NewRouter()
+
+	frontendURL := os.Getenv("FRONTEND_URL")
+	router.Use(cors.Handler(cors.Options{
+		AllowedOrigins:   []string{frontendURL},
+		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+		AllowedHeaders:   []string{"Accept", "Content-Type"},
+		AllowCredentials: false,
+		MaxAge:           300,
+	}))
+
 	router.Use(middleware.TimeoutMiddleware(5*time.Second), chimw.Recoverer)
 
 	router.Route("/api/v1", func(api chi.Router) {
