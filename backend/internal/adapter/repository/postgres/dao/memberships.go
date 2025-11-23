@@ -66,7 +66,13 @@ func (r *MembershipDAO) GetMembers(ctx context.Context, teamID int32) ([]entity.
 		FROM coopera.memberships
 		WHERE team_id = $1
 	`
-	rows, err := r.db.Pool.Query(ctx, query, teamID)
+
+	tx, ok := ctx.Value(postgres.TransactionKey{}).(postgres.Transaction)
+	if !ok {
+		return nil, repoErr.ErrTransactionNotFound
+	}
+
+	rows, err := tx.Query(ctx, query, teamID)
 	if err != nil {
 		return nil, fmt.Errorf("%w: %v", repoErr.ErrFailGet, err)
 	}
@@ -86,4 +92,30 @@ func (r *MembershipDAO) GetMembers(ctx context.Context, teamID int32) ([]entity.
 	}
 
 	return members, nil
+}
+
+func (r *MembershipDAO) ExistsMember(ctx context.Context, memberID int32) (bool, error) {
+	const query = `
+		SELECT 1
+		FROM coopera.memberships
+		WHERE id = $1
+		LIMIT 1
+	`
+
+	tx, ok := ctx.Value(postgres.TransactionKey{}).(postgres.Transaction)
+	if !ok {
+		return false, repoErr.ErrTransactionNotFound
+	}
+
+	row := tx.QueryRow(ctx, query, memberID)
+
+	var exists int
+	if err := row.Scan(&exists); err != nil {
+		if err.Error() == "no rows in result set" {
+			return false, nil
+		}
+		return false, fmt.Errorf("%w: %v", repoErr.ErrFailGet, err)
+	}
+
+	return true, nil
 }

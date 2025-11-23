@@ -30,3 +30,7 @@ func (r *TeamRepository) GetByIDRepo(ctx context.Context, teamID int32) (entity.
 func (r *TeamRepository) ExistsByName(ctx context.Context, name string) (bool, error) {
 	return r.dao.ExistsByName(ctx, name)
 }
+
+func (r *TeamRepository) ExistsByID(ctx context.Context, teamID int32) (bool, error) {
+	return r.dao.ExistsByID(ctx, teamID)
+}

@@ -37,23 +37,28 @@ func (tc *TaskController) Create(w http.ResponseWriter, r *http.Request) error {
 	return nil
 }
 
-//func (tc *TaskController) Get(w http.ResponseWriter, r *http.Request) error {
-//	var req teamdto.GetTeamRequest
-//	if err := BindRequest(r, &req); err != nil {
-//		if ve, ok := err.(validator.ValidationErrors); ok {
-//			return errors.WrapValidationError(ve)
-//		}
-//		return errors.ErrInvalidInput
-//	}
-//
-//	team, membership, err := tc.teamUseCase.GetByIDUsecase(r.Context(), req.TeamID)
-//	if err != nil {
-//		return err
-//	}
-//
-//	writeJSON(w, http.StatusOK, teamdto.ToGetTeamResponse(team, membership))
-//	return nil
-//}
+func (tc *TaskController) Get(w http.ResponseWriter, r *http.Request) error {
+	var req taskdto.GetTaskRequest
+	if err := BindRequest(r, &req); err != nil {
+		if ve, ok := err.(validator.ValidationErrors); ok {
+			return errors.WrapValidationError(ve)
+		}
+		return errors.ErrInvalidInput
+	}
+
+	if req.TaskID == 0 && req.UserID == 0 && req.TeamID == 0 {
+		return errors.ErrInvalidInput
+	}
+
+	tasks, err := tc.taskUseCase.GetUsecase(r.Context(), *taskdto.ToEntityGetTaskRequest(&req))
+	if err != nil {
+		return err
+	}
+
+	writeJSON(w, http.StatusOK, taskdto.ToGetTaskListResponse(tasks))
+	return nil
+}
+
 //
 //func (tc *TaskController) Delete(w http.ResponseWriter, r *http.Request) error {
 //	var req teamdto.DeleteTeamRequest

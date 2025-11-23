@@ -14,3 +14,8 @@ type Task struct {
 	CreatedAt   *time.Time
 	UpdatedAt   *time.Time
 }
+type TaskFilter struct {
+	TaskID int32
+	UserID int32
+	TeamID int32
+}

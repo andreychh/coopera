@@ -18,8 +18,8 @@ func FromEntityToModelTask(task entity.Task) taskModel.Task {
 		UpdatedAt:   task.UpdatedAt,
 	}
 
-	if task.Status != nil {
-		mtask.Status = task.Status.String()
+	if task.AssignedTo != nil {
+		mtask.Status = entity.StatusAssigned.String()
 	} else {
 		mtask.Status = entity.StatusOpen.String()
 	}
