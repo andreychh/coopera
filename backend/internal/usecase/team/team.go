@@ -106,3 +106,20 @@ func (uc *TeamUsecase) GetByIDUsecase(ctx context.Context, teamID int32) (entity
 
 	return team, members, nil
 }
+
+func (uc *TeamUsecase) ExistTeamByIDUsecase(ctx context.Context, teamID int32) (bool, error) {
+	var exists bool
+	var err error
+
+	err = uc.txManager.WithinTransaction(ctx, func(txCtx context.Context) error {
+		exists, err = uc.teamRepository.ExistsByID(txCtx, teamID)
+		if err != nil {
+			return fmt.Errorf("failed to check team existence: %w", err)
+		}
+		return nil
+	})
+	if err != nil {
+		return false, err
+	}
+	return exists, nil
+}

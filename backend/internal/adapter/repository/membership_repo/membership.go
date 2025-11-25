@@ -26,3 +26,7 @@ func (r *MembershipRepository) GetMembersRepo(ctx context.Context, teamID int32)
 func (r *MembershipRepository) DeleteMemberRepo(ctx context.Context, membership entity.MembershipEntity) error {
 	return r.dao.DeleteMember(ctx, converter.FromEntityToModelMembership(membership))
 }
+
+func (r *MembershipRepository) MemberExistsRepo(ctx context.Context, memberID int32) (bool, error) {
+	return r.dao.ExistsMember(ctx, memberID)
+}

@@ -107,3 +107,19 @@ func (r *TeamDAO) ExistsByName(ctx context.Context, name string) (bool, error) {
 
 	return exists, nil
 }
+
+func (r *TeamDAO) ExistsByID(ctx context.Context, teamID int32) (bool, error) {
+	const query = `SELECT EXISTS(SELECT 1 FROM coopera.teams WHERE id = $1)`
+
+	tx, ok := ctx.Value(postgres.TransactionKey{}).(postgres.Transaction)
+	if !ok {
+		return false, repoErr.ErrTransactionNotFound
+	}
+
+	var exists bool
+	if err := tx.QueryRow(ctx, query, teamID).Scan(&exists); err != nil {
+		return false, fmt.Errorf("%w: %v", repoErr.ErrFailCheckExists, err)
+	}
+
+	return exists, nil
+}

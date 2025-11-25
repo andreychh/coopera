@@ -26,3 +26,15 @@ func (ur *TaskRepository) CreateRepo(ctx context.Context, task entity.Task) (ent
 
 	return entask, nil
 }
+
+func (ur *TaskRepository) GetByTaskID(ctx context.Context, id int32) (entity.Task, error) {
+	return ur.TaskDAO.GetByTaskID(ctx, id)
+}
+
+func (ur *TaskRepository) GetByAssignedToID(ctx context.Context, userID int32) ([]entity.Task, error) {
+	return ur.TaskDAO.GetByAssignedID(ctx, userID)
+}
+
+func (ur *TaskRepository) GetByTeamID(ctx context.Context, teamID int32) ([]entity.Task, error) {
+	return ur.TaskDAO.GetByTeamID(ctx, teamID)
+}
