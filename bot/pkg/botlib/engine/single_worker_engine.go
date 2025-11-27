@@ -10,7 +10,7 @@ import (
 
 type singleWorkerEngine struct {
 	token  string
-	clause core.Clause
+	action core.Action
 }
 
 func (e singleWorkerEngine) Start(ctx context.Context) {
@@ -25,7 +25,7 @@ func (e singleWorkerEngine) Start(ctx context.Context) {
 			if !ok {
 				return
 			}
-			_, _ = e.clause.TryExecute(ctx, update)
+			e.action.Perform(ctx, update)
 		case <-ctx.Done():
 			return
 		}
@@ -43,6 +43,6 @@ func (e singleWorkerEngine) updates() (telegram.UpdatesChannel, error) {
 	return bot.GetUpdatesChan(u), nil
 }
 
-func SingleWorkerEngine(token string, clause core.Clause) Engine {
-	return singleWorkerEngine{token: token, clause: clause}
+func SingleWorkerEngine(token string, action core.Action) Engine {
+	return singleWorkerEngine{token: token, action: action}
 }

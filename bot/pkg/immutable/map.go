@@ -48,3 +48,7 @@ func MapOf[K comparable, V any](origin map[K]V) Map[K, V] {
 	maps.Copy(copied, origin)
 	return immutableMap[K, V]{items: copied}
 }
+
+func MapWith[K comparable, V any](key K, value V) Map[K, V] {
+	return immutableMap[K, V]{items: map[K]V{key: value}}
+}
