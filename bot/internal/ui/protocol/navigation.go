@@ -31,6 +31,12 @@ func ToMainMenu() string {
 		String()
 }
 
+func ToTeamsMenu() string {
+	return callbacks.OutcomingData(navPrefix).
+		With(navKey, MenuTeams).
+		String()
+}
+
 func ToTeamMenu(teamID int64) string {
 	return callbacks.OutcomingData(navPrefix).
 		With(navKey, MenuTeam).
