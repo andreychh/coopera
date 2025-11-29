@@ -7,9 +7,12 @@ import (
 	"github.com/andreychh/coopera-bot/pkg/botlib/content"
 	"github.com/andreychh/coopera-bot/pkg/botlib/tg/transport"
 	"github.com/andreychh/coopera-bot/pkg/repr/json"
+	"github.com/tidwall/gjson"
 )
 
 var ErrMessageCannotBeEdited = fmt.Errorf("message cannot be edited")
+var ErrNotModified = fmt.Errorf("message not modified")
+var ErrMessageNotFound = fmt.Errorf("message not found")
 
 type message struct {
 	chatID     int64
@@ -18,16 +21,28 @@ type message struct {
 }
 
 // TODO: "editMessageText" is suitable only for text messages. Need to handle other types of messages.
-// TODO: Handle ErrMessageCannotBeEdited when editing is not possible.
 func (m message) Edit(ctx context.Context, cnt content.Content) error {
 	cnt = content.WithMessageID(content.WithChatID(cnt, m.chatID), m.messageID)
 	payload, err := cnt.Structure().Marshal()
 	if err != nil {
 		return fmt.Errorf("failed to marshal content structure: %w", err)
 	}
-	_, err = m.dataSource.Execute(ctx, "editMessageText", payload)
+	body, err := m.dataSource.Execute(ctx, "editMessageText", payload)
 	if err != nil {
 		return fmt.Errorf("failed to execute request: %w", err)
+	}
+	ok := gjson.GetBytes(body, "ok").Bool()
+	if !ok {
+		msg := gjson.GetBytes(body, "description").String()
+		switch msg {
+		case "Bad Request: message is not modified":
+			return ErrNotModified
+		case "Bad Request: message can't be edited":
+			return ErrMessageCannotBeEdited
+		case "Bad Request: message to edit not found":
+			return ErrMessageNotFound
+		}
+		return fmt.Errorf("telegram api error: %s", msg)
 	}
 	return nil
 }
