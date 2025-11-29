@@ -7,7 +7,7 @@ type Task struct {
 	TeamID      int32      `db:"team_id"`
 	Title       string     `db:"title"`
 	Description *string    `db:"description"`
-	Points      int32      `db:"points"`
+	Points      *int32     `db:"points"`
 	Status      string     `db:"status"`
 	AssignedTo  *int32     `db:"assigned_to"`
 	CreatedBy   int32      `db:"created_by"`

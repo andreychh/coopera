@@ -25,7 +25,12 @@ func MapErrorToHTTP(err error) (int, string) {
 	case errors.Is(err, appErr.ErrForbidden) ||
 		errors.Is(err, appErr.ErrUserOwner) ||
 		errors.Is(err, appErr.ErrNoPermissionToDelete) ||
-		errors.Is(err, appErr.ErrNoPermissionToUpdate):
+		errors.Is(err, appErr.ErrNoPermissionToUpdate) ||
+		errors.Is(err, appErr.ErrOnlyManagerCanUpdatePoints) ||
+		errors.Is(err, appErr.ErrOnlyManagerCanAssign) ||
+		errors.Is(err, appErr.ErrOnlyManagerCanSetPoints) ||
+		errors.Is(err, appErr.ErrCantAssignWithoutPoints) ||
+		errors.Is(err, appErr.ErrOnlyManagerOrSelfCanAssign):
 		return http.StatusForbidden, err.Error()
 	case errors.Is(err, appErr.ErrConflict):
 		return http.StatusConflict, err.Error()

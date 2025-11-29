@@ -20,7 +20,7 @@ CREATE TABLE IF NOT EXISTS coopera.tasks
     team_id      INTEGER NOT NULL,
     title        VARCHAR(100) NOT NULL,
     description  VARCHAR,
-    points       INTEGER NOT NULL,
+    points       INTEGER,
     status       coopera.task_status NOT NULL DEFAULT 'open',
     assigned_to  INTEGER,
     created_by   INTEGER NOT NULL,

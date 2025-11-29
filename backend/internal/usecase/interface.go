@@ -31,4 +31,5 @@ type TaskUseCase interface {
 	GetUsecase(ctx context.Context, taskFilter entity.TaskFilter) ([]entity.Task, error)
 	UpdateStatus(ctx context.Context, status entity.TaskStatus) error
 	DeleteUsecase(ctx context.Context, taskID, currentUserID int32) error
+	UpdateUsecase(ctx context.Context, task entity.UpdateTask, currentUserID int32) error
 }

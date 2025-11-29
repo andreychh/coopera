@@ -9,6 +9,7 @@ import (
 	"github.com/andreychh/coopera-backend/internal/adapter/repository/model/task_model"
 	"github.com/jackc/pgconn"
 	"github.com/jackc/pgx/v4"
+	"strings"
 
 	"github.com/andreychh/coopera-backend/internal/adapter/repository/postgres"
 	"github.com/andreychh/coopera-backend/internal/entity"
@@ -52,6 +53,62 @@ func (r *TaskDAO) Create(ctx context.Context, task task_model.Task) (entity.Task
 	}
 
 	return converter.FromModelToEntityTask(m), nil
+}
+
+func (r *TaskDAO) Update(ctx context.Context, task task_model.UpdateTask) error {
+	tx, ok := ctx.Value(postgres.TransactionKey{}).(postgres.Transaction)
+	if !ok {
+		return repoErr.ErrTransactionNotFound
+	}
+
+	var setParts []string
+	var args []interface{}
+	argIdx := 1
+
+	if task.Title != nil {
+		setParts = append(setParts, fmt.Sprintf("title = $%d", argIdx))
+		args = append(args, *task.Title)
+		argIdx++
+	}
+
+	if task.Description != nil {
+		setParts = append(setParts, fmt.Sprintf("description = $%d", argIdx))
+		args = append(args, *task.Description)
+		argIdx++
+	}
+
+	if task.Points != nil {
+		setParts = append(setParts, fmt.Sprintf("points = $%d", argIdx))
+		args = append(args, *task.Points)
+		argIdx++
+	}
+
+	if task.AssignedTo != nil {
+		setParts = append(setParts, fmt.Sprintf("assigned_to = $%d", argIdx))
+		args = append(args, *task.AssignedTo)
+		argIdx++
+	}
+
+	if len(setParts) == 0 {
+		return repoErr.ErrNothingToUpdate
+	}
+
+	setParts = append(setParts, "updated_at = NOW()")
+
+	query := fmt.Sprintf(`
+		UPDATE coopera.tasks
+		SET %s
+		WHERE id = $%d
+	`, strings.Join(setParts, ", "), argIdx)
+
+	args = append(args, task.ID)
+
+	_, err := tx.Exec(ctx, query, args...)
+	if err != nil {
+		return fmt.Errorf("%w: %v", repoErr.ErrFailUpdate, err)
+	}
+
+	return nil
 }
 
 func (r *TaskDAO) GetByAssignedID(ctx context.Context, userID int32) ([]entity.Task, error) {

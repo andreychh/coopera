@@ -27,6 +27,11 @@ func (ur *TaskRepository) CreateRepo(ctx context.Context, task entity.Task) (ent
 	return entask, nil
 }
 
+func (ur *TaskRepository) UpdateRepo(ctx context.Context, task entity.UpdateTask) error {
+	taskModel := converter.FromEntityToModelUpdateTask(task)
+	return ur.TaskDAO.Update(ctx, taskModel)
+}
+
 func (ur *TaskRepository) GetByTaskID(ctx context.Context, id int32) (entity.Task, error) {
 	return ur.TaskDAO.GetByTaskID(ctx, id)
 }

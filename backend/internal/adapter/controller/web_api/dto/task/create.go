@@ -7,7 +7,7 @@ import (
 type CreateTaskRequest struct {
 	TeamID        int32  `json:"team_id" validate:"required"`
 	Description   string `json:"description" validate:"max=1000"`
-	Points        int32  `json:"points" validate:"required,gte=1"`
+	Points        int32  `json:"points" validate:"omitempty,gte=1"`
 	CurrentUserID int32  `json:"current_user_id" validate:"required"`
 	Title         string `json:"title" validate:"required,min=1,max=255"`
 	AssignedTo    int32  `json:"assigned_to,omitempty"`
@@ -18,7 +18,7 @@ type CreateTaskResponse struct {
 	TeamID      int32   `json:"team_id"`
 	Title       string  `json:"title"`
 	Description *string `json:"description,omitempty"`
-	Points      int32   `json:"points"`
+	Points      *int32  `json:"points,omitempty"`
 	Status      string  `json:"status,omitempty"`
 	CreatedBy   int32   `json:"created_by"`
 	AssignedTo  *int32  `json:"assigned_to,omitempty"`
@@ -29,7 +29,6 @@ type CreateTaskResponse struct {
 func ToEntityCreateTaskRequest(req *CreateTaskRequest) *entity.Task {
 	task := &entity.Task{
 		TeamID:    req.TeamID,
-		Points:    req.Points,
 		CreatedBy: req.CurrentUserID,
 		Title:     req.Title,
 	}
@@ -42,19 +41,25 @@ func ToEntityCreateTaskRequest(req *CreateTaskRequest) *entity.Task {
 		task.Description = &req.Description
 	}
 
+	if req.Points != 0 {
+		task.Points = &req.Points
+	}
+
 	return task
 }
 
 func ToCreateTaskResponse(task *entity.Task) *CreateTaskResponse {
 	taskResponse := &CreateTaskResponse{
-		ID:          task.ID,
-		TeamID:      task.TeamID,
-		Title:       task.Title,
-		Description: task.Description,
-		Points:      task.Points,
-		Status:      task.Status.String(),
-		CreatedBy:   task.CreatedBy,
-		CreatedAt:   task.CreatedAt.Format("2006-01-02T15:04:05Z"),
+		ID:        task.ID,
+		TeamID:    task.TeamID,
+		Title:     task.Title,
+		Status:    task.Status.String(),
+		CreatedBy: task.CreatedBy,
+		CreatedAt: task.CreatedAt.Format("2006-01-02T15:04:05Z"),
+	}
+
+	if task.Points != nil {
+		taskResponse.Points = task.Points
 	}
 
 	if task.Description != nil {

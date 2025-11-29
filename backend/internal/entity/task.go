@@ -7,7 +7,7 @@ type Task struct {
 	TeamID      int32
 	Title       string
 	Description *string
-	Points      int32
+	Points      *int32
 	Status      *Status
 	AssignedTo  *int32
 	CreatedBy   int32
@@ -24,4 +24,12 @@ type TaskStatus struct {
 	TaskID        int32
 	Status        string
 	CurrentUserID int32
+}
+
+type UpdateTask struct {
+	TaskID      int32
+	Title       *string
+	Description *string
+	Points      *int32
+	AssignedTo  *int32
 }
