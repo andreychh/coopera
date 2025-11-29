@@ -25,7 +25,7 @@ func (e singleWorkerEngine) Start(ctx context.Context) {
 			if !ok {
 				return
 			}
-			e.action.Perform(ctx, update)
+			_ = e.action.Perform(ctx, update)
 		case <-ctx.Done():
 			return
 		}

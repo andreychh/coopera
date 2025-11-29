@@ -60,7 +60,6 @@ func (n nodeSpec) Compile(parent State) (State, []State, error) {
 type leafSpec struct {
 	id       core.ID
 	behavior Behavior
-	children Children
 }
 
 func (l leafSpec) ID() core.ID {
