@@ -14,6 +14,7 @@ var (
 	ErrFailDelete          = errors.New("failed to delete team")
 	ErrFailCreate          = errors.New("failed to create team")
 	ErrFailGet             = errors.New("failed to get members")
+	ErrFailUpdate          = errors.New("failed to update record")
 	ErrFailCheckExists     = errors.New("failed to check existence")
 	ErrInvalidArgs         = errors.New("invalid arguments for getting record")
 )

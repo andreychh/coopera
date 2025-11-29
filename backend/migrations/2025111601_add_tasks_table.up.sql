@@ -10,7 +10,7 @@ BEGIN
         WHERE t.typname = 'task_status'
           AND n.nspname = 'coopera'
     ) THEN
-CREATE TYPE coopera.task_status AS ENUM ('open', 'assigned', 'completed', 'archived');
+CREATE TYPE coopera.task_status AS ENUM ('open', 'assigned', 'in_review', 'completed', 'archived');
 END IF;
 END$$;
 

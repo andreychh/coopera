@@ -16,6 +16,7 @@ var (
 	ErrUnauthorized         = errors.New("unauthorized")
 	ErrUserOwner            = errors.New("cannot delete user is the owner of the team")
 	ErrNoPermissionToDelete = errors.New("no permission to delete")
+	ErrNoPermissionToUpdate = errors.New("no permission to update")
 	ErrTaskFilter           = errors.New("no filter provided")
 	ErrMemberNotFound       = errors.New("member not found")
 	ErrTeamNotFound         = errors.New("team not found")

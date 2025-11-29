@@ -30,3 +30,7 @@ func (r *MembershipRepository) DeleteMemberRepo(ctx context.Context, membership 
 func (r *MembershipRepository) MemberExistsRepo(ctx context.Context, memberID int32) (bool, error) {
 	return r.dao.ExistsMember(ctx, memberID)
 }
+
+func (r *MembershipRepository) GetMemberRepo(ctx context.Context, teamID, memberID int32) (entity.MembershipEntity, error) {
+	return r.dao.GetMember(ctx, teamID, memberID)
+}

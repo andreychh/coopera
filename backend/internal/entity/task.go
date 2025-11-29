@@ -19,3 +19,9 @@ type TaskFilter struct {
 	UserID int32
 	TeamID int32
 }
+
+type TaskStatus struct {
+	TaskID        int32
+	Status        string
+	CurrentUserID int32
+}

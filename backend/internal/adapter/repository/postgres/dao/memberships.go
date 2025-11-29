@@ -119,3 +119,27 @@ func (r *MembershipDAO) ExistsMember(ctx context.Context, memberID int32) (bool,
 
 	return true, nil
 }
+
+func (r *MembershipDAO) GetMember(ctx context.Context, teamID, memberID int32) (entity.MembershipEntity, error) {
+	const query = `
+		SELECT id, team_id, member_id, role, created_at
+		FROM coopera.memberships
+		WHERE team_id = $1 AND member_id = $2
+	`
+
+	tx, ok := ctx.Value(postgres.TransactionKey{}).(postgres.Transaction)
+	if !ok {
+		return entity.MembershipEntity{}, repoErr.ErrTransactionNotFound
+	}
+
+	var m membership_model.Membership
+	err := tx.QueryRow(ctx, query, teamID, memberID).Scan(&m.ID, &m.TeamID, &m.MemberID, &m.Role, &m.CreatedAt)
+	if err != nil {
+		if err.Error() == "no rows in result set" {
+			return entity.MembershipEntity{}, repoErr.ErrNotFound
+		}
+		return entity.MembershipEntity{}, fmt.Errorf("%w: %v", repoErr.ErrFailGet, err)
+	}
+
+	return converter.FromModelToEntityMembership(m), nil
+}

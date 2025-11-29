@@ -166,3 +166,46 @@ func (r *TaskDAO) GetByTeamID(ctx context.Context, teamID int32) ([]entity.Task,
 
 	return tasks, nil
 }
+
+func (r *TaskDAO) UpdateStatus(ctx context.Context, status task_model.TaskStatus) error {
+	const query = `
+		UPDATE coopera.tasks
+		SET status = $1, updated_at = NOW()
+		WHERE id = $2
+	`
+
+	tx, ok := ctx.Value(postgres.TransactionKey{}).(postgres.Transaction)
+	if !ok {
+		return repoErr.ErrTransactionNotFound
+	}
+
+	cmdTag, err := tx.Exec(ctx, query, status.Status, status.TaskID)
+	if err != nil {
+		return fmt.Errorf("%w: %v", repoErr.ErrFailUpdate, err)
+	}
+
+	if cmdTag.RowsAffected() == 0 {
+		return repoErr.ErrNotFound
+	}
+
+	return nil
+}
+
+func (r *TaskDAO) Delete(ctx context.Context, taskID int32) error {
+	const query = `
+		DELETE FROM coopera.tasks
+		WHERE id = $1
+	`
+
+	tx, ok := ctx.Value(postgres.TransactionKey{}).(postgres.Transaction)
+	if !ok {
+		return repoErr.ErrTransactionNotFound
+	}
+
+	_, err := tx.Exec(ctx, query, taskID)
+	if err != nil {
+		return fmt.Errorf("%w: %v", repoErr.ErrFailDelete, err)
+	}
+
+	return nil
+}
