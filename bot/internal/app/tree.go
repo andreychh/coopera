@@ -56,9 +56,9 @@ func TeamMenuBehavior(bot tg.Bot, c domain.Community) hsm.Behavior {
 	)
 }
 
-func CreateTeamFormBehavior() hsm.Behavior {
+func CreateTeamFormBehavior(bot tg.Bot) hsm.Behavior {
 	return hsm.CoreBehavior(
-		composition.Nothing(),
+		base.EditOrSendContent(bot, content.StaticView(content.Text("Fill out the form below or use /cancel to exit the form."))),
 		hsm.Greedy(
 			hsm.JustIf(updcond.CommandIs("cancel"), hsm.Transit("teams_menu")),
 		),
@@ -68,7 +68,7 @@ func CreateTeamFormBehavior() hsm.Behavior {
 
 func CreateTeamFormTeamNameBehavior(bot tg.Bot, c domain.Community, f forms.Forms) hsm.Behavior {
 	return hsm.CoreBehavior(
-		base.EditOrSendContent(bot, content.StaticView(content.Text("Please provide the name of your team."))),
+		base.SendContent(bot, content.StaticView(content.Text("Please provide the name of your team."))),
 		hsm.If(
 			composition.Not(updcond.SafeCommandIs("cancel")),
 			hsm.FirstHandled(
@@ -114,7 +114,7 @@ func Tree(bot tg.Bot, c domain.Community, f forms.Forms) hsm.Spec {
 			hsm.Leaf("team_menu", TeamMenuBehavior(bot, c)),
 			hsm.Node(
 				"create_team_form",
-				CreateTeamFormBehavior(),
+				CreateTeamFormBehavior(bot),
 				hsm.Group(
 					hsm.Leaf("create_team_form:team_name", CreateTeamFormTeamNameBehavior(bot, c, f)),
 				),
