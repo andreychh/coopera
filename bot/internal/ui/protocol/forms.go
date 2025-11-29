@@ -9,33 +9,25 @@ import (
 	updatesconditions "github.com/andreychh/coopera-bot/pkg/botlib/updates/conditions"
 )
 
-type Form string
-
 const (
 	FormCreateTeam = "create_team"
 )
-
-var Forms = formsProtocol{}
-
-type formsProtocol struct{}
 
 const (
 	formPrefix = "start_form"
 	formKey    = "form_name"
 )
 
-// StartPayload — строка для кнопки "Начать форму"
-func (formsProtocol) StartPayload(formID string) string {
-	return callbacks.OutcomingData(formPrefix).
-		With(formKey, formID).
-		String()
-}
-
-// OnStart — условие роутера "Пользователь нажал начать форму"
-func (formsProtocol) OnStart(formID string) core.Condition {
+func OnStartForm(formID string) core.Condition {
 	return composition.All(
 		updatesconditions.UpdateTypeIs(updates.UpdateTypeCallbackQuery),
 		conditions.PrefixIs(formPrefix),
 		conditions.ValueIs(formKey, formID),
 	)
+}
+
+func StartFromPayload(formID string) string {
+	return callbacks.OutcomingData(formPrefix).
+		With(formKey, formID).
+		String()
 }

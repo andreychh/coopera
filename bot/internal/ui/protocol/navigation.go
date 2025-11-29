@@ -13,65 +13,60 @@ import (
 )
 
 const (
-	MenuMain  = "main"
-	MenuTeams = "teams"
+	MenuMain        = "main"
+	MenuTeams       = "teams"
+	MenuTeam        = "team"
+	MenuTeamMembers = "team_members"
 )
-
-var Navigation = navigationProtocol{}
-
-type navigationProtocol struct{}
 
 const (
 	navPrefix = "change_menu"
 	navKey    = "menu_name"
+	teamIDKey = "team_id"
 )
 
-// Payload генерирует строку для КНОПКИ
-// Пример использования: protocol.Navigation.Payload(protocol.MenuTeams)
-func (navigationProtocol) Payload(menuID string) string {
+func ToMainMenu() string {
 	return callbacks.OutcomingData(navPrefix).
-		With(navKey, menuID).
+		With(navKey, MenuMain).
 		String()
 }
 
-// On генерирует условие для РОУТЕРА (Tree)
-// Пример использования: protocol.Navigation.On(protocol.MenuTeams)
-func (navigationProtocol) On(menuID string) core.Condition {
+func ToTeamsMenu() string {
+	return callbacks.OutcomingData(navPrefix).
+		With(navKey, MenuTeams).
+		String()
+}
+
+func ToTeamMenu(teamID int64) string {
+	return callbacks.OutcomingData(navPrefix).
+		With(navKey, MenuTeam).
+		With(teamIDKey, strconv.FormatInt(teamID, 10)).
+		String()
+}
+
+func ToMembersMenu(teamID int64) string {
+	return callbacks.OutcomingData(navPrefix).
+		With(navKey, MenuTeamMembers).
+		With(teamIDKey, strconv.FormatInt(teamID, 10)).
+		String()
+}
+
+func OnChangeMenu(id string) core.Condition {
 	return composition.All(
 		updatesconditions.UpdateTypeIs(updates.UpdateTypeCallbackQuery),
 		conditions.PrefixIs(navPrefix),
-		conditions.ValueIs(navKey, menuID),
+		conditions.ValueIs(navKey, id),
 	)
 }
 
-const (
-	MenuTeam        = "team"
-	ParamTeamID     = "team_id"
-	MenuTeamMembers = "team_members"
-)
-
-func (navigationProtocol) ToTeam(teamID int64) string {
-	return callbacks.OutcomingData(navPrefix).
-		With(navKey, MenuTeam).
-		With(ParamTeamID, strconv.FormatInt(teamID, 10)).
-		String()
-}
-
-func (navigationProtocol) ParseTeamID(callbackData string) (int64, error) {
-	val, exists := callbacks.IncomingData(callbackData).Value(ParamTeamID)
+func ParseTeamID(callbackData string) (int64, error) {
+	val, exists := callbacks.IncomingData(callbackData).Value(teamIDKey)
 	if !exists {
-		return 0, fmt.Errorf("parameter %s not found", ParamTeamID)
+		return 0, fmt.Errorf("parameter %s not found", teamIDKey)
 	}
 	id, err := strconv.ParseInt(val, 10, 64)
 	if err != nil {
-		return 0, fmt.Errorf("parsing %s: %w", ParamTeamID, err)
+		return 0, fmt.Errorf("parsing %s: %w", teamIDKey, err)
 	}
 	return id, nil
-}
-
-func (navigationProtocol) ToTeamMembers(teamID int64) string {
-	return callbacks.OutcomingData(navPrefix).
-		With(navKey, MenuTeamMembers).
-		With(ParamTeamID, strconv.FormatInt(teamID, 10)).
-		String()
 }

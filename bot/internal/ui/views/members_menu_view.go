@@ -24,7 +24,7 @@ func (m membersMenuView) Render(ctx context.Context, update telegram.Update) (co
 	if !exists {
 		return nil, fmt.Errorf("getting callback data from update: callback data not found")
 	}
-	id, err := protocol.Navigation.ParseTeamID(callbackData)
+	id, err := protocol.ParseTeamID(callbackData)
 	if err != nil {
 		return nil, fmt.Errorf("parsing team ID from callback data %q: %w", callbackData, err)
 	}

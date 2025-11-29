@@ -18,7 +18,7 @@ func (m mainMenuView) Render(_ context.Context, _ telegram.Update) (content.Cont
 		content.Text("Main menu"),
 		buttons.Matrix(
 			buttons.Row(buttons.CallbackButton("Statistics", "not_implemented")),
-			buttons.Row(buttons.CallbackButton("Teams", protocol.Navigation.Payload(protocol.MenuTeams))),
+			buttons.Row(buttons.CallbackButton("Teams", protocol.ToTeamsMenu())),
 		),
 	), nil
 }
