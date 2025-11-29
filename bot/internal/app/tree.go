@@ -70,7 +70,7 @@ func CreateTeamFormTeamNameBehavior(bot tg.Bot, c domain.Community, f forms.Form
 	return hsm.CoreBehavior(
 		base.EditOrSendContent(bot, content.StaticView(content.Text("Please provide the name of your team."))),
 		hsm.If(
-			composition.Not(updcond.CommandIs("cancel")),
+			composition.Not(updcond.SafeCommandIs("cancel")),
 			hsm.FirstHandled(
 				hsm.TryAction(
 					composition.Not(updcond.TextMatchesRegexp("^[A-Za-zА-Яа-я0-9_ -]{3,50}$")),
