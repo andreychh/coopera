@@ -59,20 +59,37 @@ func (tc *TaskController) Get(w http.ResponseWriter, r *http.Request) error {
 	return nil
 }
 
-//
-//func (tc *TaskController) Delete(w http.ResponseWriter, r *http.Request) error {
-//	var req teamdto.DeleteTeamRequest
-//	if err := BindRequest(r, &req); err != nil {
-//		if ve, ok := err.(validator.ValidationErrors); ok {
-//			return errors.WrapValidationError(ve)
-//		}
-//		return errors.ErrInvalidInput
-//	}
-//
-//	if err := tc.teamUseCase.DeleteUsecase(r.Context(), req.TeamID, req.CurrentUserID); err != nil {
-//		return err
-//	}
-//
-//	writeJSON(w, http.StatusNoContent, nil)
-//	return nil
-//}
+func (tc *TaskController) UpdateStatus(w http.ResponseWriter, r *http.Request) error {
+	var req taskdto.PatchStatusRequest
+	if err := BindRequest(r, &req); err != nil {
+		if ve, ok := err.(validator.ValidationErrors); ok {
+			return errors.WrapValidationError(ve)
+		}
+		return errors.ErrInvalidInput
+	}
+
+	err := tc.taskUseCase.UpdateStatus(r.Context(), *taskdto.ToEntityPatchStatusRequest(&req))
+	if err != nil {
+		return err
+	}
+
+	w.WriteHeader(http.StatusOK)
+	return nil
+}
+
+func (tc *TaskController) Delete(w http.ResponseWriter, r *http.Request) error {
+	var req taskdto.DeleteTaskRequest
+	if err := BindRequest(r, &req); err != nil {
+		if ve, ok := err.(validator.ValidationErrors); ok {
+			return errors.WrapValidationError(ve)
+		}
+		return errors.ErrInvalidInput
+	}
+
+	if err := tc.taskUseCase.DeleteUsecase(r.Context(), req.TaskID, req.CurrentUserID); err != nil {
+		return err
+	}
+
+	writeJSON(w, http.StatusNoContent, nil)
+	return nil
+}

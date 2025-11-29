@@ -32,6 +32,7 @@ type MembershipRepository interface {
 	DeleteMemberRepo(ctx context.Context, membership entity.MembershipEntity) error
 	GetMembersRepo(ctx context.Context, teamID int32) ([]entity.MembershipEntity, error)
 	MemberExistsRepo(ctx context.Context, memberID int32) (bool, error)
+	GetMemberRepo(ctx context.Context, teamID, memberID int32) (entity.MembershipEntity, error)
 }
 
 type TaskRepository interface {
@@ -39,4 +40,6 @@ type TaskRepository interface {
 	GetByTaskID(ctx context.Context, id int32) (entity.Task, error)
 	GetByAssignedToID(ctx context.Context, userID int32) ([]entity.Task, error)
 	GetByTeamID(ctx context.Context, teamID int32) ([]entity.Task, error)
+	UpdateStatus(ctx context.Context, status entity.TaskStatus) error
+	DeleteRepo(ctx context.Context, taskID int32) error
 }

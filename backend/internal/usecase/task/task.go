@@ -99,3 +99,63 @@ func (uc *TaskUsecase) GetUsecase(ctx context.Context, f entity.TaskFilter) ([]e
 
 	return result, nil
 }
+
+func (uc *TaskUsecase) UpdateStatus(ctx context.Context, task entity.TaskStatus) error {
+	return uc.txManager.WithinTransaction(ctx, func(txCtx context.Context) error {
+		existingTask, err := uc.taskRepository.GetByTaskID(txCtx, task.TaskID)
+		if err != nil {
+			return fmt.Errorf("failed to get task: %w", err)
+		}
+
+		members, err := uc.membershipsUsecase.GetMembersUsecase(txCtx, existingTask.TeamID)
+		if err != nil {
+			return err
+		}
+
+		isMember := false
+		for _, m := range members {
+			if m.MemberID == task.CurrentUserID {
+				isMember = true
+				break
+			}
+		}
+
+		if !isMember {
+			return appErr.ErrNoPermissionToUpdate
+		}
+
+		err = uc.taskRepository.UpdateStatus(txCtx, task)
+		if err != nil {
+			return fmt.Errorf("failed to update task status: %w", err)
+		}
+		return nil
+	})
+}
+
+func (uc *TaskUsecase) DeleteUsecase(ctx context.Context, taskID, currentUserID int32) error {
+	return uc.txManager.WithinTransaction(ctx, func(txCtx context.Context) error {
+		existingTask, err := uc.taskRepository.GetByTaskID(txCtx, taskID)
+		if err != nil {
+			return fmt.Errorf("failed to get task: %w", err)
+		}
+
+		currentMember, err := uc.membershipsUsecase.GetMemberUsecase(txCtx, existingTask.TeamID, currentUserID)
+		if err != nil {
+			return fmt.Errorf("failed to get current member: %w", err)
+		}
+
+		isCreator := existingTask.CreatedBy == currentMember.ID
+		isManager := currentMember.Role == entity.RoleManager
+
+		if !isCreator && !isManager {
+			return appErr.ErrNoPermissionToDelete
+		}
+
+		err = uc.taskRepository.DeleteRepo(txCtx, taskID)
+		if err != nil {
+			return fmt.Errorf("failed to delete task: %w", err)
+		}
+
+		return nil
+	})
+}

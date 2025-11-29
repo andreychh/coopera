@@ -42,3 +42,10 @@ func FromModelToEntityTask(m taskModel.Task) entity.Task {
 		UpdatedAt:   m.UpdatedAt,
 	}
 }
+
+func FromEntityToModelTaskStatus(status entity.TaskStatus) taskModel.TaskStatus {
+	return taskModel.TaskStatus{
+		TaskID: status.TaskID,
+		Status: status.Status,
+	}
+}
