@@ -3,12 +3,13 @@ package app
 import (
 	"context"
 	"fmt"
+	"github.com/andreychh/coopera-backend/config"
 	"github.com/andreychh/coopera-backend/internal/usecase/task"
+	"github.com/andreychh/coopera-backend/internal/usecase/user"
 	"log"
 	"net/http"
 	"os"
 	"os/signal"
-	"strconv"
 	"syscall"
 	"time"
 
@@ -21,41 +22,30 @@ import (
 	repouser "github.com/andreychh/coopera-backend/internal/adapter/repository/user_repo"
 	"github.com/andreychh/coopera-backend/internal/usecase/memberships"
 	"github.com/andreychh/coopera-backend/internal/usecase/team"
-	"github.com/andreychh/coopera-backend/internal/usecase/user"
 	"github.com/andreychh/coopera-backend/pkg/logger"
 	"github.com/andreychh/coopera-backend/pkg/migrator"
 	"github.com/go-playground/validator/v10"
 )
 
 func Start() error {
-	// для локалки "github.com/joho/godotenv"
-	//if err := godotenv.Load("config/dev/.env"); err != nil {
-	//	return fmt.Errorf("error loading .env: %w", err)
-	//}
+	localSetupEnvPath := "config/dev/.env"
+	cfg := config.LoadConfig(localSetupEnvPath)
 
-	logLevel, _ := strconv.Atoi(os.Getenv("LOG_LEVEL"))
-	if logLevel == 0 {
-		logLevel = logger.INFO
-	}
-	//logService := logger.NewLogger(logLevel)
+	connectionString := postgres.BuildPath(cfg)
 
-	dsn := os.Getenv("DATABASE_URL")
-	if dsn == "" {
-		return fmt.Errorf("DATABASE_URL not set")
-	}
-
-	migrationsPath := os.Getenv("MIGRATIONS_PATH")
-	if err := migrator.Migrate(migrationsPath, dsn, os.Getenv("DB_SCHEMA")); err != nil {
+	if err := migrator.Migrate(cfg.MigrationsPath, connectionString, cfg.DBSchema); err != nil {
 		return fmt.Errorf("migration error: %w", err)
 	}
 
-	db, err := postgres.NewDB(dsn)
+	db, err := postgres.NewDB(connectionString)
 	if err != nil {
 		return err
 	}
 
 	validate := validator.New()
 	web_api.InitValidator(validate)
+
+	logService := logger.NewLogger(cfg.LogLevel)
 
 	userRepo := repouser.NewUserRepository(*dao.NewUserDAO(db))
 	teamRepo := repoteams.NewTeamRepository(*dao.NewTeamDAO(db))
@@ -65,16 +55,12 @@ func Start() error {
 	userUC := user.NewUserUsecase(userRepo, db)
 	memberUC := memberships.NewMembershipsUsecase(memberRepo, db)
 	teamUC := team.NewTeamUsecase(teamRepo, memberUC, db)
-	taskUC := task.NewTaskUsecase(taskRepo, memberUC, db)
+	taskUC := task.NewTaskUsecase(taskRepo, memberUC, db, teamUC)
 
-	router := web_api.NewRouter(userUC, teamUC, taskUC, memberUC).SetupRoutes()
+	router := web_api.NewRouter(userUC, teamUC, taskUC, memberUC, logService, cfg).SetupRoutes()
 
-	port := os.Getenv("PORT")
-	if port == "" {
-		port = "8080"
-	}
 	srv := &http.Server{
-		Addr:        ":" + port,
+		Addr:        ":" + cfg.BackendPort,
 		Handler:     router,
 		IdleTimeout: 60 * time.Second,
 	}
@@ -84,7 +70,7 @@ func Start() error {
 			log.Fatalf("server error: %v", err)
 		}
 	}()
-	log.Println("HTTP server started on port", os.Getenv("PORT"))
+	log.Println("HTTP server started on port", cfg.BackendPort)
 
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)

@@ -91,18 +91,3 @@ func writeJSON(w http.ResponseWriter, status int, v any) {
 	w.WriteHeader(status)
 	_ = json.NewEncoder(w).Encode(v)
 }
-
-func writeValidationError(w http.ResponseWriter, err error) {
-	if ve, ok := err.(validator.ValidationErrors); ok {
-		errors := make([]string, 0, len(ve))
-		for _, e := range ve {
-			errors = append(errors, e.Error())
-		}
-		writeJSON(w, http.StatusBadRequest, map[string]any{
-			"error":   "Validation failed",
-			"details": errors,
-		})
-	} else {
-		writeJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
-	}
-}

@@ -1,11 +1,12 @@
 package web_api
 
 import (
+	"github.com/andreychh/coopera-backend/config"
 	"github.com/andreychh/coopera-backend/internal/adapter/controller/web_api/middleware"
+	"github.com/andreychh/coopera-backend/pkg/logger"
 	chimw "github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
 	"net/http"
-	"os"
 	"time"
 
 	"github.com/andreychh/coopera-backend/internal/usecase"
@@ -17,6 +18,8 @@ type Router struct {
 	teamController       *TeamController
 	taskController       *TaskController
 	membershipController *MembershipController
+	logger               *logger.Logger
+	config               *config.Config
 }
 
 func NewRouter(
@@ -24,21 +27,24 @@ func NewRouter(
 	teamUseCase usecase.TeamUseCase,
 	taskUseCase usecase.TaskUseCase,
 	membershipUseCase usecase.MembershipUseCase,
+	logger *logger.Logger,
+	config *config.Config,
 ) *Router {
 	return &Router{
 		userController:       NewUserController(userUseCase),
 		teamController:       NewTeamController(teamUseCase),
 		taskController:       NewTaskController(taskUseCase),
 		membershipController: NewMembershipController(membershipUseCase),
+		logger:               logger,
+		config:               config,
 	}
 }
 
 func (r *Router) SetupRoutes() http.Handler {
 	router := chi.NewRouter()
 
-	frontendURL := os.Getenv("FRONTEND_URL")
 	router.Use(cors.Handler(cors.Options{
-		AllowedOrigins:   []string{frontendURL},
+		AllowedOrigins:   []string{r.config.FrontendURL},
 		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
 		AllowedHeaders:   []string{"Accept", "Content-Type"},
 		AllowCredentials: false,
@@ -66,7 +72,7 @@ func (r *Router) SetupRoutes() http.Handler {
 
 		api.Route("/tasks", func(tasks chi.Router) {
 			tasks.Post("/", middleware.ErrorHandler(r.taskController.Create))
-			//tasks.Get("/", middleware.ErrorHandler(r.taskController.Get))
+			tasks.Get("/", middleware.ErrorHandler(r.taskController.Get))
 			//tasks.Delete("/", middleware.ErrorHandler(r.taskController.Delete))
 		})
 	})

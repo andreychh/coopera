@@ -10,6 +10,7 @@ type CreateTaskRequest struct {
 	Points        int32  `json:"points" validate:"required,gte=1"`
 	CurrentUserID int32  `json:"current_user_id" validate:"required"`
 	Title         string `json:"title" validate:"required,min=1,max=255"`
+	AssignedTo    int32  `json:"assigned_to,omitempty"`
 }
 
 type CreateTaskResponse struct {
@@ -33,6 +34,10 @@ func ToEntityCreateTaskRequest(req *CreateTaskRequest) *entity.Task {
 		Title:     req.Title,
 	}
 
+	if req.AssignedTo != 0 {
+		task.AssignedTo = &req.AssignedTo
+	}
+
 	if req.Description != "" {
 		task.Description = &req.Description
 	}
@@ -47,6 +52,7 @@ func ToCreateTaskResponse(task *entity.Task) *CreateTaskResponse {
 		Title:       task.Title,
 		Description: task.Description,
 		Points:      task.Points,
+		Status:      task.Status.String(),
 		CreatedBy:   task.CreatedBy,
 		CreatedAt:   task.CreatedAt.Format("2006-01-02T15:04:05Z"),
 	}

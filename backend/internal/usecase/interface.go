@@ -15,14 +15,17 @@ type TeamUseCase interface {
 	CreateUsecase(ctx context.Context, team entity.TeamEntity) (entity.TeamEntity, error)
 	DeleteUsecase(ctx context.Context, teamID, currentUserID int32) error
 	GetByIDUsecase(ctx context.Context, teamID int32) (entity.TeamEntity, []entity.MembershipEntity, error)
+	ExistTeamByIDUsecase(ctx context.Context, teamID int32) (bool, error)
 }
 
 type MembershipUseCase interface {
 	AddMemberUsecase(ctx context.Context, membership entity.MembershipEntity) error
 	DeleteMemberUsecase(ctx context.Context, membership entity.MembershipEntity, currentUserID int32) error
 	GetMembersUsecase(ctx context.Context, teamID int32) ([]entity.MembershipEntity, error)
+	ExistsMemberUsecase(ctx context.Context, memberID int32) (bool, error)
 }
 
 type TaskUseCase interface {
 	CreateUsecase(ctx context.Context, task entity.Task) (entity.Task, error)
+	GetUsecase(ctx context.Context, taskFilter entity.TaskFilter) ([]entity.Task, error)
 }

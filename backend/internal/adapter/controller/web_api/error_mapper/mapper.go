@@ -11,11 +11,14 @@ import (
 func MapErrorToHTTP(err error) (int, string) {
 	switch {
 	// Ошибки юзкейсов
-	case errors.Is(err, appErr.ErrNotFound):
-		return http.StatusNotFound, err.Error()
+	case errors.Is(err, appErr.ErrNotFound) ||
+		errors.Is(err, appErr.ErrMemberNotFound) ||
+		errors.Is(err, appErr.ErrTeamNotFound):
+		return http.StatusUnprocessableEntity, err.Error()
 	case errors.Is(err, appErr.ErrAlreadyExists):
 		return http.StatusConflict, err.Error()
-	case errors.Is(err, appErr.ErrInvalidInput):
+	case errors.Is(err, appErr.ErrInvalidInput) ||
+		errors.Is(err, appErr.ErrTaskFilter):
 		return http.StatusBadRequest, err.Error()
 	case errors.Is(err, appErr.ErrUnauthorized):
 		return http.StatusUnauthorized, err.Error()
