@@ -17,4 +17,5 @@ var (
 	ErrFailUpdate          = errors.New("failed to update record")
 	ErrFailCheckExists     = errors.New("failed to check existence")
 	ErrInvalidArgs         = errors.New("invalid arguments for getting record")
+	ErrNothingToUpdate     = errors.New("nothing to update")
 )

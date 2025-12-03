@@ -28,6 +28,20 @@ func (uc *TaskUsecase) CreateUsecase(ctx context.Context, task entity.Task) (ent
 	var createdTask entity.Task
 
 	err := uc.txManager.WithinTransaction(ctx, func(txCtx context.Context) error {
+		currentMember, err := uc.membershipsUsecase.GetMemberUsecase(txCtx, task.TeamID, task.CreatedBy)
+		if err != nil {
+			return fmt.Errorf("failed to get current member: %w", err)
+		}
+
+		isManager := currentMember.Role == entity.RoleManager
+		if !isManager && task.Points != nil {
+			return appErr.ErrOnlyManagerCanSetPoints
+		}
+
+		if !isManager && task.AssignedTo != nil {
+			return appErr.ErrOnlyManagerCanAssign
+		}
+
 		t, err := uc.taskRepository.CreateRepo(txCtx, task)
 		if err != nil {
 			return fmt.Errorf("failed to create task: %w", err)
@@ -98,6 +112,67 @@ func (uc *TaskUsecase) GetUsecase(ctx context.Context, f entity.TaskFilter) ([]e
 	}
 
 	return result, nil
+}
+
+func (uc *TaskUsecase) UpdateUsecase(ctx context.Context, task entity.UpdateTask, currUserID int32) error {
+	return uc.txManager.WithinTransaction(ctx, func(txCtx context.Context) error {
+
+		existingTask, err := uc.taskRepository.GetByTaskID(txCtx, task.TaskID)
+		if err != nil {
+			return fmt.Errorf("failed to get task: %w", err)
+		}
+
+		currentMember, err := uc.membershipsUsecase.GetMemberUsecase(txCtx, existingTask.TeamID, currUserID)
+		if err != nil {
+			return fmt.Errorf("failed to get current member: %w", err)
+		}
+
+		isCreator := existingTask.CreatedBy == currentMember.ID
+		isManager := currentMember.Role == entity.RoleManager
+
+		if task.Title != nil || task.Description != nil {
+			if !isCreator && !isManager {
+				return appErr.ErrNoPermissionToUpdate
+			}
+		}
+
+		if task.Points != nil && !isManager {
+			return appErr.ErrOnlyManagerCanUpdatePoints
+		}
+
+		needStatusUpdate := false
+
+		if task.AssignedTo != nil {
+
+			if existingTask.Points == nil || *existingTask.Points <= 0 {
+				return appErr.ErrCantAssignWithoutPoints
+			}
+
+			if !isManager {
+				if *task.AssignedTo != currentMember.ID {
+					return appErr.ErrOnlyManagerOrSelfCanAssign
+				}
+			}
+
+			needStatusUpdate = true
+		}
+
+		if err = uc.taskRepository.UpdateRepo(txCtx, task); err != nil {
+			return fmt.Errorf("failed to update task: %w", err)
+		}
+
+		if needStatusUpdate {
+			if err = uc.UpdateStatus(txCtx, entity.TaskStatus{
+				TaskID:        task.TaskID,
+				Status:        entity.StatusAssigned.String(),
+				CurrentUserID: currUserID,
+			}); err != nil {
+				return err
+			}
+		}
+
+		return nil
+	})
 }
 
 func (uc *TaskUsecase) UpdateStatus(ctx context.Context, task entity.TaskStatus) error {

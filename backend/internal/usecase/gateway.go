@@ -42,4 +42,5 @@ type TaskRepository interface {
 	GetByTeamID(ctx context.Context, teamID int32) ([]entity.Task, error)
 	UpdateStatus(ctx context.Context, status entity.TaskStatus) error
 	DeleteRepo(ctx context.Context, taskID int32) error
+	UpdateRepo(ctx context.Context, task entity.UpdateTask) error
 }

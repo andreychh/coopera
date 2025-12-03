@@ -59,8 +59,8 @@ func (tc *TaskController) Get(w http.ResponseWriter, r *http.Request) error {
 	return nil
 }
 
-func (tc *TaskController) UpdateStatus(w http.ResponseWriter, r *http.Request) error {
-	var req taskdto.PatchStatusRequest
+func (tc *TaskController) Update(w http.ResponseWriter, r *http.Request) error {
+	var req taskdto.UpdateTaskRequest
 	if err := BindRequest(r, &req); err != nil {
 		if ve, ok := err.(validator.ValidationErrors); ok {
 			return errors.WrapValidationError(ve)
@@ -68,7 +68,25 @@ func (tc *TaskController) UpdateStatus(w http.ResponseWriter, r *http.Request) e
 		return errors.ErrInvalidInput
 	}
 
-	err := tc.taskUseCase.UpdateStatus(r.Context(), *taskdto.ToEntityPatchStatusRequest(&req))
+	err := tc.taskUseCase.UpdateUsecase(r.Context(), *taskdto.ToEntityUpdateTaskRequest(&req), req.CurrentUserID)
+	if err != nil {
+		return err
+	}
+
+	w.WriteHeader(http.StatusOK)
+	return nil
+}
+
+func (tc *TaskController) UpdateStatus(w http.ResponseWriter, r *http.Request) error {
+	var req taskdto.UpdateStatusRequest
+	if err := BindRequest(r, &req); err != nil {
+		if ve, ok := err.(validator.ValidationErrors); ok {
+			return errors.WrapValidationError(ve)
+		}
+		return errors.ErrInvalidInput
+	}
+
+	err := tc.taskUseCase.UpdateStatus(r.Context(), *taskdto.ToEntityUpdateStatusRequest(&req))
 	if err != nil {
 		return err
 	}
@@ -90,6 +108,6 @@ func (tc *TaskController) Delete(w http.ResponseWriter, r *http.Request) error {
 		return err
 	}
 
-	writeJSON(w, http.StatusNoContent, nil)
+	w.WriteHeader(http.StatusOK)
 	return nil
 }

@@ -75,6 +75,7 @@ func (r *Router) SetupRoutes() http.Handler {
 			tasks.Get("/", middleware.ErrorHandler(r.taskController.Get))
 			tasks.Patch("/status", middleware.ErrorHandler(r.taskController.UpdateStatus))
 			tasks.Delete("/", middleware.ErrorHandler(r.taskController.Delete))
+			tasks.Patch("/", middleware.ErrorHandler(r.taskController.Update))
 		})
 	})
 
