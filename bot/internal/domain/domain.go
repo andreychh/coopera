@@ -11,8 +11,13 @@ type Community interface {
 }
 
 type User interface {
+	Details(ctx context.Context) (UserDetails, error)
 	CreatedTeams(ctx context.Context) ([]Team, error)
 	CreateTeam(ctx context.Context, name string) (Team, error)
+}
+
+type UserDetails interface {
+	ID() int64
 }
 
 type Team interface {

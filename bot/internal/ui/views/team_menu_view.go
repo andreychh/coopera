@@ -31,9 +31,10 @@ func (t teamMenuView) Render(ctx context.Context, update telegram.Update) (conte
 		return nil, fmt.Errorf("getting details for team %d: %w", id, err)
 	}
 	return keyboards.Inline(
-		content.Text(fmt.Sprintf("%s menu:", details.Name())),
+		content.Text(fmt.Sprintf("Team %s:", details.Name())),
 		buttons.Matrix(
 			buttons.Row(buttons.CallbackButton("Members", protocol.ToMembersMenu(details.ID()))),
+			buttons.Row(buttons.CallbackButton("Teams", protocol.ToTeamsMenu())),
 		),
 	), nil
 }
