@@ -6,7 +6,7 @@ import (
 	"log/slog"
 
 	"github.com/andreychh/coopera-bot/pkg/botlib/sessions"
-	"github.com/andreychh/coopera-bot/pkg/botlib/updates/attrs"
+	"github.com/andreychh/coopera-bot/pkg/botlib/updates/attributes"
 	telegram "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 )
 
@@ -16,7 +16,7 @@ type engine struct {
 }
 
 func (e engine) TryExecute(ctx context.Context, update telegram.Update) (bool, error) {
-	id, ok := attrs.ChatID(update).Value()
+	id, ok := attributes.ChatID().Value(update)
 	if !ok {
 		return false, nil
 	}
