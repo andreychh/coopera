@@ -51,3 +51,7 @@ func (ur *TaskRepository) UpdateStatus(ctx context.Context, status entity.TaskSt
 func (ur *TaskRepository) DeleteRepo(ctx context.Context, taskID int32) error {
 	return ur.TaskDAO.Delete(ctx, taskID)
 }
+
+func (ur *TaskRepository) GetAllTasks(ctx context.Context) ([]entity.Task, error) {
+	return ur.TaskDAO.GetAllTasks(ctx)
+}

@@ -4,7 +4,9 @@ import (
 	"context"
 	"fmt"
 	"github.com/andreychh/coopera-backend/config"
+	"github.com/andreychh/coopera-backend/internal/adapter/controller/task_controller"
 	"github.com/andreychh/coopera-backend/internal/usecase/task"
+	"github.com/andreychh/coopera-backend/internal/usecase/taskassigner"
 	"github.com/andreychh/coopera-backend/internal/usecase/user"
 	"log"
 	"net/http"
@@ -57,6 +59,13 @@ func Start() error {
 	teamUC := team.NewTeamUsecase(teamRepo, memberUC, db)
 	taskUC := task.NewTaskUsecase(taskRepo, memberUC, db, teamUC)
 
+	taskCtx, taskCancel := context.WithCancel(context.Background())
+	defer taskCancel()
+
+	taskAssignerUsecase := taskassigner.NewTaskAssignmentUsecase(taskUC, memberUC, db)
+	taskAssigner := task_controller.NewTaskAssignmentController(taskAssignerUsecase)
+	go taskAssigner.StartAssignmentLoop(taskCtx, 10*time.Second)
+
 	router := web_api.NewRouter(userUC, teamUC, taskUC, memberUC, logService, cfg).SetupRoutes()
 
 	srv := &http.Server{
@@ -76,9 +85,12 @@ func Start() error {
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 	<-quit
 
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-
 	log.Println("Shutting down...")
-	return srv.Shutdown(ctx)
+
+	taskCancel()
+
+	shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer shutdownCancel()
+
+	return srv.Shutdown(shutdownCtx)
 }
