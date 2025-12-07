@@ -3,6 +3,7 @@ package app
 import (
 	"github.com/andreychh/coopera-bot/internal/domain"
 	domainactions "github.com/andreychh/coopera-bot/internal/domain/actions"
+	"github.com/andreychh/coopera-bot/internal/domain/conditions"
 	"github.com/andreychh/coopera-bot/internal/ui/protocol"
 	"github.com/andreychh/coopera-bot/internal/ui/views"
 	"github.com/andreychh/coopera-bot/pkg/botlib/base"
@@ -51,7 +52,19 @@ func TeamsMenuBehavior(bot tg.Bot, c domain.Community) hsm.Behavior {
 func TeamMenuBehavior(bot tg.Bot, c domain.Community) hsm.Behavior {
 	return hsm.CoreBehavior(
 		base.EditOrSendContent(bot, views.TeamMenu(c)),
-		hsm.JustIf(protocol.OnChangeMenu(protocol.MenuTeam), hsm.Transit("team_menu")),
+		hsm.FirstHandled(
+			hsm.JustIf(protocol.OnChangeMenu(protocol.MenuTeamMembers), hsm.Transit("members_menu")),
+			hsm.JustIf(protocol.OnChangeMenu(protocol.MenuTeams), hsm.Transit("teams_menu")),
+		),
+		composition.Nothing(),
+	)
+}
+func MembersMenuBehavior(bot tg.Bot, c domain.Community) hsm.Behavior {
+	return hsm.CoreBehavior(
+		base.EditOrSendContent(bot, views.MembersMenu(c)),
+		hsm.FirstHandled(
+			hsm.JustIf(protocol.OnChangeMenu(protocol.MenuTeam), hsm.Transit("team_menu")),
+		),
 		composition.Nothing(),
 	)
 }
@@ -77,6 +90,15 @@ func CreateTeamFormTeamNameBehavior(bot tg.Bot, c domain.Community, f forms.Form
 					base.SendContent(bot,
 						content.StaticView(
 							content.Text("Please provide the name of your team using 3 to 50 characters: letters, numbers, spaces, hyphens, or underscores."),
+						),
+					),
+					hsm.Stay(),
+				),
+				hsm.TryAction(
+					conditions.TeamExists(c),
+					base.SendContent(bot,
+						content.StaticView(
+							content.Text("Team with this name already exists. Please choose a different name."),
 						),
 					),
 					hsm.Stay(),
@@ -112,6 +134,7 @@ func Tree(bot tg.Bot, c domain.Community, f forms.Forms) hsm.Spec {
 			hsm.Leaf("main_menu", MainMenuBehavior(bot)),
 			hsm.Leaf("teams_menu", TeamsMenuBehavior(bot, c)),
 			hsm.Leaf("team_menu", TeamMenuBehavior(bot, c)),
+			hsm.Leaf("members_menu", MembersMenuBehavior(bot, c)),
 			hsm.Node(
 				"create_team_form",
 				CreateTeamFormBehavior(bot),

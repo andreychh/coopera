@@ -9,6 +9,7 @@ import (
 	jsn "encoding/json"
 
 	"github.com/andreychh/coopera-bot/internal/domain"
+	"github.com/andreychh/coopera-bot/internal/domain/memory"
 	domaintransport "github.com/andreychh/coopera-bot/internal/domain/transport"
 	"github.com/andreychh/coopera-bot/pkg/repr/json"
 	"github.com/tidwall/gjson"
@@ -18,6 +19,14 @@ type httpUserWithTelegramID struct {
 	telegramID int64
 	client     domaintransport.Client
 	id         atomic.Int64
+}
+
+func (h *httpUserWithTelegramID) Details(ctx context.Context) (domain.UserDetails, error) {
+	id, err := h.resolveID(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("resolving user ID: %w", err)
+	}
+	return memory.UserDetails(id), nil
 }
 
 func (h *httpUserWithTelegramID) CreatedTeams(ctx context.Context) ([]domain.Team, error) {
