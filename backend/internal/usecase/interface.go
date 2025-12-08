@@ -32,4 +32,11 @@ type TaskUseCase interface {
 	UpdateStatus(ctx context.Context, status entity.TaskStatus) error
 	DeleteUsecase(ctx context.Context, taskID, currentUserID int32) error
 	UpdateUsecase(ctx context.Context, task entity.UpdateTask, currentUserID int32) error
+	UpdateStatusForEngine(ctx context.Context, taskStatus entity.TaskStatus) error
+	GetAllTasks(ctx context.Context) ([]entity.Task, error)
+	UpdateForEngine(ctx context.Context, task entity.UpdateTask) error
+}
+
+type TaskAssignmentUsecase interface {
+	AssignTasks(ctx context.Context) error
 }

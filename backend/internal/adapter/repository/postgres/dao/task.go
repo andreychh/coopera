@@ -266,3 +266,44 @@ func (r *TaskDAO) Delete(ctx context.Context, taskID int32) error {
 
 	return nil
 }
+
+func (r *TaskDAO) GetAllTasks(ctx context.Context) ([]entity.Task, error) {
+	const query = `
+		SELECT id, team_id, title, description, points, status, assigned_to,
+		       created_by, created_at, updated_at
+		FROM coopera.tasks
+		ORDER BY created_at ASC
+	`
+
+	tx, ok := ctx.Value(postgres.TransactionKey{}).(postgres.Transaction)
+	if !ok {
+		return nil, repoErr.ErrTransactionNotFound
+	}
+
+	rows, err := tx.Query(ctx, query)
+	if err != nil {
+		return nil, fmt.Errorf("%w: %v", repoErr.ErrFailGet, err)
+	}
+	defer rows.Close()
+
+	var tasks []entity.Task
+
+	for rows.Next() {
+		var m task_model.Task
+
+		if err := rows.Scan(
+			&m.ID, &m.TeamID, &m.Title, &m.Description, &m.Points,
+			&m.Status, &m.AssignedTo, &m.CreatedBy, &m.CreatedAt, &m.UpdatedAt,
+		); err != nil {
+			return nil, fmt.Errorf("%w: %v", repoErr.ErrFailGet, err)
+		}
+
+		tasks = append(tasks, converter.FromModelToEntityTask(m))
+	}
+
+	if rows.Err() != nil {
+		return nil, fmt.Errorf("%w: %v", repoErr.ErrFailGet, rows.Err())
+	}
+
+	return tasks, nil
+}
