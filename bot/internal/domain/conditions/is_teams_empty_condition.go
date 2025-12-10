@@ -11,32 +11,26 @@ import (
 	telegram "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 )
 
-type teamExistsCondition struct {
+type isTeamsEmptyCondition struct {
 	community domain.Community
 	id        sources.Source[int64]
-	name      sources.Source[string]
 }
 
-func (t teamExistsCondition) Holds(ctx context.Context, update telegram.Update) (bool, error) {
-	id, err := t.id.Value(ctx, update)
+func (i isTeamsEmptyCondition) Holds(ctx context.Context, update telegram.Update) (bool, error) {
+	id, err := i.id.Value(ctx, update)
 	if err != nil {
 		return false, fmt.Errorf("getting user ID: %w", err)
 	}
-	name, err := t.name.Value(ctx, update)
+	isEmpty, err := i.community.UserWithTelegramID(id).CreatedTeams().Empty(ctx)
 	if err != nil {
-		return false, fmt.Errorf("getting team name: %w", err)
+		return false, fmt.Errorf("checking if teams are empty: %w", err)
 	}
-	return t.community.
-		UserWithTelegramID(id).
-		CreatedTeams().
-		TeamWithName(name).
-		Exists(ctx)
+	return isEmpty, nil
 }
 
-func TeamExists(community domain.Community) core.Condition {
-	return teamExistsCondition{
+func IsTeamsEmpty(community domain.Community) core.Condition {
+	return isTeamsEmptyCondition{
 		community: community,
 		id:        sources.Required(attributes.ChatID()),
-		name:      sources.Required(attributes.Text()),
 	}
 }

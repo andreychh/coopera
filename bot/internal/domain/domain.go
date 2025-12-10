@@ -2,6 +2,7 @@ package domain
 
 import (
 	"context"
+	"iter"
 )
 
 type Community interface {
@@ -12,7 +13,7 @@ type Community interface {
 
 type User interface {
 	Details(ctx context.Context) (UserDetails, error)
-	CreatedTeams(ctx context.Context) ([]Team, error)
+	CreatedTeams() Teams
 	CreateTeam(ctx context.Context, name string) (Team, error)
 }
 
@@ -20,7 +21,15 @@ type UserDetails interface {
 	ID() int64
 }
 
+type Teams interface {
+	Details(ctx context.Context) (iter.Seq2[int64, TeamDetails], error)
+	All(ctx context.Context) (iter.Seq2[int64, Team], error)
+	Empty(ctx context.Context) (bool, error)
+	TeamWithName(name string) Team
+}
+
 type Team interface {
+	Exists(ctx context.Context) (bool, error)
 	Details(ctx context.Context) (TeamDetails, error)
 	AddMember(ctx context.Context, user User) (Member, error)
 	Members(ctx context.Context) ([]Member, error)
