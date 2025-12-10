@@ -18,6 +18,10 @@ type httpTeam struct {
 	client transport.Client
 }
 
+func (h httpTeam) Exists(ctx context.Context) (bool, error) {
+	panic("not implemented")
+}
+
 func (h httpTeam) Details(ctx context.Context) (domain.TeamDetails, error) {
 	data, err := h.client.Get(ctx, transport.NewOutcomingURL("teams").
 		With("team_id", strconv.FormatInt(h.id, 10)).

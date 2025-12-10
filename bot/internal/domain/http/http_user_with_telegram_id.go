@@ -6,8 +6,6 @@ import (
 	"strconv"
 	"sync/atomic"
 
-	jsn "encoding/json"
-
 	"github.com/andreychh/coopera-bot/internal/domain"
 	"github.com/andreychh/coopera-bot/internal/domain/memory"
 	domaintransport "github.com/andreychh/coopera-bot/internal/domain/transport"
@@ -29,40 +27,8 @@ func (h *httpUserWithTelegramID) Details(ctx context.Context) (domain.UserDetail
 	return memory.UserDetails(id), nil
 }
 
-func (h *httpUserWithTelegramID) CreatedTeams(ctx context.Context) ([]domain.Team, error) {
-	data, err := h.client.Get(ctx, domaintransport.NewOutcomingURL("users").
-		With("telegram_id", strconv.FormatInt(h.telegramID, 10)).
-		String(),
-	)
-	if err != nil {
-		return nil, fmt.Errorf("getting user: %w", err)
-	}
-	id := gjson.GetBytes(data, "id")
-	if !id.Exists() {
-		return nil, fmt.Errorf("field 'id' not found in response")
-	}
-	h.id.Store(id.Int())
-	teamsJSON := gjson.GetBytes(data, "teams").Raw
-	if teamsJSON == "" || teamsJSON == "null" {
-		return nil, fmt.Errorf("field 'teams' not found in response")
-	}
-	var teamsSlice []struct {
-		ID   int64  `json:"id"`
-		Name string `json:"name"`
-	}
-	err = jsn.Unmarshal([]byte(teamsJSON), &teamsSlice)
-	if err != nil {
-		return nil, fmt.Errorf("unmarshaling teams: %w", err)
-	}
-	teams := make([]domain.Team, 0, len(teamsSlice))
-	for _, t := range teamsSlice {
-		teams = append(teams, cachedTeam{
-			id:     t.ID,
-			name:   t.Name,
-			client: h.client,
-		})
-	}
-	return teams, nil
+func (h *httpUserWithTelegramID) CreatedTeams() domain.Teams {
+	panic("not implemented")
 }
 
 func (h *httpUserWithTelegramID) CreateTeam(ctx context.Context, name string) (domain.Team, error) {
