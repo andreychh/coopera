@@ -18,7 +18,8 @@ func MapErrorToHTTP(err error) (int, string) {
 	case errors.Is(err, appErr.ErrAlreadyExists):
 		return http.StatusConflict, err.Error()
 	case errors.Is(err, appErr.ErrInvalidInput) ||
-		errors.Is(err, appErr.ErrTaskFilter):
+		errors.Is(err, appErr.ErrTaskFilter) ||
+		errors.Is(err, appErr.ErrAssignedMemberNotExists):
 		return http.StatusBadRequest, err.Error()
 	case errors.Is(err, appErr.ErrUnauthorized):
 		return http.StatusUnauthorized, err.Error()
@@ -40,7 +41,8 @@ func MapErrorToHTTP(err error) (int, string) {
 		return http.StatusNotFound, err.Error()
 	case errors.Is(err, dbErr.ErrInvalidArgs):
 		return http.StatusBadRequest, err.Error()
-	case errors.Is(err, dbErr.ErrAlreadyExists):
+	case errors.Is(err, dbErr.ErrAlreadyExists) ||
+		errors.Is(err, dbErr.ErrMemberAlreadyExists):
 		return http.StatusConflict, err.Error()
 	case errors.Is(err, dbErr.ErrFailCreate) || errors.Is(err, dbErr.ErrFailDelete) ||
 		errors.Is(err, dbErr.ErrFailToAdd) || errors.Is(err, dbErr.ErrFailGet) ||

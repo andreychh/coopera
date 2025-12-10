@@ -1,6 +1,7 @@
 package web_api
 
 import (
+	"fmt"
 	"github.com/andreychh/coopera-backend/pkg/errors"
 	"github.com/go-playground/validator/v10"
 	"net/http"
@@ -28,13 +29,13 @@ func (mc *MembershipController) AddMember(w http.ResponseWriter, r *http.Request
 		return errors.ErrInvalidInput
 	}
 
-	err := mc.membershipUseCase.AddMemberUsecase(r.Context(), *memberdto.ToEntityAddMembersRequest(&req))
+	memberID, err := mc.membershipUseCase.AddMemberUsecase(r.Context(), *memberdto.ToEntityAddMembersRequest(&req))
 	if err != nil {
 		return err
 	}
 
 	writeJSON(w, http.StatusCreated, map[string]string{
-		"message": "Member added successfully",
+		"message": fmt.Sprintf("Member added successfully with id: %d", memberID),
 	})
 	return nil
 }

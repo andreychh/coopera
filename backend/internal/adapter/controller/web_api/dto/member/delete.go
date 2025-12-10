@@ -10,7 +10,7 @@ type DeleteMemberRequest struct {
 
 func ToEntityDeleteMemberRequest(req *DeleteMemberRequest) *entity.MembershipEntity {
 	return &entity.MembershipEntity{
-		TeamID:   req.TeamID,
-		MemberID: req.MemberID,
+		TeamID: req.TeamID,
+		UserID: req.MemberID,
 	}
 }

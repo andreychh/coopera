@@ -19,7 +19,7 @@ type TeamUseCase interface {
 }
 
 type MembershipUseCase interface {
-	AddMemberUsecase(ctx context.Context, membership entity.MembershipEntity) error
+	AddMemberUsecase(ctx context.Context, membership entity.MembershipEntity) (int32, error)
 	DeleteMemberUsecase(ctx context.Context, membership entity.MembershipEntity, currentUserID int32) error
 	GetMembersUsecase(ctx context.Context, teamID int32) ([]entity.MembershipEntity, error)
 	ExistsMemberUsecase(ctx context.Context, memberID int32) (bool, error)

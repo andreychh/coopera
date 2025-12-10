@@ -41,11 +41,15 @@ func (uc *TeamUsecase) CreateUsecase(ctx context.Context, team entity.TeamEntity
 		}
 		createdTeam = t
 
-		return uc.membershipsUsecase.AddMemberUsecase(txCtx, entity.MembershipEntity{
-			TeamID:   *t.ID,
-			MemberID: team.CreatedBy,
-			Role:     entity.RoleManager,
+		_, err = uc.membershipsUsecase.AddMemberUsecase(txCtx, entity.MembershipEntity{
+			TeamID: *t.ID,
+			UserID: team.CreatedBy,
+			Role:   entity.RoleManager,
 		})
+		if err != nil {
+			return err
+		}
+		return nil
 	})
 
 	if err != nil {
@@ -63,7 +67,7 @@ func (uc *TeamUsecase) DeleteUsecase(ctx context.Context, teamID, currentUserID 
 
 		var currentUserRole entity.Role
 		for _, m := range members {
-			if m.MemberID == currentUserID {
+			if m.UserID == currentUserID {
 				currentUserRole = m.Role
 				break
 			}

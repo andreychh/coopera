@@ -3,16 +3,16 @@ package entity
 import "time"
 
 type Task struct {
-	ID          int32
-	TeamID      int32
-	Title       string
-	Description *string
-	Points      *int32
-	Status      *Status
-	AssignedTo  *int32
-	CreatedBy   int32
-	CreatedAt   *time.Time
-	UpdatedAt   *time.Time
+	ID               int32
+	TeamID           int32
+	Title            string
+	Description      *string
+	Points           *int32
+	Status           *Status
+	AssignedToMember *int32
+	CreatedBy        int32
+	CreatedAt        *time.Time
+	UpdatedAt        *time.Time
 }
 type TaskFilter struct {
 	TaskID int32
@@ -27,9 +27,9 @@ type TaskStatus struct {
 }
 
 type UpdateTask struct {
-	TaskID      int32
-	Title       *string
-	Description *string
-	Points      *int32
-	AssignedTo  *int32
+	TaskID           int32
+	Title            *string
+	Description      *string
+	Points           *int32
+	AssignedToMember *int32
 }
