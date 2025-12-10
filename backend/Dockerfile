@@ -15,7 +15,7 @@ RUN go build -ldflags="\
     -X 'main.commit=${COMMIT}'" \
     -o /coopera-backend ./cmd/main.go
 
-FROM alpine:3.21
+FROM alpine:3.23
 
 WORKDIR /app
 
