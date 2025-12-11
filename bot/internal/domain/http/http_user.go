@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/andreychh/coopera-bot/internal/domain"
+	"github.com/andreychh/coopera-bot/internal/domain/memory"
 	"github.com/andreychh/coopera-bot/internal/domain/transport"
 	"github.com/andreychh/coopera-bot/pkg/repr/json"
 	"github.com/tidwall/gjson"
@@ -15,8 +16,13 @@ type httpUser struct {
 	client transport.Client
 }
 
-func (h httpUser) CreatedTeams(ctx context.Context) ([]domain.Team, error) {
-	panic("not implemented")
+func (h httpUser) Details(ctx context.Context) (domain.UserDetails, error) {
+	return memory.UserDetails(h.id), nil
+}
+
+func (h httpUser) CreatedTeams() domain.Teams {
+	// TODO implement me
+	panic("implement me")
 }
 
 func (h httpUser) CreateTeam(ctx context.Context, name string) (domain.Team, error) {

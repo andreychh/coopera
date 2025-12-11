@@ -2,11 +2,10 @@ package conditions
 
 import (
 	"context"
-	"fmt"
 	"regexp"
 
 	"github.com/andreychh/coopera-bot/pkg/botlib/core"
-	"github.com/andreychh/coopera-bot/pkg/botlib/updates/attrs"
+	"github.com/andreychh/coopera-bot/pkg/botlib/updates/attributes"
 	telegram "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 )
 
@@ -15,9 +14,9 @@ type textMatchesRegexpCondition struct {
 }
 
 func (r textMatchesRegexpCondition) Holds(_ context.Context, update telegram.Update) (bool, error) {
-	text, exists := attrs.Text(update).Value()
+	text, exists := attributes.Text().Value(update)
 	if !exists {
-		return false, fmt.Errorf("getting text from update: text not found")
+		return false, nil
 	}
 	return r.re.MatchString(text), nil
 }

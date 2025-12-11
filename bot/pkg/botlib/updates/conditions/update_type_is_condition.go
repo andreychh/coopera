@@ -2,26 +2,25 @@ package conditions
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/andreychh/coopera-bot/pkg/botlib/core"
 	"github.com/andreychh/coopera-bot/pkg/botlib/updates"
-	"github.com/andreychh/coopera-bot/pkg/botlib/updates/attrs"
+	"github.com/andreychh/coopera-bot/pkg/botlib/updates/attributes"
 	telegram "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 )
 
 type updateTypeIsCondition struct {
-	updateType updates.UpdateType
+	target updates.UpdateType
 }
 
 func (u updateTypeIsCondition) Holds(_ context.Context, update telegram.Update) (bool, error) {
-	updateType, exists := attrs.UpdateType(update).Value()
+	updateType, exists := attributes.UpdateType().Value(update)
 	if !exists {
-		return false, fmt.Errorf("getting update type: update type not found")
+		return false, nil
 	}
-	return updateType == u.updateType, nil
+	return updateType == u.target, nil
 }
 
-func UpdateTypeIs(updateType updates.UpdateType) core.Condition {
-	return updateTypeIsCondition{updateType: updateType}
+func UpdateTypeIs(target updates.UpdateType) core.Condition {
+	return updateTypeIsCondition{target: target}
 }

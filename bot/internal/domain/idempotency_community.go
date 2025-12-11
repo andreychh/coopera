@@ -14,17 +14,21 @@ type idempotencyCommunity struct {
 func (i idempotencyCommunity) CreateUser(ctx context.Context, tgID int64, tgUsername string) (User, error) {
 	_, err := i.origin.CreateUser(ctx, tgID, tgUsername)
 	if errors.Is(err, transport.ErrRecordAlreadyExists) {
-		return i.origin.UserWithTelegramID(tgID), nil
+		user, err := i.origin.UserWithTelegramID(ctx, tgID)
+		if err != nil {
+			return nil, err
+		}
+		return user, nil
 	}
 	return nil, err
 }
 
-func (i idempotencyCommunity) UserWithTelegramID(tgID int64) User {
-	return i.origin.UserWithTelegramID(tgID)
+func (i idempotencyCommunity) UserWithTelegramID(ctx context.Context, tgID int64) (User, error) {
+	return i.origin.UserWithTelegramID(ctx, tgID)
 }
 
-func (i idempotencyCommunity) Team(id int64) Team {
-	return i.origin.Team(id)
+func (i idempotencyCommunity) Team(ctx context.Context, id int64) (Team, error) {
+	return i.origin.Team(ctx, id)
 }
 
 func IdempotencyCommunity(origin Community) Community {

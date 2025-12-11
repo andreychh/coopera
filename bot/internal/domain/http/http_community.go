@@ -17,7 +17,7 @@ type httpCommunity struct {
 func (h httpCommunity) CreateUser(ctx context.Context, tgID int64, tgUsername string) (domain.User, error) {
 	payload, err := json.Object(json.Fields{
 		"telegram_id": json.I64(tgID),
-		"Username":    json.Str(tgUsername),
+		"username":    json.Str(tgUsername),
 	}).Marshal()
 	if err != nil {
 		return nil, fmt.Errorf("marshaling payload: %w", err)

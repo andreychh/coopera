@@ -11,23 +11,22 @@ import (
 
 const (
 	FormCreateTeam = "create_team"
+
+	prefixStartForm = "start_form"
+
+	keyFormName = "form_name"
 )
 
-const (
-	formPrefix = "start_form"
-	formKey    = "form_name"
-)
-
-func OnStartForm(formID string) core.Condition {
+func OnStartForm(name string) core.Condition {
 	return composition.All(
 		updatesconditions.UpdateTypeIs(updates.UpdateTypeCallbackQuery),
-		conditions.PrefixIs(formPrefix),
-		conditions.ValueIs(formKey, formID),
+		conditions.PrefixIs(prefixStartForm),
+		conditions.ValueIs(keyFormName, name),
 	)
 }
 
-func StartFromPayload(formID string) string {
-	return callbacks.OutcomingData(formPrefix).
-		With(formKey, formID).
+func StartForm(name string) string {
+	return callbacks.OutcomingData(prefixStartForm).
+		With(keyFormName, name).
 		String()
 }

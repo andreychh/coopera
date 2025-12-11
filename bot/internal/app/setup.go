@@ -6,10 +6,12 @@ import (
 	"github.com/andreychh/coopera-bot/internal/domain"
 	"github.com/andreychh/coopera-bot/internal/domain/http"
 	"github.com/andreychh/coopera-bot/internal/domain/transport"
+	"github.com/andreychh/coopera-bot/internal/features"
 	"github.com/andreychh/coopera-bot/pkg/botlib/core"
 	"github.com/andreychh/coopera-bot/pkg/botlib/engine"
 	"github.com/andreychh/coopera-bot/pkg/botlib/forms"
 	formskeyvalue "github.com/andreychh/coopera-bot/pkg/botlib/forms/keyvalue"
+	"github.com/andreychh/coopera-bot/pkg/botlib/hsm"
 	"github.com/andreychh/coopera-bot/pkg/botlib/keyvalue"
 	"github.com/andreychh/coopera-bot/pkg/botlib/sessions"
 	sessionskeyvalue "github.com/andreychh/coopera-bot/pkg/botlib/sessions/keyvalue"
@@ -35,6 +37,10 @@ func Bot(token string) tg.Bot {
 
 func Community(s string) domain.Community {
 	return http.Community(transport.HTTPClient(s, &nethttp.Client{}))
+}
+
+func Tree(bot tg.Bot, c domain.Community, f forms.Forms) hsm.Spec {
+	return features.RootSpec(bot, c, f)
 }
 
 func Engine(token string, action core.Action) engine.Engine {
