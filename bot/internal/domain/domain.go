@@ -7,49 +7,41 @@ import (
 
 type Community interface {
 	CreateUser(ctx context.Context, tgID int64, tgUsername string) (User, error)
-	UserWithTelegramID(tgID int64) User
-	Team(id int64) Team
+	UserWithTelegramID(ctx context.Context, tgID int64) (User, error)
+	Team(ctx context.Context, id int64) (Team, error)
 }
 
 type User interface {
-	Details(ctx context.Context) (UserDetails, error)
-	CreatedTeams() Teams
+	ID() int64
+	CreatedTeams(ctx context.Context) (Teams, error)
 	CreateTeam(ctx context.Context, name string) (Team, error)
 }
 
-type UserDetails interface {
-	ID() int64
-}
-
 type Teams interface {
-	Details(ctx context.Context) (iter.Seq2[int64, TeamDetails], error)
 	All(ctx context.Context) (iter.Seq2[int64, Team], error)
 	Empty(ctx context.Context) (bool, error)
-	TeamWithName(name string) Team
+	ContainsTeam(ctx context.Context, name string) (bool, error)
 }
 
 type Team interface {
-	Exists(ctx context.Context) (bool, error)
-	Details(ctx context.Context) (TeamDetails, error)
-	AddMember(ctx context.Context, user User) (Member, error)
-	Members(ctx context.Context) ([]Member, error)
-}
-
-type TeamDetails interface {
 	ID() int64
 	Name() string
+	AddMember(ctx context.Context, user User) (Member, error)
+	Members(ctx context.Context) (Members, error)
+}
+
+type Members interface {
+	All(ctx context.Context) (iter.Seq2[int64, Member], error)
+	Empty(ctx context.Context) (bool, error)
 }
 
 type Member interface {
-	Details(ctx context.Context) (MemberDetails, error)
-	CreateTask(ctx context.Context, points int, description string) (Task, error)
-	CreatedTasks(ctx context.Context) ([]Task, error)
-}
-
-type MemberDetails interface {
 	ID() int64
 	Name() string
+	CreateTask(ctx context.Context, points int, title string, description string) (Task, error)
+	CreatedTasks(ctx context.Context) (Tasks, error)
 }
 
-type Task interface {
-}
+type Tasks interface{}
+
+type Task interface{}
