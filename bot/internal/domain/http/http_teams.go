@@ -5,14 +5,12 @@ import (
 	"iter"
 
 	"github.com/andreychh/coopera-bot/internal/domain"
+	"github.com/andreychh/coopera-bot/internal/domain/transport"
 )
 
 type httpTeams struct {
-}
-
-func (h httpTeams) Details(ctx context.Context) (iter.Seq2[int64, domain.TeamDetails], error) {
-	// TODO implement me
-	panic("implement me")
+	userID int64
+	client transport.Client
 }
 
 func (h httpTeams) All(ctx context.Context) (iter.Seq2[int64, domain.Team], error) {
@@ -25,7 +23,12 @@ func (h httpTeams) Empty(ctx context.Context) (bool, error) {
 	panic("implement me")
 }
 
-func (h httpTeams) TeamWithName(name string) domain.Team {
+func (h httpTeams) TeamWithName(ctx context.Context, name string) (domain.Team, error) {
+	// TODO implement me
+	panic("implement me")
+}
+
+func (h httpTeams) ContainsTeam(ctx context.Context, name string) (bool, error) {
 	// TODO implement me
 	panic("implement me")
 }

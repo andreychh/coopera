@@ -49,7 +49,7 @@ func CreateTeamFormTeamNameSpec(bot tg.Bot, c domain.Community, f forms.Forms) h
 						routing.Terminal(
 							composition.Sequential(
 								actions.SaveTextToField(f, "team_name"),
-								domainactions.CreateTeam(f, c),
+								domainactions.CreateTeam(c, f),
 							),
 						),
 						hsm.Transit(SpecTeamsMenu),

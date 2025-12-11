@@ -8,22 +8,25 @@ import (
 )
 
 type httpMember struct {
-	userID     int64
-	teamID     int64
+	id         int64
+	name       string
 	dataSource transport.Client
 }
 
-func (h httpMember) Details(ctx context.Context) (domain.MemberDetails, error) {
+func (h httpMember) ID() int64 {
+	return h.id
+}
+
+func (h httpMember) Name() string {
+	return h.name
+}
+
+func (h httpMember) CreateTask(ctx context.Context, points int, title string, description string) (domain.Task, error) {
 	// TODO implement me
 	panic("implement me")
 }
 
-func (h httpMember) CreateTask(ctx context.Context, points int, description string) (domain.Task, error) {
-	// TODO implement me
-	panic("implement me")
-}
-
-func (h httpMember) CreatedTasks(ctx context.Context) ([]domain.Task, error) {
+func (h httpMember) CreatedTasks(ctx context.Context) (domain.Tasks, error) {
 	// TODO implement me
 	panic("implement me")
 }

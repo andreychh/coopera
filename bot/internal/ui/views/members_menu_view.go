@@ -3,6 +3,7 @@ package views
 import (
 	"context"
 	"fmt"
+	"iter"
 	"strconv"
 
 	"github.com/andreychh/coopera-bot/internal/domain"
@@ -29,16 +30,20 @@ func (m membersMenuView) Value(ctx context.Context, update telegram.Update) (con
 	if err != nil {
 		return nil, fmt.Errorf("parsing team ID from callback data %q: %w", callbackData, err)
 	}
-	members, err := m.community.Team(id).Members(ctx)
+	team, err := m.community.Team(ctx, id)
 	if err != nil {
-		return nil, fmt.Errorf("getting members details for team %d: %w", id, err)
+		return nil, fmt.Errorf("getting team details for team %d: %w", id, err)
 	}
-	details, err := members_{members: members}.details(ctx)
+	members, err := team.Members(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("getting members details: %w", err)
+		return nil, fmt.Errorf("getting team members for team %d: %w", id, err)
+	}
+	details, err := members.All(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("getting team details: %w", err)
 	}
 	return keyboards.Inline(
-		content.Text("Team members:"),
+		content.Text("Team team:"),
 		m.membersMatrix(details).WithRow(buttons.Row(buttons.CallbackButton(
 			"Invite member",
 			"not_implemented",
@@ -46,7 +51,7 @@ func (m membersMenuView) Value(ctx context.Context, update telegram.Update) (con
 	), nil
 }
 
-func (m membersMenuView) membersMatrix(members []domain.MemberDetails) buttons.ButtonMatrix[buttons.InlineButton] {
+func (m membersMenuView) membersMatrix(members iter.Seq2[int64, domain.Member]) buttons.ButtonMatrix[buttons.InlineButton] {
 	matrix := buttons.Matrix[buttons.InlineButton]()
 	for _, member := range members {
 		matrix = matrix.WithRow(buttons.Row(m.memberButton(member)))
@@ -54,7 +59,7 @@ func (m membersMenuView) membersMatrix(members []domain.MemberDetails) buttons.B
 	return matrix
 }
 
-func (m membersMenuView) memberButton(member domain.MemberDetails) buttons.InlineButton {
+func (m membersMenuView) memberButton(member domain.Member) buttons.InlineButton {
 	return buttons.CallbackButton(
 		member.Name(),
 		callbacks.OutcomingData("change_menu").
@@ -66,20 +71,4 @@ func (m membersMenuView) memberButton(member domain.MemberDetails) buttons.Inlin
 
 func MembersMenu(community domain.Community) sources.Source[content.Content] {
 	return membersMenuView{community: community}
-}
-
-type members_ struct {
-	members []domain.Member
-}
-
-func (m members_) details(ctx context.Context) ([]domain.MemberDetails, error) {
-	var details []domain.MemberDetails
-	for _, member := range m.members {
-		detail, err := member.Details(ctx)
-		if err != nil {
-			return nil, fmt.Errorf("getting details for member: %w", err)
-		}
-		details = append(details, detail)
-	}
-	return details, nil
 }

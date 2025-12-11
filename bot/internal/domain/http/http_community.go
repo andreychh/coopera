@@ -2,12 +2,12 @@ package http
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"strconv"
 
 	"github.com/andreychh/coopera-bot/internal/domain"
 	"github.com/andreychh/coopera-bot/internal/domain/transport"
-	"github.com/andreychh/coopera-bot/pkg/repr/json"
-	"github.com/tidwall/gjson"
 )
 
 type httpCommunity struct {
@@ -15,10 +15,10 @@ type httpCommunity struct {
 }
 
 func (h httpCommunity) CreateUser(ctx context.Context, tgID int64, tgUsername string) (domain.User, error) {
-	payload, err := json.Object(json.Fields{
-		"telegram_id": json.I64(tgID),
-		"username":    json.Str(tgUsername),
-	}).Marshal()
+	payload, err := json.Marshal(struct {
+		ID       int64  `json:"telegram_id"`
+		Username string `json:"username"`
+	}{tgID, tgUsername})
 	if err != nil {
 		return nil, fmt.Errorf("marshaling payload: %w", err)
 	}
@@ -26,28 +26,47 @@ func (h httpCommunity) CreateUser(ctx context.Context, tgID int64, tgUsername st
 	if err != nil {
 		return nil, fmt.Errorf("creating user: %w", err)
 	}
-	id := gjson.GetBytes(data, "id")
-	if !id.Exists() {
-		return nil, fmt.Errorf("field 'id' not found in response")
+	resp := struct {
+		ID int64 `json:"id"`
+	}{}
+	err = json.Unmarshal(data, &resp)
+	if err != nil {
+		return nil, fmt.Errorf("unmarshaling data: %w", err)
 	}
 	return httpUser{
-		id:     id.Int(),
+		id:     resp.ID,
 		client: h.client,
 	}, nil
 }
 
-func (h httpCommunity) UserWithTelegramID(tgID int64) domain.User {
-	return &httpUserWithTelegramID{
-		telegramID: tgID,
-		client:     h.client,
+func (h httpCommunity) UserWithTelegramID(ctx context.Context, tgID int64) (domain.User, error) {
+	data, err := h.client.Get(
+		ctx,
+		transport.NewOutcomingURL("users").
+			With("telegram_id", strconv.FormatInt(tgID, 10)).
+			String(),
+	)
+	if err != nil {
+		return nil, fmt.Errorf("getting user: %w", err)
 	}
+	resp := struct {
+		ID int64 `json:"id"`
+	}{}
+	err = json.Unmarshal(data, &resp)
+	if err != nil {
+		return nil, fmt.Errorf("unmarshaling data: %w", err)
+	}
+	return httpUser{
+		id:     resp.ID,
+		client: h.client,
+	}, nil
 }
 
-func (h httpCommunity) Team(id int64) domain.Team {
+func (h httpCommunity) Team(ctx context.Context, id int64) (domain.Team, error) {
 	return httpTeam{
 		id:     id,
 		client: h.client,
-	}
+	}, nil
 }
 
 func Community(client transport.Client) domain.Community {

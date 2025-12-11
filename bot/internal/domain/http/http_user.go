@@ -2,13 +2,11 @@ package http
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 
 	"github.com/andreychh/coopera-bot/internal/domain"
-	"github.com/andreychh/coopera-bot/internal/domain/memory"
 	"github.com/andreychh/coopera-bot/internal/domain/transport"
-	"github.com/andreychh/coopera-bot/pkg/repr/json"
-	"github.com/tidwall/gjson"
 )
 
 type httpUser struct {
@@ -16,17 +14,22 @@ type httpUser struct {
 	client transport.Client
 }
 
-func (h httpUser) Details(ctx context.Context) (domain.UserDetails, error) {
-	return memory.UserDetails(h.id), nil
+func (h httpUser) ID() int64 {
+	return h.id
 }
 
-func (h httpUser) CreatedTeams() domain.Teams {
-	// TODO implement me
-	panic("implement me")
+func (h httpUser) CreatedTeams(_ context.Context) (domain.Teams, error) {
+	return httpTeams{
+		userID: h.id,
+		client: h.client,
+	}, nil
 }
 
 func (h httpUser) CreateTeam(ctx context.Context, name string) (domain.Team, error) {
-	payload, err := json.Object(json.Fields{"user_id": json.I64(h.id), "name": json.Str(name)}).Marshal()
+	payload, err := json.Marshal(struct {
+		ID   int64  `json:"user_id"`
+		Name string `json:"name"`
+	}{h.id, name})
 	if err != nil {
 		return nil, fmt.Errorf("marshaling payload: %w", err)
 	}
@@ -34,9 +37,15 @@ func (h httpUser) CreateTeam(ctx context.Context, name string) (domain.Team, err
 	if err != nil {
 		return nil, fmt.Errorf("getting user: %w", err)
 	}
-	teamID := gjson.GetBytes(data, "id")
-	if !teamID.Exists() {
-		return nil, fmt.Errorf("field 'id' not found in response")
+	resp := struct {
+		ID int64 `json:"id"`
+	}{}
+	err = json.Unmarshal(data, &resp)
+	if err != nil {
+		return nil, fmt.Errorf("unmarshaling data: %w", err)
 	}
-	return nil, nil
+	return httpTeam{
+		id:     resp.ID,
+		client: h.client,
+	}, nil
 }

@@ -27,7 +27,7 @@ func (t teamMenuView) Value(ctx context.Context, update telegram.Update) (conten
 	if err != nil {
 		return nil, fmt.Errorf("parsing team ID from callback data %q: %w", callbackData, err)
 	}
-	details, err := t.community.Team(id).Details(ctx)
+	details, err := t.community.Team(ctx, id)
 	if err != nil {
 		return nil, fmt.Errorf("getting details for team %d: %w", id, err)
 	}
