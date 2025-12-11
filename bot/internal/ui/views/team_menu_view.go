@@ -22,7 +22,7 @@ func (t teamMenuView) Render(ctx context.Context, update telegram.Update) (conte
 	if !exists {
 		return nil, fmt.Errorf("getting callback data from update: callback data not found")
 	}
-	id, err := protocol.Navigation.ParseTeamID(callbackData)
+	id, err := protocol.ParseTeamID(callbackData)
 	if err != nil {
 		return nil, fmt.Errorf("parsing team ID from callback data %q: %w", callbackData, err)
 	}
@@ -33,7 +33,7 @@ func (t teamMenuView) Render(ctx context.Context, update telegram.Update) (conte
 	return keyboards.Inline(
 		content.Text(fmt.Sprintf("%s menu:", details.Name())),
 		buttons.Matrix(
-			buttons.Row(buttons.CallbackButton("Members", protocol.Navigation.ToTeamMembers(details.ID()))),
+			buttons.Row(buttons.CallbackButton("Members", protocol.ToMembersMenu(details.ID()))),
 		),
 	), nil
 }

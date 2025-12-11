@@ -7,11 +7,11 @@ type GetTeamRequest struct {
 }
 
 type GetTeamResponse struct {
-	ID        int32            `json:"id"`
-	Name      string           `json:"name"`
-	CreatedAt string           `json:"created_at"`
-	CreatedBy int32            `json:"created_by"`
-	Members   []TeamMemberInfo `json:"members"`
+	ID            int32            `json:"id"`
+	Name          string           `json:"name"`
+	CreatedAt     string           `json:"created_at"`
+	CreatedByUser int32            `json:"created_by_user"`
+	Members       []TeamMemberInfo `json:"members"`
 }
 
 type TeamMemberInfo struct {
@@ -23,16 +23,16 @@ func ToGetTeamResponse(team entity.TeamEntity, members []entity.MembershipEntity
 	membersInfo := make([]TeamMemberInfo, len(members))
 	for i, m := range members {
 		membersInfo[i] = TeamMemberInfo{
-			MemberID: m.MemberID,
+			MemberID: m.ID,
 			Role:     m.Role,
 		}
 	}
 
 	return GetTeamResponse{
-		ID:        *team.ID,
-		Name:      team.Name,
-		CreatedAt: team.CreatedAt.Format("2006-01-02T15:04:05Z"),
-		CreatedBy: team.CreatedBy,
-		Members:   membersInfo,
+		ID:            *team.ID,
+		Name:          team.Name,
+		CreatedAt:     team.CreatedAt.Format("2006-01-02T15:04:05Z"),
+		CreatedByUser: team.CreatedBy,
+		Members:       membersInfo,
 	}
 }

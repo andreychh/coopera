@@ -10,7 +10,7 @@ BEGIN
         WHERE t.typname = 'task_status'
           AND n.nspname = 'coopera'
     ) THEN
-CREATE TYPE coopera.task_status AS ENUM ('open', 'assigned', 'completed', 'archived');
+CREATE TYPE coopera.task_status AS ENUM ('open', 'assigned', 'in_review', 'completed', 'archived');
 END IF;
 END$$;
 
@@ -20,7 +20,7 @@ CREATE TABLE IF NOT EXISTS coopera.tasks
     team_id      INTEGER NOT NULL,
     title        VARCHAR(100) NOT NULL,
     description  VARCHAR,
-    points       INTEGER NOT NULL,
+    points       INTEGER,
     status       coopera.task_status NOT NULL DEFAULT 'open',
     assigned_to  INTEGER,
     created_by   INTEGER NOT NULL,
@@ -32,14 +32,14 @@ CREATE TABLE IF NOT EXISTS coopera.tasks
             REFERENCES coopera.teams (id)
             ON DELETE CASCADE,
 
-    CONSTRAINT fk_assigned_to
+    CONSTRAINT fk_assigned_to_membership
         FOREIGN KEY (assigned_to)
             REFERENCES coopera.memberships (id)
             ON DELETE SET NULL,
 
-    CONSTRAINT fk_created_by
+    CONSTRAINT fk_created_by_user
         FOREIGN KEY (created_by)
-            REFERENCES coopera.memberships (id)
+            REFERENCES coopera.users (id)
             ON DELETE RESTRICT,
 
     CONSTRAINT uq_team_title UNIQUE (team_id, title)

@@ -17,35 +17,38 @@ func ToEntityGetTaskRequest(req *GetTaskRequest) *entity.TaskFilter {
 }
 
 type GetTaskResponse struct {
-	ID          int32   `json:"id"`
-	TeamID      int32   `json:"team_id"`
-	Title       string  `json:"title"`
-	Description *string `json:"description,omitempty"`
-	Points      int32   `json:"points"`
-	Status      string  `json:"status"`
-	AssignedTo  *int32  `json:"assigned_to,omitempty"`
-	CreatedBy   int32   `json:"created_by"`
-	CreatedAt   string  `json:"created_at"`
-	UpdatedAt   *string `json:"updated_at,omitempty"`
+	ID               int32   `json:"id"`
+	TeamID           int32   `json:"team_id"`
+	Title            string  `json:"title"`
+	Description      *string `json:"description,omitempty"`
+	Points           *int32  `json:"points,omitempty"`
+	Status           string  `json:"status"`
+	AssignedToMember *int32  `json:"assigned_to_member,omitempty"`
+	CreatedByUser    int32   `json:"created_by_user"`
+	CreatedAt        string  `json:"created_at"`
+	UpdatedAt        *string `json:"updated_at,omitempty"`
 }
 
 func ToGetTaskResponse(task *entity.Task) *GetTaskResponse {
 	resp := &GetTaskResponse{
-		ID:        task.ID,
-		TeamID:    task.TeamID,
-		Title:     task.Title,
-		Points:    task.Points,
-		Status:    task.Status.String(),
-		CreatedBy: task.CreatedBy,
-		CreatedAt: task.CreatedAt.Format("2006-01-02T15:04:05Z"),
+		ID:            task.ID,
+		TeamID:        task.TeamID,
+		Title:         task.Title,
+		Status:        task.Status.String(),
+		CreatedByUser: task.CreatedBy,
+		CreatedAt:     task.CreatedAt.Format("2006-01-02T15:04:05Z"),
+	}
+
+	if task.Points != nil {
+		resp.Points = task.Points
 	}
 
 	if task.Description != nil {
 		resp.Description = task.Description
 	}
 
-	if task.AssignedTo != nil {
-		resp.AssignedTo = task.AssignedTo
+	if task.AssignedToMember != nil {
+		resp.AssignedToMember = task.AssignedToMember
 	}
 
 	if task.UpdatedAt != nil {

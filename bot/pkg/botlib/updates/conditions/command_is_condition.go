@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/andreychh/coopera-bot/pkg/botlib/composition"
 	"github.com/andreychh/coopera-bot/pkg/botlib/core"
 	"github.com/andreychh/coopera-bot/pkg/botlib/updates/attrs"
 	telegram "github.com/go-telegram-bot-api/telegram-bot-api/v5"
@@ -23,4 +24,8 @@ func (c commandIsCondition) Holds(_ context.Context, update telegram.Update) (bo
 
 func CommandIs(target string) core.Condition {
 	return commandIsCondition{target: target}
+}
+
+func SafeCommandIs(target string) core.Condition {
+	return composition.All(IsCommand(), CommandIs(target))
 }

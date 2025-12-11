@@ -20,17 +20,27 @@ func NewMembershipsUsecase(memberRepo usecase.MembershipRepository, txManager us
 	}
 }
 
-func (uc *MembershipsUsecase) AddMemberUsecase(ctx context.Context, membership entity.MembershipEntity) error {
+func (uc *MembershipsUsecase) AddMemberUsecase(ctx context.Context, membership entity.MembershipEntity) (int32, error) {
 	if membership.Role == "" {
 		membership.Role = entity.RoleMember
 	}
 
-	return uc.txManager.WithinTransaction(ctx, func(txCtx context.Context) error {
-		if err := uc.membershipRepository.AddMemberRepo(txCtx, membership); err != nil {
-			return fmt.Errorf("failed to add member: %w", err)
+	var memberID int32
+	var repoErr error
+
+	err := uc.txManager.WithinTransaction(ctx, func(txCtx context.Context) error {
+		memberID, repoErr = uc.membershipRepository.AddMemberRepo(txCtx, membership)
+		if repoErr != nil {
+			return fmt.Errorf("failed to add member: %w", repoErr)
 		}
 		return nil
 	})
+
+	if err != nil {
+		return 0, err
+	}
+
+	return memberID, nil
 }
 
 func (uc *MembershipsUsecase) DeleteMemberUsecase(ctx context.Context, membership entity.MembershipEntity, currentUserID int32) error {
@@ -47,9 +57,9 @@ func (uc *MembershipsUsecase) DeleteMemberUsecase(ctx context.Context, membershi
 
 		for _, m := range members {
 			if m.Role == entity.RoleManager {
-				managerID = m.MemberID
+				managerID = m.UserID
 			}
-			if m.MemberID == membership.MemberID {
+			if m.UserID == membership.UserID {
 				found = true
 			}
 		}
@@ -58,11 +68,11 @@ func (uc *MembershipsUsecase) DeleteMemberUsecase(ctx context.Context, membershi
 			return appErr.ErrNotFound
 		}
 
-		if currentUserID != managerID && currentUserID != membership.MemberID {
+		if currentUserID != managerID && currentUserID != membership.UserID {
 			return appErr.ErrNoPermissionToDelete
 		}
 
-		if membership.MemberID == managerID && currentUserID == managerID {
+		if membership.UserID == managerID && currentUserID == managerID {
 			return appErr.ErrUserOwner
 		}
 
@@ -109,4 +119,23 @@ func (uc *MembershipsUsecase) ExistsMemberUsecase(ctx context.Context, id int32)
 	}
 
 	return exists, nil
+}
+
+func (uc *MembershipsUsecase) GetMemberUsecase(ctx context.Context, teamID, memberID int32) (entity.MembershipEntity, error) {
+	var membership entity.MembershipEntity
+	var err error
+
+	err = uc.txManager.WithinTransaction(ctx, func(txCtx context.Context) error {
+		membership, err = uc.membershipRepository.GetMemberRepo(txCtx, teamID, memberID)
+		if err != nil {
+			return fmt.Errorf("failed to get member: %w", err)
+		}
+
+		return nil
+	})
+	if err != nil {
+		return entity.MembershipEntity{}, err
+	}
+
+	return membership, nil
 }

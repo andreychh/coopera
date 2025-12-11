@@ -27,6 +27,11 @@ func (ur *TaskRepository) CreateRepo(ctx context.Context, task entity.Task) (ent
 	return entask, nil
 }
 
+func (ur *TaskRepository) UpdateRepo(ctx context.Context, task entity.UpdateTask) error {
+	taskModel := converter.FromEntityToModelUpdateTask(task)
+	return ur.TaskDAO.Update(ctx, taskModel)
+}
+
 func (ur *TaskRepository) GetByTaskID(ctx context.Context, id int32) (entity.Task, error) {
 	return ur.TaskDAO.GetByTaskID(ctx, id)
 }
@@ -37,4 +42,16 @@ func (ur *TaskRepository) GetByAssignedToID(ctx context.Context, userID int32) (
 
 func (ur *TaskRepository) GetByTeamID(ctx context.Context, teamID int32) ([]entity.Task, error) {
 	return ur.TaskDAO.GetByTeamID(ctx, teamID)
+}
+
+func (ur *TaskRepository) UpdateStatus(ctx context.Context, status entity.TaskStatus) error {
+	return ur.TaskDAO.UpdateStatus(ctx, converter.FromEntityToModelTaskStatus(status))
+}
+
+func (ur *TaskRepository) DeleteRepo(ctx context.Context, taskID int32) error {
+	return ur.TaskDAO.Delete(ctx, taskID)
+}
+
+func (ur *TaskRepository) GetAllTasks(ctx context.Context) ([]entity.Task, error) {
+	return ur.TaskDAO.GetAllTasks(ctx)
 }

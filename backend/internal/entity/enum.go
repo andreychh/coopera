@@ -16,6 +16,7 @@ type Status string
 const (
 	StatusOpen      Status = "open"
 	StatusAssigned  Status = "assigned"
+	StatusInReview  Status = "in_review"
 	StatusCompleted Status = "completed"
 	StatusArchived  Status = "archived"
 )

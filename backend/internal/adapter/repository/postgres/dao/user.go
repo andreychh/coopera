@@ -83,7 +83,7 @@ func (ur *UserRepository) GetByTelegramID(ctx context.Context, telegramID int64)
 			u.id, u.telegram_id, u.username, u.created_at,
 			t.id AS team_id, t.name AS team_name, m.role
 		FROM coopera.users u
-		LEFT JOIN coopera.memberships m ON m.member_id = u.id
+		LEFT JOIN coopera.memberships m ON m.user_id = u.id
 		LEFT JOIN coopera.teams t ON t.id = m.team_id
 		WHERE u.telegram_id = $1
 `
@@ -141,7 +141,7 @@ func (ur *UserRepository) GetByUsername(ctx context.Context, username string) (e
 			u.id, u.telegram_id, u.username, u.created_at,
 			t.id AS team_id, t.name AS team_name, m.role
 		FROM coopera.users u
-		LEFT JOIN coopera.memberships m ON m.member_id = u.id
+		LEFT JOIN coopera.memberships m ON m.user_id = u.id
 		LEFT JOIN coopera.teams t ON t.id = m.team_id
 		WHERE u.username = $1
 	`

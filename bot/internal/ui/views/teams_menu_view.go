@@ -33,8 +33,8 @@ func (t teamsMenuView) Render(ctx context.Context, update telegram.Update) (cont
 	return keyboards.Inline(
 		content.Text("Select a team:"),
 		t.teamsMatrix(details).
-			WithRow(buttons.Row(buttons.CallbackButton("Create team", protocol.Forms.StartPayload("create_team")))).
-			WithRow(buttons.Row(buttons.CallbackButton("Main menu", protocol.Navigation.Payload("main")))),
+			WithRow(buttons.Row(buttons.CallbackButton("Create team", protocol.StartFromPayload("create_team")))).
+			WithRow(buttons.Row(buttons.CallbackButton("Main menu", protocol.ToMainMenu()))),
 	), nil
 }
 
@@ -47,7 +47,7 @@ func (t teamsMenuView) teamsMatrix(teams []domain.TeamDetails) buttons.ButtonMat
 }
 
 func (t teamsMenuView) teamButton(team domain.TeamDetails) buttons.InlineButton {
-	return buttons.CallbackButton(team.Name(), protocol.Navigation.ToTeam(team.ID()))
+	return buttons.CallbackButton(team.Name(), protocol.ToTeamMenu(team.ID()))
 }
 
 // TODO: add Teams interface in domain package with Details method
