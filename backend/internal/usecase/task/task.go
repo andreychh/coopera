@@ -38,8 +38,18 @@ func (uc *TaskUsecase) CreateUsecase(ctx context.Context, task entity.Task) (ent
 			return appErr.ErrOnlyManagerCanSetPoints
 		}
 
-		if !isManager && task.AssignedTo != nil {
-			return appErr.ErrOnlyManagerCanAssign
+		if task.AssignedToMember != nil {
+			if !isManager {
+				return appErr.ErrOnlyManagerCanAssign
+			}
+
+			exists, err := uc.membershipsUsecase.ExistsMemberUsecase(txCtx, *task.AssignedToMember)
+			if err != nil {
+				return err
+			}
+			if !exists {
+				return appErr.ErrAssignedMemberNotExists
+			}
 		}
 
 		t, err := uc.taskRepository.CreateRepo(txCtx, task)
@@ -142,14 +152,14 @@ func (uc *TaskUsecase) UpdateUsecase(ctx context.Context, task entity.UpdateTask
 
 		needStatusUpdate := false
 
-		if task.AssignedTo != nil {
+		if task.AssignedToMember != nil {
 
 			if existingTask.Points == nil || *existingTask.Points <= 0 {
 				return appErr.ErrCantAssignWithoutPoints
 			}
 
 			if !isManager {
-				if *task.AssignedTo != currentMember.ID {
+				if *task.AssignedToMember != currentMember.ID {
 					return appErr.ErrOnlyManagerOrSelfCanAssign
 				}
 			}
@@ -216,7 +226,7 @@ func (uc *TaskUsecase) UpdateStatus(ctx context.Context, task entity.TaskStatus)
 
 		isMember := false
 		for _, m := range members {
-			if m.MemberID == task.CurrentUserID {
+			if m.UserID == task.CurrentUserID {
 				isMember = true
 				break
 			}

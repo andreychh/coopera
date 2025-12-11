@@ -5,25 +5,25 @@ import (
 )
 
 type CreateTaskRequest struct {
-	TeamID        int32  `json:"team_id" validate:"required"`
-	Description   string `json:"description" validate:"max=1000"`
-	Points        int32  `json:"points" validate:"omitempty,gte=1"`
-	CurrentUserID int32  `json:"current_user_id" validate:"required"`
-	Title         string `json:"title" validate:"required,min=1,max=255"`
-	AssignedTo    int32  `json:"assigned_to,omitempty"`
+	TeamID           int32  `json:"team_id" validate:"required"`
+	Description      string `json:"description" validate:"max=1000"`
+	Points           int32  `json:"points" validate:"omitempty,gte=1"`
+	CurrentUserID    int32  `json:"current_user_id" validate:"required"`
+	Title            string `json:"title" validate:"required,min=1,max=255"`
+	AssignedToMember int32  `json:"assigned_to_member,omitempty"`
 }
 
 type CreateTaskResponse struct {
-	ID          int32   `json:"id"`
-	TeamID      int32   `json:"team_id"`
-	Title       string  `json:"title"`
-	Description *string `json:"description,omitempty"`
-	Points      *int32  `json:"points,omitempty"`
-	Status      string  `json:"status,omitempty"`
-	CreatedBy   int32   `json:"created_by"`
-	AssignedTo  *int32  `json:"assigned_to,omitempty"`
-	CreatedAt   string  `json:"created_at"`
-	UpdatedAt   *string `json:"updated_at"`
+	ID               int32   `json:"id"`
+	TeamID           int32   `json:"team_id"`
+	Title            string  `json:"title"`
+	Description      *string `json:"description,omitempty"`
+	Points           *int32  `json:"points,omitempty"`
+	Status           string  `json:"status,omitempty"`
+	CreatedByUser    int32   `json:"created_by_user"`
+	AssignedToMember *int32  `json:"assigned_to_member,omitempty"`
+	CreatedAt        string  `json:"created_at"`
+	UpdatedAt        *string `json:"updated_at"`
 }
 
 func ToEntityCreateTaskRequest(req *CreateTaskRequest) *entity.Task {
@@ -33,8 +33,8 @@ func ToEntityCreateTaskRequest(req *CreateTaskRequest) *entity.Task {
 		Title:     req.Title,
 	}
 
-	if req.AssignedTo != 0 {
-		task.AssignedTo = &req.AssignedTo
+	if req.AssignedToMember != 0 {
+		task.AssignedToMember = &req.AssignedToMember
 	}
 
 	if req.Description != "" {
@@ -50,12 +50,12 @@ func ToEntityCreateTaskRequest(req *CreateTaskRequest) *entity.Task {
 
 func ToCreateTaskResponse(task *entity.Task) *CreateTaskResponse {
 	taskResponse := &CreateTaskResponse{
-		ID:        task.ID,
-		TeamID:    task.TeamID,
-		Title:     task.Title,
-		Status:    task.Status.String(),
-		CreatedBy: task.CreatedBy,
-		CreatedAt: task.CreatedAt.Format("2006-01-02T15:04:05Z"),
+		ID:            task.ID,
+		TeamID:        task.TeamID,
+		Title:         task.Title,
+		Status:        task.Status.String(),
+		CreatedByUser: task.CreatedBy,
+		CreatedAt:     task.CreatedAt.Format("2006-01-02T15:04:05Z"),
 	}
 
 	if task.Points != nil {
@@ -66,8 +66,8 @@ func ToCreateTaskResponse(task *entity.Task) *CreateTaskResponse {
 		taskResponse.Description = task.Description
 	}
 
-	if task.AssignedTo != nil {
-		taskResponse.AssignedTo = task.AssignedTo
+	if task.AssignedToMember != nil {
+		taskResponse.AssignedToMember = task.AssignedToMember
 	}
 
 	if task.UpdatedAt != nil {

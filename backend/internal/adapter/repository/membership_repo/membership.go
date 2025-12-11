@@ -15,7 +15,7 @@ func NewMembershipRepository(dao dao.MembershipDAO) *MembershipRepository {
 	return &MembershipRepository{dao: dao}
 }
 
-func (r *MembershipRepository) AddMemberRepo(ctx context.Context, m entity.MembershipEntity) error {
+func (r *MembershipRepository) AddMemberRepo(ctx context.Context, m entity.MembershipEntity) (int32, error) {
 	return r.dao.AddMember(ctx, converter.FromEntityToModelMembership(m))
 }
 

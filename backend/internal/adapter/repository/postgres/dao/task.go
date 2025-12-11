@@ -103,8 +103,22 @@ func (r *TaskDAO) Update(ctx context.Context, task task_model.UpdateTask) error 
 
 	args = append(args, task.ID)
 
+	// Используем Exec, но обрабатываем ошибку
 	_, err := tx.Exec(ctx, query, args...)
 	if err != nil {
+		var pgErr *pgconn.PgError
+		if errors.As(err, &pgErr) {
+			switch pgErr.Code {
+			case "23505": // unique_violation (team_id, title)
+				return repoErr.ErrAlreadyExists
+			case "23503": // foreign_key_violation
+				if strings.Contains(pgErr.ConstraintName, "fk_assigned_to_membership") || strings.Contains(pgErr.ConstraintName, "fk_team") {
+					return repoErr.ErrInvalidArgs
+				}
+			case "23514": // check_violation
+				return fmt.Errorf("%w: %s", repoErr.ErrInvalidArgs, pgErr.Message)
+			}
+		}
 		return fmt.Errorf("%w: %v", repoErr.ErrFailUpdate, err)
 	}
 

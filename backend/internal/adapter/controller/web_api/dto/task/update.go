@@ -3,12 +3,12 @@ package task
 import "github.com/andreychh/coopera-backend/internal/entity"
 
 type UpdateTaskRequest struct {
-	CurrentUserID int32   `json:"current_user_id" validate:"required"`
-	TaskID        int32   `json:"task_id" validate:"required"`
-	Title         *string `json:"title,omitempty" validate:"omitempty,min=1,max=255"`
-	Description   *string `json:"description,omitempty"`
-	Points        *int32  `json:"points,omitempty"`
-	AssignedTo    *int32  `json:"assigned_to,omitempty"`
+	CurrentUserID    int32   `json:"current_user_id" validate:"required"`
+	TaskID           int32   `json:"task_id" validate:"required"`
+	Title            *string `json:"title,omitempty" validate:"omitempty,min=1,max=255"`
+	Description      *string `json:"description,omitempty"`
+	Points           *int32  `json:"points,omitempty"`
+	AssignedToMember *int32  `json:"assigned_to_member,omitempty"`
 }
 
 func ToEntityUpdateTaskRequest(req *UpdateTaskRequest) *entity.UpdateTask {
@@ -28,8 +28,8 @@ func ToEntityUpdateTaskRequest(req *UpdateTaskRequest) *entity.UpdateTask {
 		task.Points = req.Points
 	}
 
-	if req.AssignedTo != nil {
-		task.AssignedTo = req.AssignedTo
+	if req.AssignedToMember != nil {
+		task.AssignedToMember = req.AssignedToMember
 	}
 
 	return task

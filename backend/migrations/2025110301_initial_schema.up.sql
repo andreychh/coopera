@@ -24,7 +24,7 @@ CREATE TABLE IF NOT EXISTS coopera.memberships
 (
     id         SERIAL PRIMARY KEY,
     team_id    INTEGER           NOT NULL,
-    member_id  INTEGER           NOT NULL,
+    user_id  INTEGER           NOT NULL,
     role       coopera.team_role NOT NULL,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT (NOW() AT TIME ZONE 'utc')
 );
@@ -42,15 +42,15 @@ ALTER TABLE coopera.memberships
             ON DELETE CASCADE,
 
     ADD CONSTRAINT fk_member
-        FOREIGN KEY (member_id)
+        FOREIGN KEY (user_id)
             REFERENCES coopera.users (id)
             ON DELETE CASCADE,
 
     ADD CONSTRAINT unique_membership
-        UNIQUE (team_id, member_id);
+        UNIQUE (team_id, user_id);
 
 CREATE INDEX IF NOT EXISTS idx_teams_created_by ON coopera.teams (created_by);
 
-CREATE INDEX IF NOT EXISTS idx_memberships_member_id ON coopera.memberships (member_id);
+CREATE INDEX IF NOT EXISTS idx_memberships_user_id ON coopera.memberships (user_id);
 
 COMMIT;

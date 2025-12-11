@@ -33,8 +33,11 @@ func (u *taskAssignmentUsecase) AssignTasks(ctx context.Context) error {
 			return err
 		}
 
+		// валидация по статусу open - сутки (для презы поставить 20 секунд)
+		// TODO: в будущем подумать над тем что у задачи может не быть баллов
+
 		for _, task := range tasks {
-			if task.AssignedTo != nil {
+			if task.AssignedToMember != nil {
 				continue
 			}
 
@@ -70,9 +73,9 @@ func (u *taskAssignmentUsecase) AssignTasks(ctx context.Context) error {
 			}
 
 			if err := u.taskUsecase.UpdateForEngine(txCtx, entity.UpdateTask{
-				TaskID:      task.ID,
-				AssignedTo:  &targetUser.MemberID,
-				Description: task.Description,
+				TaskID:           task.ID,
+				AssignedToMember: &targetUser.UserID,
+				Description:      task.Description,
 			}); err != nil {
 				return err
 			}
