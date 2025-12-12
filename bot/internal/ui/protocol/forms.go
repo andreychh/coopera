@@ -1,6 +1,8 @@
 package protocol
 
 import (
+	"strconv"
+
 	"github.com/andreychh/coopera-bot/pkg/botlib/callbacks"
 	"github.com/andreychh/coopera-bot/pkg/botlib/callbacks/conditions"
 	"github.com/andreychh/coopera-bot/pkg/botlib/composition"
@@ -10,7 +12,8 @@ import (
 )
 
 const (
-	FormCreateTeam = "create_team"
+	FormCreateTeam = "create_team_from"
+	FormAddMember  = "add_member_form"
 
 	prefixStartForm = "start_form"
 
@@ -25,8 +28,15 @@ func OnStartForm(name string) core.Condition {
 	)
 }
 
-func StartForm(name string) string {
+func StartCreateTeamForm() string {
 	return callbacks.OutcomingData(prefixStartForm).
-		With(keyFormName, name).
+		With(keyFormName, FormCreateTeam).
+		String()
+}
+
+func StartAddMemberForm(teamID int64) string {
+	return callbacks.OutcomingData(prefixStartForm).
+		With(keyFormName, FormAddMember).
+		With(keyTeamID, strconv.FormatInt(teamID, 10)).
 		String()
 }

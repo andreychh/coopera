@@ -16,9 +16,9 @@ import (
 	"github.com/andreychh/coopera-bot/pkg/botlib/updates/conditions"
 )
 
-func CreateTeamFormTeamNameSpec(bot tg.Bot, c domain.Community, f forms.Forms) hsm.Spec {
+func CreateTeamFormNameSpec(bot tg.Bot, c domain.Community, f forms.Forms) hsm.Spec {
 	return hsm.Leaf(
-		SpecCreateTeamFormTeamName,
+		SpecCreateTeamFormName,
 		hsm.CoreBehavior(
 			base.SendContent(
 				bot,
@@ -50,6 +50,11 @@ func CreateTeamFormTeamNameSpec(bot tg.Bot, c domain.Community, f forms.Forms) h
 							composition.Sequential(
 								actions.SaveTextToField(f, "team_name"),
 								domainactions.CreateTeam(c, f),
+								base.SendContent(bot,
+									sources.Static(
+										content.Text("Team created successfully!"),
+									),
+								),
 							),
 						),
 						hsm.Transit(SpecTeamsMenu),
@@ -67,13 +72,13 @@ func CreateTeamFormSpec(bot tg.Bot, c domain.Community, f forms.Forms) hsm.Spec 
 		hsm.CoreBehavior(
 			base.EditOrSendContent(
 				bot,
-				sources.Static(content.Text("Fill out the form below or use /cancel to exit the form.")),
+				sources.Static(content.Text("Please fill out the form below or use /cancel to exit the form.")),
 			),
 			hsm.Greedy(
 				hsm.JustIf(conditions.CommandIs("cancel"), hsm.Transit(SpecTeamsMenu)),
 			),
 			composition.Nothing(),
 		),
-		hsm.Group(CreateTeamFormTeamNameSpec(bot, c, f)),
+		hsm.Group(CreateTeamFormNameSpec(bot, c, f)),
 	)
 }

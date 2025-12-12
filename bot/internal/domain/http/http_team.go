@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strconv"
 
 	"github.com/andreychh/coopera-bot/internal/domain"
 	"github.com/andreychh/coopera-bot/internal/domain/transport"
@@ -49,6 +50,35 @@ func (h httpTeam) AddMember(ctx context.Context, user domain.User) (domain.Membe
 	}
 	// TODO: get role from response
 	return Member(id, user.Username(), "unknown", h.client), nil
+}
+
+func (h httpTeam) ContainsUser(ctx context.Context, user domain.User) (bool, error) {
+	data, err := h.client.Get(
+		ctx,
+		transport.NewOutcomingURL("teams").
+			With("team_id", strconv.FormatInt(h.id, 10)).
+			String(),
+	)
+	if err != nil {
+		return false, fmt.Errorf("getting team %d: %w", h.id, err)
+	}
+	resp := struct {
+		Members []struct {
+			ID     int64  `json:"member_id"`
+			UserID int64  `json:"user_id"`
+			Role   string `json:"role"`
+		} `json:"members"`
+	}{}
+	err = json.Unmarshal(data, &resp)
+	if err != nil {
+		return false, fmt.Errorf("unmarshaling data: %w", err)
+	}
+	for _, m := range resp.Members {
+		if m.UserID == user.ID() {
+			return true, nil
+		}
+	}
+	return false, nil
 }
 
 func (h httpTeam) Members(_ context.Context) (domain.Members, error) {

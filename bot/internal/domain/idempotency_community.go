@@ -27,6 +27,18 @@ func (i idempotencyCommunity) UserWithTelegramID(ctx context.Context, tgID int64
 	return i.origin.UserWithTelegramID(ctx, tgID)
 }
 
+func (i idempotencyCommunity) UserWithUsername(ctx context.Context, tgUsername string) (User, error) {
+	return i.origin.UserWithUsername(ctx, tgUsername)
+}
+
+func (i idempotencyCommunity) UserWithTelegramIDExists(ctx context.Context, tgID int64) (bool, error) {
+	return i.origin.UserWithTelegramIDExists(ctx, tgID)
+}
+
+func (i idempotencyCommunity) UserWithUsernameExists(ctx context.Context, tgUsername string) (bool, error) {
+	return i.origin.UserWithUsernameExists(ctx, tgUsername)
+}
+
 func (i idempotencyCommunity) Team(ctx context.Context, id int64) (Team, error) {
 	return i.origin.Team(ctx, id)
 }

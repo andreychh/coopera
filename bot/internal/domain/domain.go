@@ -7,7 +7,10 @@ import (
 type Community interface {
 	CreateUser(ctx context.Context, tgID int64, tgUsername string) (User, error)
 	UserWithTelegramID(ctx context.Context, tgID int64) (User, error)
+	UserWithUsername(ctx context.Context, tgUsername string) (User, error)
 	Team(ctx context.Context, id int64) (Team, error)
+	UserWithTelegramIDExists(ctx context.Context, tgID int64) (bool, error)
+	UserWithUsernameExists(ctx context.Context, tgUsername string) (bool, error)
 }
 
 type User interface {
@@ -28,6 +31,7 @@ type Team interface {
 	Name() string
 	AddMember(ctx context.Context, user User) (Member, error)
 	Members(ctx context.Context) (Members, error)
+	ContainsUser(ctx context.Context, user User) (bool, error)
 }
 
 type Members interface {

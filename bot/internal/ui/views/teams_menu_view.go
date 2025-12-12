@@ -19,7 +19,7 @@ func TeamsEmptyView() sources.Source[content.Content] {
 	return sources.Static[content.Content](keyboards.Inline(
 		content.Text("У вас пока нет команд. Создайте первую!"),
 		buttons.Matrix(
-			buttons.Row(buttons.CallbackButton("Create team", protocol.StartForm("create_team"))),
+			buttons.Row(buttons.CallbackButton("Create team", protocol.StartCreateTeamForm())),
 			buttons.Row(buttons.CallbackButton("Main menu", protocol.ToMainMenu())),
 		),
 	))
@@ -41,7 +41,7 @@ func (t teamsView) Value(ctx context.Context, update telegram.Update) (content.C
 	return keyboards.Inline(
 		content.Text("Select a team:"),
 		t.teamsMatrix(teams).
-			WithRow(buttons.Row(buttons.CallbackButton("Create team", protocol.StartForm("create_team")))).
+			WithRow(buttons.Row(buttons.CallbackButton("Create team", protocol.StartCreateTeamForm()))).
 			WithRow(buttons.Row(buttons.CallbackButton("Main menu", protocol.ToMainMenu()))),
 	), nil
 }

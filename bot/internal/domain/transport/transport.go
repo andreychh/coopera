@@ -50,13 +50,13 @@ func (c httpClient) Get(ctx context.Context, path string) ([]byte, error) {
 			err = closeErr
 		}
 	}()
-	if resp.StatusCode != http.StatusOK {
-		errorBody, _ := io.ReadAll(resp.Body)
-		return nil, fmt.Errorf("API returned status %d for GET %s. Body: %s",
-			resp.StatusCode,
-			path,
-			errorBody,
-		)
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		body, _ := io.ReadAll(resp.Body)
+		return nil, APIError{
+			StatusCode: resp.StatusCode,
+			URL:        path,
+			Body:       body,
+		}
 	}
 	return io.ReadAll(resp.Body)
 }

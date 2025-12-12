@@ -42,7 +42,7 @@ func (m membersMenuView) Value(ctx context.Context, update telegram.Update) (con
 	return keyboards.Inline(
 		content.Text(fmt.Sprintf("Team %s members:", team.Name())),
 		m.membersMatrix(details).
-			WithRow(buttons.Row(buttons.CallbackButton("Add member", "not_implemented"))).
+			WithRow(buttons.Row(buttons.CallbackButton("Add member", protocol.StartAddMemberForm(team.ID())))).
 			WithRow(buttons.Row(buttons.CallbackButton("Team menu", protocol.ToTeamMenu(team.ID())))),
 	), nil
 }
@@ -56,7 +56,7 @@ func (m membersMenuView) membersMatrix(members []domain.Member) buttons.ButtonMa
 }
 
 func (m membersMenuView) memberButton(member domain.Member) buttons.InlineButton {
-	return buttons.CallbackButton(member.Name(), protocol.ToMemberMenu(member.ID()))
+	return buttons.CallbackButton(fmt.Sprintf("%s (%d)", member.Name(), member.ID()), protocol.ToMemberMenu(member.ID()))
 }
 
 func MembersMenu(community domain.Community) sources.Source[content.Content] {

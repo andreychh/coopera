@@ -10,6 +10,9 @@ const (
 	SpecTeamMenu    = "team_menu_spec"
 	SpecMembersMenu = "members_menu_spec"
 
-	SpecCreateTeamForm         = "create_team_form_spec"
-	SpecCreateTeamFormTeamName = "create_team_form_team_name_spec"
+	SpecCreateTeamForm     = "create_team_form_spec"
+	SpecCreateTeamFormName = "create_team_form_name_spec"
+
+	SpecAddMemberForm         = "add_member_form_spec"
+	SpecAddMemberFormUsername = "add_member_form_name_spec"
 )

@@ -57,6 +57,7 @@ func MembersMenuSpec(bot tg.Bot, c domain.Community) hsm.Spec {
 			base.EditOrSendContent(bot, views.MembersMenu(c)),
 			hsm.FirstHandled(
 				hsm.JustIf(protocol.OnChangeMenu(protocol.MenuTeam), hsm.Transit(SpecTeamMenu)),
+				hsm.JustIf(protocol.OnStartForm(protocol.FormAddMember), hsm.Transit(SpecAddMemberForm)),
 			),
 			composition.Nothing(),
 		),
