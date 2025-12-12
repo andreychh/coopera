@@ -3,11 +3,9 @@ package views
 import (
 	"context"
 	"fmt"
-	"strconv"
 
 	"github.com/andreychh/coopera-bot/internal/domain"
 	"github.com/andreychh/coopera-bot/internal/ui/protocol"
-	"github.com/andreychh/coopera-bot/pkg/botlib/callbacks"
 	"github.com/andreychh/coopera-bot/pkg/botlib/content"
 	"github.com/andreychh/coopera-bot/pkg/botlib/content/keyboards"
 	"github.com/andreychh/coopera-bot/pkg/botlib/content/keyboards/buttons"
@@ -31,22 +29,21 @@ func (m membersMenuView) Value(ctx context.Context, update telegram.Update) (con
 	}
 	team, err := m.community.Team(ctx, id)
 	if err != nil {
-		return nil, fmt.Errorf("getting team details for team %d: %w", id, err)
+		return nil, fmt.Errorf("getting team %d: %w", id, err)
 	}
 	members, err := team.Members(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("getting team members for team %d: %w", id, err)
+		return nil, fmt.Errorf("getting members for team %d: %w", id, err)
 	}
 	details, err := members.All(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("getting team details: %w", err)
+		return nil, fmt.Errorf("getting memebers slice: %w", err)
 	}
 	return keyboards.Inline(
-		content.Text("Team team:"),
-		m.membersMatrix(details).WithRow(buttons.Row(buttons.CallbackButton(
-			"Invite member",
-			"not_implemented",
-		))),
+		content.Text(fmt.Sprintf("Team %s members:", team.Name())),
+		m.membersMatrix(details).
+			WithRow(buttons.Row(buttons.CallbackButton("Add member", "not_implemented"))).
+			WithRow(buttons.Row(buttons.CallbackButton("Team menu", protocol.ToTeamMenu(team.ID())))),
 	), nil
 }
 
@@ -59,13 +56,7 @@ func (m membersMenuView) membersMatrix(members []domain.Member) buttons.ButtonMa
 }
 
 func (m membersMenuView) memberButton(member domain.Member) buttons.InlineButton {
-	return buttons.CallbackButton(
-		member.Name(),
-		callbacks.OutcomingData("change_menu").
-			With("menu_name", "member").
-			With("member_id", strconv.FormatInt(member.ID(), 10)).
-			String(),
-	)
+	return buttons.CallbackButton(member.Name(), protocol.ToMemberMenu(member.ID()))
 }
 
 func MembersMenu(community domain.Community) sources.Source[content.Content] {

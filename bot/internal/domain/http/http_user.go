@@ -10,9 +10,14 @@ import (
 )
 
 type httpUser struct {
-	telegramID int64
 	id         int64
+	tgID       int64
+	tgUsername string
 	client     transport.Client
+}
+
+func (h httpUser) Username() string {
+	return h.tgUsername
 }
 
 func (h httpUser) ID() int64 {
@@ -20,11 +25,7 @@ func (h httpUser) ID() int64 {
 }
 
 func (h httpUser) CreatedTeams(_ context.Context) (domain.Teams, error) {
-	return httpTeams{
-		userTelegramID: h.telegramID,
-		userID:         h.id,
-		client:         h.client,
-	}, nil
+	return Teams(h.id, h.tgID, h.client), nil
 }
 
 func (h httpUser) CreateTeam(ctx context.Context, name string) (domain.Team, error) {
@@ -46,8 +47,14 @@ func (h httpUser) CreateTeam(ctx context.Context, name string) (domain.Team, err
 	if err != nil {
 		return nil, fmt.Errorf("unmarshaling data: %w", err)
 	}
-	return httpTeam{
-		id:     resp.ID,
-		client: h.client,
-	}, nil
+	return Team(resp.ID, name, h.client), nil
+}
+
+func User(id int64, tgID int64, tgUsername string, client transport.Client) domain.User {
+	return httpUser{
+		id:         id,
+		tgID:       tgID,
+		tgUsername: tgUsername,
+		client:     client,
+	}
 }

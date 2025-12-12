@@ -17,11 +17,13 @@ const (
 	MenuTeams   = "teams_menu"
 	MenuTeam    = "team_menu"
 	MenuMembers = "members_menu"
+	MenuMember  = "member_menu"
 
 	prefixChangeMenu = "change_menu"
 
 	keyMenuName = "menu_name"
 	keyTeamID   = "team_id"
+	keyMemberID = "member_id"
 )
 
 func ToMainMenu() string {
@@ -39,14 +41,21 @@ func ToTeamsMenu() string {
 func ToTeamMenu(teamID int64) string {
 	return callbacks.OutcomingData(prefixChangeMenu).
 		With(keyMenuName, MenuTeam).
-		With("team_id", strconv.FormatInt(teamID, 10)).
+		With(keyTeamID, strconv.FormatInt(teamID, 10)).
 		String()
 }
 
 func ToMembersMenu(teamID int64) string {
 	return callbacks.OutcomingData(prefixChangeMenu).
 		With(keyMenuName, MenuMembers).
-		With("team_id", strconv.FormatInt(teamID, 10)).
+		With(keyTeamID, strconv.FormatInt(teamID, 10)).
+		String()
+}
+
+func ToMemberMenu(memberID int64) string {
+	return callbacks.OutcomingData(prefixChangeMenu).
+		With(keyMenuName, MenuMember).
+		With(keyMemberID, strconv.FormatInt(memberID, 10)).
 		String()
 }
 
@@ -66,6 +75,18 @@ func ParseTeamID(callbackData string) (int64, error) {
 	id, err := strconv.ParseInt(val, 10, 64)
 	if err != nil {
 		return 0, fmt.Errorf("parsing %s: %w", keyTeamID, err)
+	}
+	return id, nil
+}
+
+func ParseMemberID(callbackData string) (int64, error) {
+	val, exists := callbacks.IncomingData(callbackData).Value(keyMemberID)
+	if !exists {
+		return 0, fmt.Errorf("parameter %s not found", keyMemberID)
+	}
+	id, err := strconv.ParseInt(val, 10, 64)
+	if err != nil {
+		return 0, fmt.Errorf("parsing %s: %w", keyMemberID, err)
 	}
 	return id, nil
 }

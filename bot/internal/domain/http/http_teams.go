@@ -79,12 +79,16 @@ func (h httpTeams) TeamWithName(ctx context.Context, name string) (domain.Team, 
 	}
 	for _, t := range resp.Teams {
 		if t.Name == name {
-			return httpTeam{
-				id:     t.ID,
-				name:   t.Name,
-				client: h.client,
-			}, true, nil
+			return Team(t.ID, t.Name, h.client), true, nil
 		}
 	}
 	return nil, false, nil
+}
+
+func Teams(userID, userTelegramID int64, client transport.Client) domain.Teams {
+	return httpTeams{
+		userID:         userID,
+		userTelegramID: userTelegramID,
+		client:         client,
+	}
 }

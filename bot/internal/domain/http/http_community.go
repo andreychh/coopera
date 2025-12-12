@@ -33,10 +33,7 @@ func (h httpCommunity) CreateUser(ctx context.Context, tgID int64, tgUsername st
 	if err != nil {
 		return nil, fmt.Errorf("unmarshaling data: %w", err)
 	}
-	return httpUser{
-		id:     resp.ID,
-		client: h.client,
-	}, nil
+	return User(resp.ID, tgID, tgUsername, h.client), nil
 }
 
 func (h httpCommunity) UserWithTelegramID(ctx context.Context, tgID int64) (domain.User, error) {
@@ -50,17 +47,14 @@ func (h httpCommunity) UserWithTelegramID(ctx context.Context, tgID int64) (doma
 		return nil, fmt.Errorf("getting user: %w", err)
 	}
 	resp := struct {
-		ID int64 `json:"id"`
+		ID       int64  `json:"id"`
+		Username string `json:"username"`
 	}{}
 	err = json.Unmarshal(data, &resp)
 	if err != nil {
 		return nil, fmt.Errorf("unmarshaling data: %w", err)
 	}
-	return httpUser{
-		telegramID: tgID,
-		id:         resp.ID,
-		client:     h.client,
-	}, nil
+	return User(resp.ID, tgID, resp.Username, h.client), nil
 }
 
 func (h httpCommunity) Team(ctx context.Context, id int64) (domain.Team, error) {
@@ -80,11 +74,7 @@ func (h httpCommunity) Team(ctx context.Context, id int64) (domain.Team, error) 
 	if err != nil {
 		return nil, fmt.Errorf("unmarshaling data: %w", err)
 	}
-	return httpTeam{
-		id:     id,
-		name:   resp.Name,
-		client: h.client,
-	}, nil
+	return Team(id, resp.Name, h.client), nil
 }
 
 func Community(client transport.Client) domain.Community {

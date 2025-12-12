@@ -12,6 +12,7 @@ type Community interface {
 
 type User interface {
 	ID() int64
+	Username() string
 	CreatedTeams(ctx context.Context) (Teams, error)
 	CreateTeam(ctx context.Context, name string) (Team, error)
 }
@@ -25,18 +26,18 @@ type Teams interface {
 type Team interface {
 	ID() int64
 	Name() string
-	AddMember(ctx context.Context, userID int64) (Member, error)
+	AddMember(ctx context.Context, user User) (Member, error)
 	Members(ctx context.Context) (Members, error)
 }
 
 type Members interface {
 	All(ctx context.Context) ([]Member, error)
-	Empty(ctx context.Context) (bool, error)
 }
 
 type Member interface {
 	ID() int64
 	Name() string
+	Role() string
 	CreateTask(ctx context.Context, points int, title string, description string) (Task, error)
 	CreatedTasks(ctx context.Context) (Tasks, error)
 }
