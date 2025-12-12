@@ -25,6 +25,7 @@ var (
 	ErrOnlyManagerOrSelfCanAssign = errors.New("only manager or the user themselves can assign this task")
 	ErrOnlyManagerCanSetPoints    = errors.New("only manager can set points")
 	ErrCantAssignWithoutPoints    = errors.New("task has no points, cannot self-assign")
+	ErrAssignedMemberNotExists    = errors.New("assigned member does not exists")
 )
 
 type ValidationError struct {
