@@ -31,7 +31,7 @@ func (t teamExistsCondition) Holds(ctx context.Context, update telegram.Update) 
 	if err != nil {
 		return false, fmt.Errorf("getting created teams for user %d: %w", id, err)
 	}
-	exists, err := teams.ContainsTeam(ctx, name)
+	_, exists, err := teams.TeamWithName(ctx, name)
 	if err != nil {
 		return false, fmt.Errorf("checking if team %q exists for user %d: %w", name, id, err)
 	}

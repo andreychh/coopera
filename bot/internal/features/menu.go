@@ -21,6 +21,18 @@ func MainMenuSpec(bot tg.Bot) hsm.Spec {
 	)
 }
 
+func TeamsMenuSpec(bot tg.Bot, c domain.Community) hsm.Spec {
+	return hsm.Leaf(SpecTeamsMenu, hsm.CoreBehavior(
+		base.EditOrSendContent(bot, views.TeamsMenu(c)),
+		hsm.FirstHandled(
+			hsm.JustIf(protocol.OnChangeMenu(protocol.MenuTeam), hsm.Transit(SpecTeamMenu)),
+			hsm.JustIf(protocol.OnChangeMenu(protocol.MenuMain), hsm.Transit(SpecMainMenu)),
+			hsm.JustIf(protocol.OnStartForm(protocol.FormCreateTeam), hsm.Transit(SpecCreateTeamForm)),
+		),
+		composition.Nothing(),
+	))
+}
+
 func TeamMenuSpec(bot tg.Bot, c domain.Community) hsm.Spec {
 	return hsm.Leaf(
 		SpecTeamMenu,

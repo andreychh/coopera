@@ -1,21 +1,16 @@
-package features
+package views
 
 import (
 	"context"
 	"fmt"
-	"iter"
 
 	"github.com/andreychh/coopera-bot/internal/domain"
 	"github.com/andreychh/coopera-bot/internal/domain/conditions"
 	"github.com/andreychh/coopera-bot/internal/ui/protocol"
-	"github.com/andreychh/coopera-bot/pkg/botlib/base"
-	"github.com/andreychh/coopera-bot/pkg/botlib/composition"
 	"github.com/andreychh/coopera-bot/pkg/botlib/content"
 	"github.com/andreychh/coopera-bot/pkg/botlib/content/keyboards"
 	"github.com/andreychh/coopera-bot/pkg/botlib/content/keyboards/buttons"
-	"github.com/andreychh/coopera-bot/pkg/botlib/hsm"
 	"github.com/andreychh/coopera-bot/pkg/botlib/sources"
-	"github.com/andreychh/coopera-bot/pkg/botlib/tg"
 	"github.com/andreychh/coopera-bot/pkg/botlib/updates/attributes"
 	telegram "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 )
@@ -51,7 +46,7 @@ func (t teamsView) Value(ctx context.Context, update telegram.Update) (content.C
 	), nil
 }
 
-func (t teamsView) teamsMatrix(teams iter.Seq2[int64, domain.Team]) buttons.ButtonMatrix[buttons.InlineButton] {
+func (t teamsView) teamsMatrix(teams []domain.Team) buttons.ButtonMatrix[buttons.InlineButton] {
 	matrix := buttons.Matrix[buttons.InlineButton]()
 	for _, team := range teams {
 		matrix = matrix.WithRow(buttons.Row(t.teamButton(team)))
@@ -97,16 +92,4 @@ func (c currentTeams) Value(ctx context.Context, update telegram.Update) (domain
 
 func CurrentTeams(comm domain.Community) sources.Source[domain.Teams] {
 	return currentTeams{community: comm}
-}
-
-func TeamsMenuSpec(bot tg.Bot, c domain.Community) hsm.Spec {
-	return hsm.Leaf(SpecTeamsMenu, hsm.CoreBehavior(
-		base.EditOrSendContent(bot, TeamsMenu(c)),
-		hsm.FirstHandled(
-			hsm.JustIf(protocol.OnChangeMenu(protocol.MenuTeam), hsm.Transit(SpecTeamMenu)),
-			hsm.JustIf(protocol.OnChangeMenu(protocol.MenuMain), hsm.Transit(SpecMainMenu)),
-			hsm.JustIf(protocol.OnStartForm(protocol.FormCreateTeam), hsm.Transit(SpecCreateTeamForm)),
-		),
-		composition.Nothing(),
-	))
 }

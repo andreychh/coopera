@@ -3,7 +3,6 @@ package views
 import (
 	"context"
 	"fmt"
-	"iter"
 	"strconv"
 
 	"github.com/andreychh/coopera-bot/internal/domain"
@@ -51,7 +50,7 @@ func (m membersMenuView) Value(ctx context.Context, update telegram.Update) (con
 	), nil
 }
 
-func (m membersMenuView) membersMatrix(members iter.Seq2[int64, domain.Member]) buttons.ButtonMatrix[buttons.InlineButton] {
+func (m membersMenuView) membersMatrix(members []domain.Member) buttons.ButtonMatrix[buttons.InlineButton] {
 	matrix := buttons.Matrix[buttons.InlineButton]()
 	for _, member := range members {
 		matrix = matrix.WithRow(buttons.Row(m.memberButton(member)))

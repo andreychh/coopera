@@ -10,8 +10,9 @@ import (
 )
 
 type httpUser struct {
-	id     int64
-	client transport.Client
+	telegramID int64
+	id         int64
+	client     transport.Client
 }
 
 func (h httpUser) ID() int64 {
@@ -20,8 +21,9 @@ func (h httpUser) ID() int64 {
 
 func (h httpUser) CreatedTeams(_ context.Context) (domain.Teams, error) {
 	return httpTeams{
-		userID: h.id,
-		client: h.client,
+		userTelegramID: h.telegramID,
+		userID:         h.id,
+		client:         h.client,
 	}, nil
 }
 

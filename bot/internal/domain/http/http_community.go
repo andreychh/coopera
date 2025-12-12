@@ -57,12 +57,13 @@ func (h httpCommunity) UserWithTelegramID(ctx context.Context, tgID int64) (doma
 		return nil, fmt.Errorf("unmarshaling data: %w", err)
 	}
 	return httpUser{
-		id:     resp.ID,
-		client: h.client,
+		telegramID: tgID,
+		id:         resp.ID,
+		client:     h.client,
 	}, nil
 }
 
-func (h httpCommunity) Team(ctx context.Context, id int64) (domain.Team, error) {
+func (h httpCommunity) Team(_ context.Context, id int64) (domain.Team, error) {
 	return httpTeam{
 		id:     id,
 		client: h.client,

@@ -2,7 +2,6 @@ package domain
 
 import (
 	"context"
-	"iter"
 )
 
 type Community interface {
@@ -18,9 +17,9 @@ type User interface {
 }
 
 type Teams interface {
-	All(ctx context.Context) (iter.Seq2[int64, Team], error)
+	All(ctx context.Context) ([]Team, error)
 	Empty(ctx context.Context) (bool, error)
-	ContainsTeam(ctx context.Context, name string) (bool, error)
+	TeamWithName(ctx context.Context, name string) (Team, bool, error)
 }
 
 type Team interface {
@@ -31,7 +30,7 @@ type Team interface {
 }
 
 type Members interface {
-	All(ctx context.Context) (iter.Seq2[int64, Member], error)
+	All(ctx context.Context) ([]Member, error)
 	Empty(ctx context.Context) (bool, error)
 }
 
