@@ -27,15 +27,20 @@ func (t teamMenuView) Value(ctx context.Context, update telegram.Update) (conten
 	if err != nil {
 		return nil, fmt.Errorf("parsing team ID from callback data %q: %w", callbackData, err)
 	}
-	details, err := t.community.Team(ctx, id)
+	team, err := t.community.Team(ctx, id)
 	if err != nil {
-		return nil, fmt.Errorf("getting details for team %d: %w", id, err)
+		return nil, fmt.Errorf("getting team %d: %w", id, err)
 	}
 	return keyboards.Inline(
-		content.Text(fmt.Sprintf("Team %s:", details.Name())),
+		content.Text(fmt.Sprintf("Team %s:", team.Name())),
 		buttons.Matrix(
-			buttons.Row(buttons.CallbackButton("Members", protocol.ToMembersMenu(details.ID()))),
-			buttons.Row(buttons.CallbackButton("Teams", protocol.ToTeamsMenu())),
+			buttons.Row(buttons.CallbackButton("Members", protocol.ToMembersMenu(team.ID()))),
+			buttons.Row(
+				buttons.CallbackButton("All tasks", "not_implemented"),
+				buttons.CallbackButton("My tasks", "not_implemented"),
+			),
+			buttons.Row(buttons.CallbackButton("Add task", "not_implemented")),
+			buttons.Row(buttons.CallbackButton("Teams menu", protocol.ToTeamsMenu())),
 		),
 	), nil
 }

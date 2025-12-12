@@ -63,9 +63,26 @@ func (h httpCommunity) UserWithTelegramID(ctx context.Context, tgID int64) (doma
 	}, nil
 }
 
-func (h httpCommunity) Team(_ context.Context, id int64) (domain.Team, error) {
+func (h httpCommunity) Team(ctx context.Context, id int64) (domain.Team, error) {
+	data, err := h.client.Get(
+		ctx,
+		transport.NewOutcomingURL("teams").
+			With("team_id", strconv.FormatInt(id, 10)).
+			String(),
+	)
+	if err != nil {
+		return nil, fmt.Errorf("getting team %d: %w", id, err)
+	}
+	resp := struct {
+		Name string `json:"name"`
+	}{}
+	err = json.Unmarshal(data, &resp)
+	if err != nil {
+		return nil, fmt.Errorf("unmarshaling data: %w", err)
+	}
 	return httpTeam{
 		id:     id,
+		name:   resp.Name,
 		client: h.client,
 	}, nil
 }

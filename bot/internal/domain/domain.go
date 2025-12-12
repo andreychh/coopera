@@ -25,7 +25,7 @@ type Teams interface {
 type Team interface {
 	ID() int64
 	Name() string
-	AddMember(ctx context.Context, user User) (Member, error)
+	AddMember(ctx context.Context, userID int64) (Member, error)
 	Members(ctx context.Context) (Members, error)
 }
 
