@@ -49,7 +49,7 @@ func (mc *MembershipController) DeleteMember(w http.ResponseWriter, r *http.Requ
 		return errors.ErrInvalidInput
 	}
 
-	err := mc.membershipUseCase.DeleteMemberUsecase(r.Context(), *memberdto.ToEntityDeleteMemberRequest(&req), req.CurrentUserID)
+	err := mc.membershipUseCase.DeleteMemberUsecase(r.Context(), req.MemberID, req.TeamID, req.CurrentUserID)
 	if err != nil {
 		return err
 	}

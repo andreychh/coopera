@@ -56,7 +56,7 @@ func Start() error {
 
 	userUC := user.NewUserUsecase(userRepo, db)
 	memberUC := memberships.NewMembershipsUsecase(memberRepo, db)
-	teamUC := team.NewTeamUsecase(teamRepo, memberUC, db)
+	teamUC := team.NewTeamUsecase(teamRepo, memberUC, userUC, db)
 	taskUC := task.NewTaskUsecase(taskRepo, memberUC, db, teamUC)
 
 	taskCtx, taskCancel := context.WithCancel(context.Background())
@@ -64,7 +64,7 @@ func Start() error {
 
 	taskAssignerUsecase := taskassigner.NewTaskAssignmentUsecase(taskUC, memberUC, db)
 	taskAssigner := task_controller.NewTaskAssignmentController(taskAssignerUsecase)
-	go taskAssigner.StartAssignmentLoop(taskCtx, 10*time.Second)
+	go taskAssigner.StartAssignmentLoop(taskCtx, 1*time.Hour)
 
 	router := web_api.NewRouter(userUC, teamUC, taskUC, memberUC, logService, cfg).SetupRoutes()
 

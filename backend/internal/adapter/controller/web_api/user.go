@@ -51,7 +51,7 @@ func (uc *UserController) Get(w http.ResponseWriter, r *http.Request) error {
 		return fmt.Errorf("%w: %v", errors.ErrInvalidInput, err)
 	}
 
-	user, err := uc.userUseCase.GetUsecase(r.Context(), req.TelegramID, req.UserName)
+	user, err := uc.userUseCase.GetUsecase(r.Context(), req.TelegramID, req.UserName, req.ID)
 	if err != nil {
 		return err
 	}
