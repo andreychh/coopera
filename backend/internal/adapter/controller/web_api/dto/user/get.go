@@ -6,6 +6,7 @@ import (
 )
 
 type GetUserRequest struct {
+	ID         int32  `form:"id" validate:"omitempty"`
 	TelegramID int64  `form:"telegram_id" validate:"omitempty"`
 	UserName   string `form:"username" validate:"omitempty,max=32"`
 }
@@ -44,8 +45,8 @@ func ToGetUserResponse(user *entity.UserEntity) *GetUserResponse {
 }
 
 func (r *GetUserRequest) Validate() error {
-	if r.TelegramID == 0 && r.UserName == "" {
-		return fmt.Errorf("either telegram_id or username must be provided")
+	if r.TelegramID == 0 && r.UserName == "" && r.ID == 0 {
+		return fmt.Errorf("either telegram_id or username must or id be provided")
 	}
 	return nil
 }

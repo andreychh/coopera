@@ -29,7 +29,7 @@ type TeamRepository interface {
 
 type MembershipRepository interface {
 	AddMemberRepo(ctx context.Context, membership entity.MembershipEntity) (int32, error)
-	DeleteMemberRepo(ctx context.Context, membership entity.MembershipEntity) error
+	DeleteMemberRepo(ctx context.Context, memberID int32) error
 	GetMembersRepo(ctx context.Context, teamID int32) ([]entity.MembershipEntity, error)
 	MemberExistsRepo(ctx context.Context, memberID int32) (bool, error)
 	GetMemberRepo(ctx context.Context, teamID, memberID int32) (entity.MembershipEntity, error)
