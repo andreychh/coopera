@@ -32,6 +32,7 @@ type Team interface {
 	Name() string
 	AddMember(ctx context.Context, user User) (Member, error)
 	Members(ctx context.Context) (Members, error)
+	MemberWithUserID(ctx context.Context, id int64) (Member, error)
 	ContainsUser(ctx context.Context, user User) (bool, error)
 	Tasks(ctx context.Context) (Tasks, error)
 }

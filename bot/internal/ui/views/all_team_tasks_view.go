@@ -55,7 +55,7 @@ func (m allTeamTasksMenuView) tasksMatrix(tasks []domain.Task) buttons.ButtonMat
 
 func (m allTeamTasksMenuView) taskButton(task domain.Task) buttons.InlineButton {
 	return buttons.CallbackButton(
-		fmt.Sprintf("%s | %d | %s", task.Title(), task.Points(), task.Status()),
+		fmt.Sprintf("%s | %d | %s (@unknown)", task.Title(), task.Points(), task.Status()),
 		"not_implemented",
 		// protocol.ToTaskMenu(task.ID()),
 	)

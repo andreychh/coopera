@@ -76,7 +76,7 @@ func (h httpMember) CreateTask(ctx context.Context, points int, title string, de
 }
 
 func (h httpMember) Tasks(ctx context.Context) (domain.Tasks, error) {
-	return MemberTasks(h.id, h.client), nil
+	return MemberTasks(h.id, h.teamID, h.client), nil
 }
 
 func Member(id int64, userID int64, teamID int64, name string, role string, client transport.Client) domain.Member {

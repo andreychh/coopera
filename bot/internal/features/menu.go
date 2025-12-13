@@ -51,6 +51,7 @@ func TeamMenuSpec(bot tg.Bot, c domain.Community) hsm.Spec {
 				hsm.JustIf(protocol.OnChangeMenu(protocol.MenuMembers), hsm.Transit(SpecMembersMenu)),
 				hsm.JustIf(protocol.OnChangeMenu(protocol.MenuTeams), hsm.Transit(SpecTeamsMenu)),
 				hsm.JustIf(protocol.OnChangeMenu(protocol.MenuAllTeamTasks), hsm.Transit(SpecAllTeamTasks)),
+				hsm.JustIf(protocol.OnChangeMenu(protocol.MenuMemberTasks), hsm.Transit(SpecMemberTasks)),
 			),
 			composition.Nothing(),
 		),
@@ -87,6 +88,17 @@ func AllTeamTasksSpec(bot tg.Bot, c domain.Community) hsm.Spec {
 		SpecAllTeamTasks,
 		hsm.CoreBehavior(
 			base.EditOrSendContent(bot, views.AllTeamTasks(c)),
+			hsm.JustIf(protocol.OnChangeMenu(protocol.MenuTeam), hsm.Transit(SpecTeamMenu)),
+			composition.Nothing(),
+		),
+	)
+}
+
+func MemberTasksSpec(bot tg.Bot, c domain.Community) hsm.Spec {
+	return hsm.Leaf(
+		SpecMemberTasks,
+		hsm.CoreBehavior(
+			base.EditOrSendContent(bot, views.MemberTasksMenuView(c)),
 			hsm.JustIf(protocol.OnChangeMenu(protocol.MenuTeam), hsm.Transit(SpecTeamMenu)),
 			composition.Nothing(),
 		),
