@@ -57,5 +57,6 @@ type Task interface {
 	ID() int64
 	Title() string
 	Points() int
+	Status() string
 	Team(ctx context.Context) (Team, error)
 }

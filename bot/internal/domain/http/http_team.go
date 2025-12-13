@@ -86,8 +86,7 @@ func (h httpTeam) Members(_ context.Context) (domain.Members, error) {
 }
 
 func (h httpTeam) Tasks(ctx context.Context) (domain.Tasks, error) {
-	// TODO implement me
-	panic("implement me")
+	return TeamTasks(h.id, h.client), nil
 }
 
 func Team(id int64, name string, client transport.Client) domain.Team {

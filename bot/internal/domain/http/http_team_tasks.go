@@ -44,14 +44,25 @@ func (h httpTeamTasks) All(ctx context.Context) ([]domain.Task, error) {
 	}
 	tasks := make([]domain.Task, 0, len(resp))
 	for _, t := range resp {
-		tasks = append(tasks, Task(t.ID, t.Title, t.Points, t.TeamID, h.client))
+		tasks = append(tasks, Task(t.ID, t.Title, t.Points, t.Status, t.TeamID, h.client))
 	}
 	return tasks, nil
 }
 
 func (h httpTeamTasks) Empty(ctx context.Context) (bool, error) {
-	// TODO implement me
-	panic("implement me")
+	data, err := h.client.Get(ctx, transport.NewOutcomingURL("tasks").
+		With("team_id", strconv.FormatInt(h.teamID, 10)).
+		String(),
+	)
+	if err != nil {
+		return false, fmt.Errorf("getting tasks for team %d: %w", h.teamID, err)
+	}
+	var resp []task
+	err = json.Unmarshal(data, &resp)
+	if err != nil {
+		return false, fmt.Errorf("unmarshaling data: %w", err)
+	}
+	return len(resp) == 0, nil
 }
 
 func TeamTasks(teamID int64, client transport.Client) domain.Tasks {

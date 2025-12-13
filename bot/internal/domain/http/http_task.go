@@ -15,6 +15,7 @@ type httpTask struct {
 	title  string
 	points int
 	teamID int64
+	status string
 	client transport.Client
 }
 
@@ -28,6 +29,10 @@ func (h httpTask) Title() string {
 
 func (h httpTask) Points() int {
 	return h.points
+}
+
+func (h httpTask) Status() string {
+	return h.status
 }
 
 func (h httpTask) Team(ctx context.Context) (domain.Team, error) {
@@ -50,12 +55,13 @@ func (h httpTask) Team(ctx context.Context) (domain.Team, error) {
 	return Team(h.teamID, resp.Name, h.client), nil
 }
 
-func Task(id int64, title string, points int, teamID int64, client transport.Client) domain.Task {
+func Task(id int64, title string, points int, status string, teamID int64, client transport.Client) domain.Task {
 	return httpTask{
 		id:     id,
 		title:  title,
 		points: points,
 		teamID: teamID,
+		status: status,
 		client: client,
 	}
 }

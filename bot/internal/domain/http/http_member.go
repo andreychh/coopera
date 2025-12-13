@@ -72,7 +72,7 @@ func (h httpMember) CreateTask(ctx context.Context, points int, title string, de
 	if err != nil {
 		return nil, fmt.Errorf("unmarshaling data: %w", err)
 	}
-	return Task(resp.ID, resp.Title, resp.Points, resp.TeamID, h.client), nil
+	return Task(resp.ID, resp.Title, resp.Points, resp.Status, resp.TeamID, h.client), nil
 }
 
 func (h httpMember) Tasks(ctx context.Context) (domain.Tasks, error) {
