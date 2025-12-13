@@ -14,7 +14,7 @@ func RootSpec(bot tg.Bot, c domain.Community, f forms.Forms) hsm.Spec {
 		SpecRoot,
 		hsm.CoreBehavior(
 			composition.Nothing(),
-			hsm.JustIf(updcond.CommandIs("start"), hsm.Transit(SpecOnboarding)),
+			hsm.JustIf(updcond.CommandIs("start"), hsm.Transit(SpecMainMenu)),
 			composition.Nothing(),
 		),
 		hsm.Group(
@@ -24,6 +24,7 @@ func RootSpec(bot tg.Bot, c domain.Community, f forms.Forms) hsm.Spec {
 			TeamsMenuSpec(bot, c),
 			TeamMenuSpec(bot, c),
 			MembersMenuSpec(bot, c),
+			TasksAssignedToUserSpec(bot, c),
 
 			CreateTeamFormSpec(bot, c, f),
 			AddMemberSpec(bot, c, f),

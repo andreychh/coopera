@@ -13,11 +13,12 @@ import (
 )
 
 const (
-	MenuMain    = "main_menu"
-	MenuTeams   = "teams_menu"
-	MenuTeam    = "team_menu"
-	MenuMembers = "members_menu"
-	MenuMember  = "member_menu"
+	MenuMain                = "main_menu"
+	MenuTeams               = "teams_menu"
+	MenuTeam                = "team_menu"
+	MenuMembers             = "members_menu"
+	MenuMember              = "member_menu"
+	MenuTasksAssignedToUser = "tasks_assigned_to_user_menu"
 
 	prefixChangeMenu = "change_menu"
 
@@ -56,6 +57,12 @@ func ToMemberMenu(memberID int64) string {
 	return callbacks.OutcomingData(prefixChangeMenu).
 		With(keyMenuName, MenuMember).
 		With(keyMemberID, strconv.FormatInt(memberID, 10)).
+		String()
+}
+
+func ToTasksAssignedToUserMenu() string {
+	return callbacks.OutcomingData(prefixChangeMenu).
+		With(keyMenuName, MenuTasksAssignedToUser).
 		String()
 }
 

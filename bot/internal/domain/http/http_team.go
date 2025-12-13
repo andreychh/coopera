@@ -49,7 +49,7 @@ func (h httpTeam) AddMember(ctx context.Context, user domain.User) (domain.Membe
 		return nil, fmt.Errorf("failed to parse id from message: %w", err)
 	}
 	// TODO: get role from response
-	return Member(id, user.Username(), "unknown", h.client), nil
+	return Member(id, user.ID(), h.id, user.Username(), "unknown", h.client), nil
 }
 
 func (h httpTeam) ContainsUser(ctx context.Context, user domain.User) (bool, error) {
@@ -83,6 +83,11 @@ func (h httpTeam) ContainsUser(ctx context.Context, user domain.User) (bool, err
 
 func (h httpTeam) Members(_ context.Context) (domain.Members, error) {
 	return Members(h.id, h.client), nil
+}
+
+func (h httpTeam) Tasks(ctx context.Context) (domain.Tasks, error) {
+	// TODO implement me
+	panic("implement me")
 }
 
 func Team(id int64, name string, client transport.Client) domain.Team {

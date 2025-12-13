@@ -10,12 +10,27 @@ import (
 	"github.com/andreychh/coopera-bot/internal/domain/transport"
 )
 
-type httpMembers struct {
+type httpTask struct {
+	id     int64
+	title  string
+	points int
 	teamID int64
 	client transport.Client
 }
 
-func (h httpMembers) All(ctx context.Context) ([]domain.Member, error) {
+func (h httpTask) ID() int64 {
+	return h.id
+}
+
+func (h httpTask) Title() string {
+	return h.title
+}
+
+func (h httpTask) Points() int {
+	return h.points
+}
+
+func (h httpTask) Team(ctx context.Context) (domain.Team, error) {
 	data, err := h.client.Get(
 		ctx,
 		transport.NewOutcomingURL("teams").
@@ -26,30 +41,20 @@ func (h httpMembers) All(ctx context.Context) ([]domain.Member, error) {
 		return nil, fmt.Errorf("getting team %d: %w", h.teamID, err)
 	}
 	resp := struct {
-		Members []struct {
-			ID     int64  `json:"member_id"`
-			UserID int64  `json:"user_id"`
-			Role   string `json:"role"`
-		} `json:"members"`
+		Name string `json:"name"`
 	}{}
 	err = json.Unmarshal(data, &resp)
 	if err != nil {
 		return nil, fmt.Errorf("unmarshaling data: %w", err)
 	}
-	members := make([]domain.Member, 0, len(resp.Members))
-	for _, m := range resp.Members {
-		members = append(members, Member(m.ID, m.UserID, h.teamID, getUsername(), m.Role, h.client))
-	}
-	return members, nil
+	return Team(h.teamID, resp.Name, h.client), nil
 }
 
-func getUsername() string {
-	// TODO implement me
-	return "unknown"
-}
-
-func Members(teamID int64, client transport.Client) domain.Members {
-	return httpMembers{
+func Task(id int64, title string, points int, teamID int64, client transport.Client) domain.Task {
+	return httpTask{
+		id:     id,
+		title:  title,
+		points: points,
 		teamID: teamID,
 		client: client,
 	}

@@ -18,6 +18,7 @@ type User interface {
 	Username() string
 	CreatedTeams(ctx context.Context) (Teams, error)
 	CreateTeam(ctx context.Context, name string) (Team, error)
+	AssignedTasks(ctx context.Context) (Tasks, error)
 }
 
 type Teams interface {
@@ -32,6 +33,7 @@ type Team interface {
 	AddMember(ctx context.Context, user User) (Member, error)
 	Members(ctx context.Context) (Members, error)
 	ContainsUser(ctx context.Context, user User) (bool, error)
+	Tasks(ctx context.Context) (Tasks, error)
 }
 
 type Members interface {
@@ -43,9 +45,17 @@ type Member interface {
 	Name() string
 	Role() string
 	CreateTask(ctx context.Context, points int, title string, description string) (Task, error)
-	CreatedTasks(ctx context.Context) (Tasks, error)
+	Tasks(ctx context.Context) (Tasks, error)
 }
 
-type Tasks interface{}
+type Tasks interface {
+	All(ctx context.Context) ([]Task, error)
+	Empty(ctx context.Context) (bool, error)
+}
 
-type Task interface{}
+type Task interface {
+	ID() int64
+	Title() string
+	Points() int
+	Team(ctx context.Context) (Team, error)
+}

@@ -50,6 +50,10 @@ func (h httpUser) CreateTeam(ctx context.Context, name string) (domain.Team, err
 	return Team(resp.ID, name, h.client), nil
 }
 
+func (h httpUser) AssignedTasks(_ context.Context) (domain.Tasks, error) {
+	return UserTasks(h.id, h.tgID, h.client), nil
+}
+
 func User(id int64, tgID int64, tgUsername string, client transport.Client) domain.User {
 	return httpUser{
 		id:         id,
