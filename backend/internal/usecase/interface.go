@@ -3,6 +3,7 @@ package usecase
 import (
 	"context"
 	"github.com/andreychh/coopera-backend/internal/entity"
+	"time"
 )
 
 type UserUseCase interface {
@@ -38,5 +39,5 @@ type TaskUseCase interface {
 }
 
 type TaskAssignmentUsecase interface {
-	AssignTasks(ctx context.Context) error
+	AssignTasks(ctx context.Context, taskMinAge time.Duration) error
 }

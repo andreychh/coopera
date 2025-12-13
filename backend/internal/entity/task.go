@@ -15,9 +15,9 @@ type Task struct {
 	UpdatedAt        *time.Time
 }
 type TaskFilter struct {
-	TaskID int32
-	UserID int32
-	TeamID int32
+	TaskID   int32
+	MemberID int32
+	TeamID   int32
 }
 
 type TaskStatus struct {

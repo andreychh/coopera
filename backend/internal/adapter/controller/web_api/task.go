@@ -46,7 +46,7 @@ func (tc *TaskController) Get(w http.ResponseWriter, r *http.Request) error {
 		return errors.ErrInvalidInput
 	}
 
-	if req.TaskID == 0 && req.UserID == 0 && req.TeamID == 0 {
+	if req.TaskID == 0 && req.MemberID == 0 && req.TeamID == 0 {
 		return errors.ErrInvalidInput
 	}
 

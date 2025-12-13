@@ -62,9 +62,9 @@ func Start() error {
 	taskCtx, taskCancel := context.WithCancel(context.Background())
 	defer taskCancel()
 
-	taskAssignerUsecase := taskassigner.NewTaskAssignmentUsecase(taskUC, memberUC, db)
+	taskAssignerUsecase := taskassigner.NewTaskAssignmentUsecase(db, taskUC, memberUC)
 	taskAssigner := task_controller.NewTaskAssignmentController(taskAssignerUsecase)
-	go taskAssigner.StartAssignmentLoop(taskCtx, 1*time.Hour)
+	go taskAssigner.StartAssignmentLoop(taskCtx, cfg.AssignmentsWorkerInterval, cfg.TaskMinAge)
 
 	router := web_api.NewRouter(userUC, teamUC, taskUC, memberUC, logService, cfg).SetupRoutes()
 

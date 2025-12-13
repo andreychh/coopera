@@ -36,8 +36,8 @@ func (ur *TaskRepository) GetByTaskID(ctx context.Context, id int32) (entity.Tas
 	return ur.TaskDAO.GetByTaskID(ctx, id)
 }
 
-func (ur *TaskRepository) GetByAssignedToID(ctx context.Context, userID int32) ([]entity.Task, error) {
-	return ur.TaskDAO.GetByAssignedID(ctx, userID)
+func (ur *TaskRepository) GetByAssignedTo(ctx context.Context, memberID int32) ([]entity.Task, error) {
+	return ur.TaskDAO.GetByAssignedTo(ctx, memberID)
 }
 
 func (ur *TaskRepository) GetByTeamID(ctx context.Context, teamID int32) ([]entity.Task, error) {

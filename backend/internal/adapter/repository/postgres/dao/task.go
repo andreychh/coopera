@@ -125,7 +125,7 @@ func (r *TaskDAO) Update(ctx context.Context, task task_model.UpdateTask) error 
 	return nil
 }
 
-func (r *TaskDAO) GetByAssignedID(ctx context.Context, userID int32) ([]entity.Task, error) {
+func (r *TaskDAO) GetByAssignedTo(ctx context.Context, memberID int32) ([]entity.Task, error) {
 	const query = `
 		SELECT id, team_id, title, description, points, status, assigned_to, 
 		       created_by, created_at, updated_at
@@ -139,7 +139,7 @@ func (r *TaskDAO) GetByAssignedID(ctx context.Context, userID int32) ([]entity.T
 		return nil, repoErr.ErrTransactionNotFound
 	}
 
-	rows, err := tx.Query(ctx, query, userID)
+	rows, err := tx.Query(ctx, query, memberID)
 	if err != nil {
 		return nil, fmt.Errorf("%w: %v", repoErr.ErrFailGet, err)
 	}

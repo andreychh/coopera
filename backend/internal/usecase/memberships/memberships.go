@@ -105,12 +105,12 @@ func (uc *MembershipsUsecase) GetMembersUsecase(ctx context.Context, teamID int3
 	return members, nil
 }
 
-func (uc *MembershipsUsecase) ExistsMemberUsecase(ctx context.Context, id int32) (bool, error) {
+func (uc *MembershipsUsecase) ExistsMemberUsecase(ctx context.Context, memberID int32) (bool, error) {
 	var exists bool
 	var err error
 
 	err = uc.txManager.WithinTransaction(ctx, func(txCtx context.Context) error {
-		exists, err = uc.membershipRepository.MemberExistsRepo(txCtx, id)
+		exists, err = uc.membershipRepository.MemberExistsRepo(txCtx, memberID)
 		if err != nil {
 			return fmt.Errorf("failed to get members: %w", err)
 		}
