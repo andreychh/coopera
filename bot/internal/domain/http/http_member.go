@@ -52,7 +52,7 @@ func (h httpMember) Role() string {
 	return h.role
 }
 
-func (h httpMember) CreateTask(ctx context.Context, points int, title string, description string) (domain.Task, error) {
+func (h httpMember) CreateTask(ctx context.Context, title string, description string, points int) (domain.Task, error) {
 	payload, err := json.Marshal(createTaskRequest{
 		TeamId:        h.teamID,
 		Points:        points,
@@ -63,9 +63,9 @@ func (h httpMember) CreateTask(ctx context.Context, points int, title string, de
 	if err != nil {
 		return nil, fmt.Errorf("marshaling payload: %w", err)
 	}
-	data, err := h.client.Post(ctx, "memberships", payload)
+	data, err := h.client.Post(ctx, "tasks", payload)
 	if err != nil {
-		return nil, fmt.Errorf("adding member: %w", err)
+		return nil, fmt.Errorf("creating task: %w", err)
 	}
 	var resp createTaskResponse
 	err = json.Unmarshal(data, &resp)

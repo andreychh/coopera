@@ -14,6 +14,7 @@ import (
 const (
 	FormCreateTeam = "create_team_from"
 	FormAddMember  = "add_member_form"
+	FormCreateTask = "create_task_form"
 
 	prefixStartForm = "start_form"
 
@@ -37,6 +38,13 @@ func StartCreateTeamForm() string {
 func StartAddMemberForm(teamID int64) string {
 	return callbacks.OutcomingData(prefixStartForm).
 		With(keyFormName, FormAddMember).
+		With(keyTeamID, strconv.FormatInt(teamID, 10)).
+		String()
+}
+
+func StartCreateTaskForm(teamID int64) string {
+	return callbacks.OutcomingData(prefixStartForm).
+		With(keyFormName, FormCreateTask).
 		With(keyTeamID, strconv.FormatInt(teamID, 10)).
 		String()
 }

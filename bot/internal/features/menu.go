@@ -52,6 +52,7 @@ func TeamMenuSpec(bot tg.Bot, c domain.Community) hsm.Spec {
 				hsm.JustIf(protocol.OnChangeMenu(protocol.MenuTeams), hsm.Transit(SpecTeamsMenu)),
 				hsm.JustIf(protocol.OnChangeMenu(protocol.MenuAllTeamTasks), hsm.Transit(SpecAllTeamTasks)),
 				hsm.JustIf(protocol.OnChangeMenu(protocol.MenuMemberTasks), hsm.Transit(SpecMemberTasks)),
+				hsm.JustIf(protocol.OnStartForm(protocol.FormCreateTask), hsm.Transit(SpecCreateTaskForm)),
 			),
 			composition.Nothing(),
 		),

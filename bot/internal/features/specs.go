@@ -18,4 +18,10 @@ const (
 
 	SpecAddMemberForm         = "add_member_form_spec"
 	SpecAddMemberFormUsername = "add_member_form_name_spec"
+
+	SpecCreateTaskForm            = "create_task_form_spec"
+	SpecCreateTaskFormTitle       = "create_task_form_title_spec"
+	SpecCreateTaskFormDescription = "create_task_form_description_spec"
+	SpecCreateTaskFormPoints      = "create_task_form_points_spec"
+	SpecCreateTaskFormAssignTo    = "create_task_form_assignee_spec"
 )
