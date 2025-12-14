@@ -126,8 +126,7 @@ func CreateTaskAssignToSpec(bot tg.Bot, c domain.Community, f forms.Forms) hsm.S
 							actions.SaveValueToField(f, "task_assignee", ""),
 							domainactions.CreateTask(c, f),
 							base.SendContent(bot, sources.Static[content.Content](
-								keyboards.Empty(
-									content.Text("Task created successfully!")),
+								keyboards.Empty(content.Text("Task created successfully!")),
 							)),
 						),
 						hsm.Transit(SpecTeamsMenu),
@@ -145,8 +144,7 @@ func CreateTaskAssignToSpec(bot tg.Bot, c domain.Community, f forms.Forms) hsm.S
 							),
 							domainactions.CreateTask(c, f),
 							base.SendContent(bot, sources.Static[content.Content](
-								keyboards.Empty(
-									content.Text("Task created successfully!")),
+								keyboards.Empty(content.Text("Task created successfully!")),
 							)),
 						),
 						hsm.Transit(SpecTeamsMenu),

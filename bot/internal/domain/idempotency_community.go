@@ -39,6 +39,10 @@ func (i idempotencyCommunity) UserWithUsernameExists(ctx context.Context, tgUser
 	return i.origin.UserWithUsernameExists(ctx, tgUsername)
 }
 
+func (i idempotencyCommunity) Task(ctx context.Context, id int64) (Task, error) {
+	return i.origin.Task(ctx, id)
+}
+
 func (i idempotencyCommunity) Team(ctx context.Context, id int64) (Team, error) {
 	return i.origin.Team(ctx, id)
 }

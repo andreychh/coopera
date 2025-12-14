@@ -11,11 +11,12 @@ import (
 )
 
 type createTaskRequest struct {
-	TeamId        int64  `json:"team_id"`
-	Points        int    `json:"points"`
-	CurrentUserId int64  `json:"current_user_id"`
-	Title         string `json:"title"`
-	Description   string `json:"description"`
+	TeamId           int64  `json:"team_id"`
+	Points           int    `json:"points"`
+	CurrentUserId    int64  `json:"current_user_id"`
+	AssignedToMember *int64 `json:"assigned_to_member"`
+	Title            string `json:"title"`
+	Description      string `json:"description"`
 }
 
 type createTaskResponse struct {
@@ -25,8 +26,8 @@ type createTaskResponse struct {
 	Description      string            `json:"description"`
 	Points           int               `json:"points"`
 	Status           domain.TaskStatus `json:"status"`
-	AssignedToMember int               `json:"assigned_to_member"`
-	CreatedByUser    int               `json:"created_by_user"`
+	AssignedToMember *int64            `json:"assigned_to_member"`
+	CreatedByUser    int64             `json:"created_by_user"`
 	CreatedAt        time.Time         `json:"created_at"`
 	UpdatedAt        time.Time         `json:"updated_at"`
 }
@@ -52,14 +53,19 @@ func (h httpMember) Role() domain.MemberRole {
 	return h.role
 }
 
-func (h httpMember) CreateTask(ctx context.Context, title string, description string, points int) (domain.Task, error) {
-	payload, err := json.Marshal(createTaskRequest{
+func (h httpMember) CreateTask(ctx context.Context, title string, description string, points int, assignee domain.Member) (domain.Task, error) {
+	req := createTaskRequest{
 		TeamId:        h.teamID,
 		Points:        points,
 		CurrentUserId: h.userID,
 		Title:         title,
 		Description:   description,
-	})
+	}
+	if assignee != domain.NullMember() {
+		id := assignee.ID()
+		req.AssignedToMember = &id
+	}
+	payload, err := json.Marshal(req)
 	if err != nil {
 		return nil, fmt.Errorf("marshaling payload: %w", err)
 	}

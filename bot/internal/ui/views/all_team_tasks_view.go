@@ -39,26 +39,45 @@ func (m allTeamTasksMenuView) Value(ctx context.Context, update telegram.Update)
 	if err != nil {
 		return nil, fmt.Errorf("getting tasks slice for team %d: %w", id, err)
 	}
+	matrix, err := m.tasksMatrix(ctx, slice)
+	if err != nil {
+		return nil, fmt.Errorf("creating tasks matrix for team %d: %w", id, err)
+	}
 	return keyboards.Inline(
 		content.Text(fmt.Sprintf("Team %s tasks:", team.Name())),
-		m.tasksMatrix(slice).WithRow(buttons.Row(buttons.CallbackButton("Team menu", protocol.ToTeamMenu(id)))),
+		matrix.WithRow(buttons.Row(buttons.CallbackButton("Team menu", protocol.ToTeamMenu(id)))),
 	), nil
 }
 
-func (m allTeamTasksMenuView) tasksMatrix(tasks []domain.Task) buttons.ButtonMatrix[buttons.InlineButton] {
+func (m allTeamTasksMenuView) tasksMatrix(ctx context.Context, tasks []domain.Task) (buttons.ButtonMatrix[buttons.InlineButton], error) {
 	matrix := buttons.Matrix[buttons.InlineButton]()
 	for _, task := range tasks {
-		matrix = matrix.WithRow(buttons.Row(m.taskButton(task)))
+		button, err := m.taskButton(ctx, task)
+		if err != nil {
+			return nil, fmt.Errorf("creating button for task %d: %w", task.ID(), err)
+		}
+		matrix = matrix.WithRow(buttons.Row(button))
 	}
-	return matrix
+	return matrix, nil
 }
 
-func (m allTeamTasksMenuView) taskButton(task domain.Task) buttons.InlineButton {
+func (m allTeamTasksMenuView) taskButton(ctx context.Context, task domain.Task) (buttons.InlineButton, error) {
+	status := task.Status()
+	var text string
+	if status == domain.StatusOpen {
+		text = fmt.Sprintf("%q | %d | %s", task.Title(), task.Points(), task.Status())
+	} else {
+		assignee, err := task.Assignee(ctx)
+		if err != nil {
+			return nil, fmt.Errorf("getting assignees for task %d: %w", task.ID(), err)
+		}
+		text = fmt.Sprintf("%q | %d | %s (@%s)", task.Title(), task.Points(), task.Status(), assignee.Name())
+	}
 	return buttons.CallbackButton(
-		fmt.Sprintf("%s | %d | %s (@unknown)", task.Title(), task.Points(), task.Status()),
+		text,
 		"not_implemented",
 		// protocol.ToTaskMenu(task.ID()),
-	)
+	), nil
 }
 
 func AllTeamTasks(community domain.Community) sources.Source[content.Content] {

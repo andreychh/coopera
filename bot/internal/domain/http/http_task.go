@@ -5,10 +5,24 @@ import (
 	"encoding/json"
 	"fmt"
 	"strconv"
+	"time"
 
 	"github.com/andreychh/coopera-bot/internal/domain"
 	"github.com/andreychh/coopera-bot/internal/domain/transport"
 )
+
+type getTeamResponse struct {
+	ID            int64     `json:"id"`
+	Name          string    `json:"name"`
+	CreatedAt     time.Time `json:"created_at"`
+	CreatedByUser int64     `json:"created_by_user"`
+	Members       []struct {
+		MemberID int64             `json:"member_id"`
+		UserID   int64             `json:"user_id"`
+		Username string            `json:"username"`
+		Role     domain.MemberRole `json:"role"`
+	} `json:"members"`
+}
 
 type httpTask struct {
 	id     int64
@@ -35,6 +49,29 @@ func (h httpTask) Status() domain.TaskStatus {
 	return h.status
 }
 
+func (h httpTask) Assignee(ctx context.Context) (domain.Member, error) {
+	data, err := h.client.Get(
+		ctx,
+		transport.NewOutcomingURL("teams").
+			With("team_id", strconv.FormatInt(h.teamID, 10)).
+			String(),
+	)
+	if err != nil {
+		return nil, fmt.Errorf("getting team %d: %w", h.teamID, err)
+	}
+	var resp getTeamResponse
+	err = json.Unmarshal(data, &resp)
+	if err != nil {
+		return nil, fmt.Errorf("unmarshaling data: %w", err)
+	}
+	for _, m := range resp.Members {
+		if m.MemberID == h.id {
+			return Member(m.MemberID, m.UserID, h.teamID, m.Username, m.Role, h.client), nil
+		}
+	}
+	return nil, fmt.Errorf("assignee for task %d not found in team %d", h.id, h.teamID)
+}
+
 func (h httpTask) Team(ctx context.Context) (domain.Team, error) {
 	data, err := h.client.Get(
 		ctx,
@@ -45,9 +82,7 @@ func (h httpTask) Team(ctx context.Context) (domain.Team, error) {
 	if err != nil {
 		return nil, fmt.Errorf("getting team %d: %w", h.teamID, err)
 	}
-	resp := struct {
-		Name string `json:"name"`
-	}{}
+	var resp getTeamResponse
 	err = json.Unmarshal(data, &resp)
 	if err != nil {
 		return nil, fmt.Errorf("unmarshaling data: %w", err)

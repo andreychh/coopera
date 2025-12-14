@@ -61,7 +61,7 @@ type Member interface {
 	ID() int64
 	Name() string
 	Role() MemberRole
-	CreateTask(ctx context.Context, title string, description string, points int) (Task, error)
+	CreateTask(ctx context.Context, title string, description string, points int, assignee Member) (Task, error)
 	Tasks(ctx context.Context) (Tasks, error)
 }
 
@@ -75,5 +75,6 @@ type Task interface {
 	Title() string
 	Points() int
 	Status() TaskStatus
+	Assignee(ctx context.Context) (Member, error)
 	Team(ctx context.Context) (Team, error)
 }
