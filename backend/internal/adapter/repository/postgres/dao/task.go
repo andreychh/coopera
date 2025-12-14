@@ -25,9 +25,9 @@ func NewTaskDAO(db *postgres.DB) *TaskDAO {
 
 func (r *TaskDAO) Create(ctx context.Context, task task_model.Task) (entity.Task, error) {
 	const query = `
-		INSERT INTO coopera.tasks (team_id, title, description, points, assigned_to, created_by, status)
-		VALUES ($1, $2, $3, $4, $5, $6, $7)
-		RETURNING id, team_id, title, description, points, status, assigned_to, created_by, created_at, updated_at
+		INSERT INTO coopera.tasks (team_id, title, description, points, assigned_to, created_by, status, created_by_member_id)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+		RETURNING id, team_id, title, description, points, status, assigned_to, created_by, created_at, updated_at, created_by_member_id
 	`
 
 	tx, ok := ctx.Value(postgres.TransactionKey{}).(postgres.Transaction)
@@ -37,9 +37,9 @@ func (r *TaskDAO) Create(ctx context.Context, task task_model.Task) (entity.Task
 
 	var m task_model.Task
 	err := tx.QueryRow(ctx, query, task.TeamID, task.Title,
-		task.Description, task.Points, task.AssignedTo, task.CreatedBy, task.Status,
+		task.Description, task.Points, task.AssignedTo, task.CreatedByUser, task.Status, task.CreatedByMember,
 	).Scan(&m.ID, &m.TeamID, &m.Title, &m.Description, &m.Points,
-		&m.Status, &m.AssignedTo, &m.CreatedBy, &m.CreatedAt, &m.UpdatedAt,
+		&m.Status, &m.AssignedTo, &m.CreatedByUser, &m.CreatedAt, &m.UpdatedAt, &m.CreatedByMember,
 	)
 	if err != nil {
 		var pgErr *pgconn.PgError
@@ -128,7 +128,7 @@ func (r *TaskDAO) Update(ctx context.Context, task task_model.UpdateTask) error 
 func (r *TaskDAO) GetByAssignedTo(ctx context.Context, memberID int32) ([]entity.Task, error) {
 	const query = `
 		SELECT id, team_id, title, description, points, status, assigned_to, 
-		       created_by, created_at, updated_at
+		       created_by, created_at, updated_at, created_by_member_id
 		FROM coopera.tasks
 		WHERE assigned_to = $1
 		ORDER BY created_at DESC
@@ -152,7 +152,7 @@ func (r *TaskDAO) GetByAssignedTo(ctx context.Context, memberID int32) ([]entity
 
 		if err := rows.Scan(
 			&m.ID, &m.TeamID, &m.Title, &m.Description, &m.Points,
-			&m.Status, &m.AssignedTo, &m.CreatedBy, &m.CreatedAt, &m.UpdatedAt,
+			&m.Status, &m.AssignedTo, &m.CreatedByUser, &m.CreatedAt, &m.UpdatedAt, &m.CreatedByMember,
 		); err != nil {
 			return nil, fmt.Errorf("%w: %v", repoErr.ErrFailGet, err)
 		}
@@ -170,7 +170,7 @@ func (r *TaskDAO) GetByAssignedTo(ctx context.Context, memberID int32) ([]entity
 func (r *TaskDAO) GetByTaskID(ctx context.Context, id int32) (entity.Task, error) {
 	const query = `
 		SELECT id, team_id, title, description, points, status, assigned_to,
-		       created_by, created_at, updated_at
+		       created_by, created_at, updated_at, created_by_member_id
 		FROM coopera.tasks
 		WHERE id = $1
 	`
@@ -183,7 +183,7 @@ func (r *TaskDAO) GetByTaskID(ctx context.Context, id int32) (entity.Task, error
 	var m task_model.Task
 	err := tx.QueryRow(ctx, query, id).Scan(
 		&m.ID, &m.TeamID, &m.Title, &m.Description, &m.Points,
-		&m.Status, &m.AssignedTo, &m.CreatedBy, &m.CreatedAt, &m.UpdatedAt,
+		&m.Status, &m.AssignedTo, &m.CreatedByUser, &m.CreatedAt, &m.UpdatedAt, &m.CreatedByMember,
 	)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
@@ -199,7 +199,7 @@ func (r *TaskDAO) GetByTaskID(ctx context.Context, id int32) (entity.Task, error
 func (r *TaskDAO) GetByTeamID(ctx context.Context, teamID int32) ([]entity.Task, error) {
 	const query = `
 		SELECT id, team_id, title, description, points, status, assigned_to,
-		       created_by, created_at, updated_at
+		       created_by, created_at, updated_at, created_by_member_id
 		FROM coopera.tasks
 		WHERE team_id = $1
 		ORDER BY created_at DESC
@@ -223,7 +223,7 @@ func (r *TaskDAO) GetByTeamID(ctx context.Context, teamID int32) ([]entity.Task,
 
 		if err := rows.Scan(
 			&m.ID, &m.TeamID, &m.Title, &m.Description, &m.Points,
-			&m.Status, &m.AssignedTo, &m.CreatedBy, &m.CreatedAt, &m.UpdatedAt,
+			&m.Status, &m.AssignedTo, &m.CreatedByUser, &m.CreatedAt, &m.UpdatedAt, &m.CreatedByMember,
 		); err != nil {
 			return nil, fmt.Errorf("%w: %v", repoErr.ErrFailGet, err)
 		}
@@ -284,7 +284,7 @@ func (r *TaskDAO) Delete(ctx context.Context, taskID int32) error {
 func (r *TaskDAO) GetAllTasks(ctx context.Context) ([]entity.Task, error) {
 	const query = `
 		SELECT id, team_id, title, description, points, status, assigned_to,
-		       created_by, created_at, updated_at
+		       created_by, created_at, updated_at, created_by_member_id
 		FROM coopera.tasks
 		ORDER BY created_at ASC
 	`
@@ -307,7 +307,7 @@ func (r *TaskDAO) GetAllTasks(ctx context.Context) ([]entity.Task, error) {
 
 		if err := rows.Scan(
 			&m.ID, &m.TeamID, &m.Title, &m.Description, &m.Points,
-			&m.Status, &m.AssignedTo, &m.CreatedBy, &m.CreatedAt, &m.UpdatedAt,
+			&m.Status, &m.AssignedTo, &m.CreatedByUser, &m.CreatedAt, &m.UpdatedAt, &m.CreatedByMember,
 		); err != nil {
 			return nil, fmt.Errorf("%w: %v", repoErr.ErrFailGet, err)
 		}
