@@ -79,7 +79,7 @@ type Task interface {
 	Status() TaskStatus
 	Assignee(ctx context.Context) (Member, error)
 	Team(ctx context.Context) (Team, error)
-	Creator(ctx context.Context) (Member, error)
+	CreatedBy(ctx context.Context) (Member, error)
 	CreatedAt(ctx context.Context) (time.Time, error)
 	MarkAsCompleted(ctx context.Context, by User) error
 	AssignToMember(ctx context.Context, member Member, by Member) error

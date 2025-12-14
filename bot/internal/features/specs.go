@@ -13,6 +13,7 @@ const (
 	SpecAllTeamTasks        = "all_team_tasks_spec"
 	SpecMemberTasks         = "member_tasks_spec"
 	SpecUserTask            = "user_task_spec"
+	SpecMemberTask          = "member_task_spec"
 
 	SpecCreateTeamForm     = "create_team_form_spec"
 	SpecCreateTeamFormName = "create_team_form_name_spec"

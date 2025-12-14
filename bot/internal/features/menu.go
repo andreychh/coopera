@@ -104,7 +104,10 @@ func MemberTasksSpec(bot tg.Bot, c domain.Community) hsm.Spec {
 		SpecMemberTasks,
 		hsm.CoreBehavior(
 			base.EditOrSendContent(bot, views.MemberTasksMenuView(c)),
-			hsm.JustIf(protocol.OnChangeMenu(protocol.MenuTeam), hsm.Transit(SpecTeamMenu)),
+			hsm.FirstHandled(
+				hsm.JustIf(protocol.OnChangeMenu(protocol.MenuTeam), hsm.Transit(SpecTeamMenu)),
+				hsm.JustIf(protocol.OnChangeMenu(protocol.MenuMemberTask), hsm.Transit(SpecMemberTask)),
+			),
 			composition.Nothing(),
 		),
 	)
@@ -121,6 +124,24 @@ func UserTaskSpec(bot tg.Bot, c domain.Community) hsm.Spec {
 					protocol.OnChangeMenu(protocol.MenuUserTask),
 					domainactions.MarkTaskAsCompleted(c),
 					hsm.Transit(SpecUserTask),
+				),
+			),
+			composition.Nothing(),
+		),
+	)
+}
+
+func MemberTaskSpec(bot tg.Bot, c domain.Community) hsm.Spec {
+	return hsm.Leaf(
+		SpecMemberTask,
+		hsm.CoreBehavior(
+			base.EditOrSendContent(bot, views.MemberTaskMenuView(c)),
+			hsm.FirstHandled(
+				hsm.JustIf(protocol.OnChangeMenu(protocol.MenuMemberTasks), hsm.Transit(SpecMemberTasks)),
+				hsm.TryAction(
+					protocol.OnChangeMenu(protocol.MenuMemberTask),
+					domainactions.MarkTaskAsCompleted(c),
+					hsm.Transit(SpecMemberTask),
 				),
 			),
 			composition.Nothing(),

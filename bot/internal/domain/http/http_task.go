@@ -116,7 +116,7 @@ func (h httpTask) Description() string {
 	return h.description
 }
 
-func (h httpTask) Creator(ctx context.Context) (domain.Member, error) {
+func (h httpTask) CreatedBy(ctx context.Context) (domain.Member, error) {
 	data, err := h.client.Get(
 		ctx,
 		transport.NewOutcomingURL("tasks").

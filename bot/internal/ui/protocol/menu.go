@@ -22,6 +22,7 @@ const (
 	MenuAllTeamTasks        = "all_team_tasks_menu"
 	MenuMemberTasks         = "member_tasks_menu"
 	MenuUserTask            = "user_task_menu"
+	MenuMemberTask          = "member_task_menu"
 
 	prefixChangeMenu = "change_menu"
 
@@ -87,6 +88,13 @@ func ToMemberTasksMenu(teamID int64) string {
 func ToUserTaskMenu(taskID int64) string {
 	return callbacks.OutcomingData(prefixChangeMenu).
 		With(keyMenuName, MenuUserTask).
+		With(keyTaskID, strconv.FormatInt(taskID, 10)).
+		String()
+}
+
+func ToMemberTaskMenu(taskID int64) string {
+	return callbacks.OutcomingData(prefixChangeMenu).
+		With(keyMenuName, MenuMemberTask).
 		With(keyTaskID, strconv.FormatInt(taskID, 10)).
 		String()
 }
