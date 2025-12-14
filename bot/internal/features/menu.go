@@ -2,6 +2,7 @@ package features
 
 import (
 	"github.com/andreychh/coopera-bot/internal/domain"
+	domainactions "github.com/andreychh/coopera-bot/internal/domain/actions"
 	"github.com/andreychh/coopera-bot/internal/ui/protocol"
 	"github.com/andreychh/coopera-bot/internal/ui/views"
 	"github.com/andreychh/coopera-bot/pkg/botlib/base"
@@ -115,8 +116,12 @@ func UserTaskSpec(bot tg.Bot, c domain.Community) hsm.Spec {
 		hsm.CoreBehavior(
 			base.EditOrSendContent(bot, views.UserTaskMenuView(c)),
 			hsm.FirstHandled(
-				hsm.JustIf(protocol.OnChangeMenu(protocol.MenuMain), hsm.Transit(SpecMainMenu)),
-				hsm.JustIf(protocol.OnChangeMenu(protocol.MenuUserTask), hsm.Transit(SpecUserTask)),
+				hsm.JustIf(protocol.OnChangeMenu(protocol.MenuTasksAssignedToUser), hsm.Transit(SpecTasksAssignedToUser)),
+				hsm.TryAction(
+					protocol.OnChangeMenu(protocol.MenuUserTask),
+					domainactions.MarkTaskAsCompleted(c),
+					hsm.Transit(SpecUserTask),
+				),
 			),
 			composition.Nothing(),
 		),

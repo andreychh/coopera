@@ -156,6 +156,26 @@ func (h httpTask) CreatedAt(ctx context.Context) (time.Time, error) {
 	return resp[0].CreatedAt, nil
 }
 
+func (h httpTask) AssignToMember(ctx context.Context, member domain.Member, by domain.Member) error {
+	panic("not implemented")
+}
+
+func (h httpTask) MarkAsCompleted(ctx context.Context, by domain.User) error {
+	payload, err := json.Marshal(struct {
+		TaskID int64             `json:"task_id"`
+		UserID int64             `json:"current_user_id"`
+		Status domain.TaskStatus `json:"status"`
+	}{h.id, by.ID(), domain.StatusCompleted})
+	if err != nil {
+		return fmt.Errorf("marshaling payload: %w", err)
+	}
+	_, err = h.client.Patch(ctx, "tasks/status", payload)
+	if err != nil {
+		return fmt.Errorf("marking task %d as completed: %w", h.id, err)
+	}
+	return nil
+}
+
 func Task(id int64, title string, description string, points int, status domain.TaskStatus, teamID int64, client transport.Client) domain.Task {
 	return httpTask{
 		id:          id,

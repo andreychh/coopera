@@ -18,6 +18,7 @@ var ErrRecordAlreadyExists = errors.New("record already exists")
 type Client interface {
 	Get(ctx context.Context, path string) ([]byte, error)
 	Post(ctx context.Context, path string, payload []byte) ([]byte, error)
+	Patch(ctx context.Context, path string, payload []byte) ([]byte, error)
 }
 
 type httpClient struct {
@@ -108,6 +109,47 @@ func (c httpClient) Post(ctx context.Context, path string, payload []byte) ([]by
 			path,
 			errorBody,
 		)
+	}
+	return io.ReadAll(resp.Body)
+}
+
+func (c httpClient) Patch(ctx context.Context, path string, payload []byte) ([]byte, error) {
+	baseURL, err := url.Parse(c.baseURL)
+	if err != nil {
+		return nil, fmt.Errorf("parsing base url: %w", err)
+	}
+	relativeURL, err := url.Parse(path)
+	if err != nil {
+		return nil, fmt.Errorf("parsing relative path: %w", err)
+	}
+	fullURL := baseURL.ResolveReference(relativeURL).String()
+	req, err := http.NewRequestWithContext(
+		ctx,
+		http.MethodPatch,
+		fullURL,
+		bytes.NewReader(payload),
+	)
+	if err != nil {
+		return nil, fmt.Errorf("creating PATCH request for %s: %w", path, err)
+	}
+	req.Header.Set("Content-Type", "application/json")
+	resp, err := c.client.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("executing PATCH request for %s: %w", path, err)
+	}
+	defer func() {
+		closeErr := resp.Body.Close()
+		if err == nil {
+			err = closeErr
+		}
+	}()
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		body, _ := io.ReadAll(resp.Body)
+		return nil, APIError{
+			StatusCode: resp.StatusCode,
+			URL:        path,
+			Body:       body,
+		}
 	}
 	return io.ReadAll(resp.Body)
 }
