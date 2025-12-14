@@ -57,7 +57,7 @@ func (m membersMenuView) membersMatrix(members []domain.Member) buttons.ButtonMa
 
 func (m membersMenuView) memberButton(member domain.Member) buttons.InlineButton {
 	return buttons.CallbackButton(
-		fmt.Sprintf("@%s (%d)", member.Name(), member.ID()),
+		fmt.Sprintf("@%s (%d)", member.Username(), member.ID()),
 		protocol.ToMemberMenu(member.ID()),
 	)
 }

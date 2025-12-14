@@ -71,7 +71,7 @@ func (m allTeamTasksMenuView) taskButton(ctx context.Context, task domain.Task) 
 		if err != nil {
 			return nil, fmt.Errorf("getting assignees for task %d: %w", task.ID(), err)
 		}
-		text = fmt.Sprintf("%q | %d | %s (@%s)", task.Title(), task.Points(), task.Status(), assignee.Name())
+		text = fmt.Sprintf("%q | %d | %s (@%s)", task.Title(), task.Points(), task.Status(), assignee.Username())
 	}
 	return buttons.CallbackButton(
 		text,

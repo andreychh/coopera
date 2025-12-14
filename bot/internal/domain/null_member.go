@@ -8,7 +8,7 @@ func (n nullMember) ID() int64 {
 	panic("not implemented")
 }
 
-func (n nullMember) Name() string {
+func (n nullMember) Username() string {
 	panic("not implemented")
 }
 

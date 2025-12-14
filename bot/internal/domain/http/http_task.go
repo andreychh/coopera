@@ -25,12 +25,13 @@ type getTeamResponse struct {
 }
 
 type httpTask struct {
-	id     int64
-	title  string
-	points int
-	teamID int64
-	status domain.TaskStatus
-	client transport.Client
+	id          int64
+	title       string
+	description string
+	points      int
+	teamID      int64
+	status      domain.TaskStatus
+	client      transport.Client
 }
 
 func (h httpTask) ID() int64 {
@@ -90,13 +91,79 @@ func (h httpTask) Team(ctx context.Context) (domain.Team, error) {
 	return Team(h.teamID, resp.Name, h.client), nil
 }
 
-func Task(id int64, title string, points int, status domain.TaskStatus, teamID int64, client transport.Client) domain.Task {
+func (h httpTask) Description() string {
+	return h.description
+}
+
+func (h httpTask) Creator(ctx context.Context) (domain.Member, error) {
+	data, err := h.client.Get(
+		ctx,
+		transport.NewOutcomingURL("tasks").
+			With("task_id", strconv.FormatInt(h.id, 10)).
+			String(),
+	)
+	if err != nil {
+		return nil, fmt.Errorf("getting task %d: %w", h.id, err)
+	}
+	var resp []task
+	err = json.Unmarshal(data, &resp)
+	if err != nil {
+		return nil, fmt.Errorf("unmarshaling data: %w", err)
+	}
+	if len(resp) == 0 {
+		return nil, fmt.Errorf("task %d not found", h.id)
+	}
+	data, err = h.client.Get(
+		ctx,
+		transport.NewOutcomingURL("teams").
+			With("team_id", strconv.FormatInt(h.teamID, 10)).
+			String(),
+	)
+	if err != nil {
+		return nil, fmt.Errorf("getting team %d: %w", h.teamID, err)
+	}
+	var teamResp getTeamResponse
+	err = json.Unmarshal(data, &teamResp)
+	if err != nil {
+		return nil, fmt.Errorf("unmarshaling data: %w", err)
+	}
+	for _, m := range teamResp.Members {
+		if m.UserID == resp[0].CreatedByUser {
+			return Member(m.MemberID, m.UserID, h.teamID, m.Username, m.Role, h.client), nil
+		}
+	}
+	return nil, fmt.Errorf("creator for task %d not found in team %d", h.id, h.teamID)
+}
+
+func (h httpTask) CreatedAt(ctx context.Context) (time.Time, error) {
+	data, err := h.client.Get(
+		ctx,
+		transport.NewOutcomingURL("tasks").
+			With("task_id", strconv.FormatInt(h.id, 10)).
+			String(),
+	)
+	if err != nil {
+		return time.Time{}, fmt.Errorf("getting task %d: %w", h.id, err)
+	}
+	var resp []task
+	err = json.Unmarshal(data, &resp)
+	if err != nil {
+		return time.Time{}, fmt.Errorf("unmarshaling data: %w", err)
+	}
+	if len(resp) == 0 {
+		return time.Time{}, fmt.Errorf("task %d not found", h.id)
+	}
+	return resp[0].CreatedAt, nil
+}
+
+func Task(id int64, title string, description string, points int, status domain.TaskStatus, teamID int64, client transport.Client) domain.Task {
 	return httpTask{
-		id:     id,
-		title:  title,
-		points: points,
-		teamID: teamID,
-		status: status,
-		client: client,
+		id:          id,
+		title:       title,
+		description: description,
+		points:      points,
+		teamID:      teamID,
+		status:      status,
+		client:      client,
 	}
 }

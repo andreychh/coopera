@@ -44,7 +44,7 @@ func (h httpTeamTasks) All(ctx context.Context) ([]domain.Task, error) {
 	}
 	tasks := make([]domain.Task, 0, len(resp))
 	for _, t := range resp {
-		tasks = append(tasks, Task(t.ID, t.Title, t.Points, t.Status, t.TeamID, h.client))
+		tasks = append(tasks, Task(t.ID, t.Title, t.Description, t.Points, t.Status, t.TeamID, h.client))
 	}
 	return tasks, nil
 }

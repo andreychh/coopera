@@ -45,7 +45,7 @@ func (h httpMember) ID() int64 {
 	return h.id
 }
 
-func (h httpMember) Name() string {
+func (h httpMember) Username() string {
 	return h.name
 }
 
@@ -78,7 +78,7 @@ func (h httpMember) CreateTask(ctx context.Context, title string, description st
 	if err != nil {
 		return nil, fmt.Errorf("unmarshaling data: %w", err)
 	}
-	return Task(resp.ID, resp.Title, resp.Points, resp.Status, resp.TeamID, h.client), nil
+	return Task(resp.ID, resp.Title, resp.Description, resp.Points, resp.Status, resp.TeamID, h.client), nil
 }
 
 func (h httpMember) Tasks(ctx context.Context) (domain.Tasks, error) {

@@ -64,8 +64,7 @@ func (m allMyTasksMenuView) taskButton(ctx context.Context, task domain.Task) (b
 	}
 	return buttons.CallbackButton(
 		fmt.Sprintf("%q | %q | %s (+%d)", team.Name(), task.Title(), task.Status(), task.Points()),
-		"not_implemented",
-		// protocol.ToTaskMenu(task.ID()),
+		protocol.ToUserTaskMenu(task.ID()),
 	), nil
 }
 

@@ -157,7 +157,7 @@ func (h httpCommunity) Task(ctx context.Context, id int64) (domain.Task, error) 
 		return nil, fmt.Errorf("task %d not found", id)
 	}
 	taskResp := resp[0]
-	return Task(taskResp.ID, taskResp.Title, taskResp.Points, taskResp.Status, taskResp.TeamID, h.client), nil
+	return Task(taskResp.ID, taskResp.Title, taskResp.Description, taskResp.Points, taskResp.Status, taskResp.TeamID, h.client), nil
 }
 
 func Community(client transport.Client) domain.Community {

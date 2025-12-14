@@ -2,6 +2,7 @@ package domain
 
 import (
 	"context"
+	"time"
 )
 
 type TaskStatus string
@@ -59,7 +60,7 @@ type Members interface {
 
 type Member interface {
 	ID() int64
-	Name() string
+	Username() string
 	Role() MemberRole
 	CreateTask(ctx context.Context, title string, description string, points int, assignee Member) (Task, error)
 	Tasks(ctx context.Context) (Tasks, error)
@@ -73,8 +74,11 @@ type Tasks interface {
 type Task interface {
 	ID() int64
 	Title() string
+	Description() string
 	Points() int
 	Status() TaskStatus
 	Assignee(ctx context.Context) (Member, error)
 	Team(ctx context.Context) (Team, error)
+	Creator(ctx context.Context) (Member, error)
+	CreatedAt(ctx context.Context) (time.Time, error)
 }

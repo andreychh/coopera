@@ -47,7 +47,7 @@ func (m membersMatrixView) Value(ctx context.Context, update telegram.Update) (c
 	}
 	matrix := buttons.Matrix(buttons.Row(buttons.TextButton("(unassigned)")))
 	for _, member := range slice {
-		matrix = matrix.WithRow(buttons.Row(buttons.TextButton(fmt.Sprintf("@%s", member.Name()))))
+		matrix = matrix.WithRow(buttons.Row(buttons.TextButton(fmt.Sprintf("@%s", member.Username()))))
 	}
 	return keyboards.Resized(keyboards.Reply(
 		content.Text("Select a member to assign the task to:"),

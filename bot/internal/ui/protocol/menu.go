@@ -21,12 +21,14 @@ const (
 	MenuTasksAssignedToUser = "tasks_assigned_to_user_menu"
 	MenuAllTeamTasks        = "all_team_tasks_menu"
 	MenuMemberTasks         = "member_tasks_menu"
+	MenuUserTask            = "user_task_menu"
 
 	prefixChangeMenu = "change_menu"
 
 	keyMenuName = "menu_name"
 	keyTeamID   = "team_id"
 	keyMemberID = "member_id"
+	keyTaskID   = "task_id"
 )
 
 func ToMainMenu() string {
@@ -82,6 +84,13 @@ func ToMemberTasksMenu(teamID int64) string {
 		String()
 }
 
+func ToUserTaskMenu(taskID int64) string {
+	return callbacks.OutcomingData(prefixChangeMenu).
+		With(keyMenuName, MenuUserTask).
+		With(keyTaskID, strconv.FormatInt(taskID, 10)).
+		String()
+}
+
 func OnChangeMenu(id string) core.Condition {
 	return composition.All(
 		updatesconditions.UpdateTypeIs(updates.UpdateTypeCallbackQuery),
@@ -93,23 +102,23 @@ func OnChangeMenu(id string) core.Condition {
 func ParseTeamID(callbackData string) (int64, error) {
 	val, exists := callbacks.IncomingData(callbackData).Value(keyTeamID)
 	if !exists {
-		return 0, fmt.Errorf("parameter %s not found", keyTeamID)
+		return 0, fmt.Errorf("parameter %q not found", keyTeamID)
 	}
 	id, err := strconv.ParseInt(val, 10, 64)
 	if err != nil {
-		return 0, fmt.Errorf("parsing %s: %w", keyTeamID, err)
+		return 0, fmt.Errorf("parsing %q: %w", keyTeamID, err)
 	}
 	return id, nil
 }
 
-func ParseMemberID(callbackData string) (int64, error) {
-	val, exists := callbacks.IncomingData(callbackData).Value(keyMemberID)
+func ParseTaskID(callbackData string) (int64, error) {
+	val, exists := callbacks.IncomingData(callbackData).Value(keyTaskID)
 	if !exists {
-		return 0, fmt.Errorf("parameter %s not found", keyMemberID)
+		return 0, fmt.Errorf("parameter %q not found", keyTaskID)
 	}
 	id, err := strconv.ParseInt(val, 10, 64)
 	if err != nil {
-		return 0, fmt.Errorf("parsing %s: %w", keyMemberID, err)
+		return 0, fmt.Errorf("parsing %q: %w", keyTaskID, err)
 	}
 	return id, nil
 }
