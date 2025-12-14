@@ -12,16 +12,16 @@ import (
 )
 
 type task struct {
-	ID               int64     `json:"id"`
-	TeamID           int64     `json:"team_id"`
-	Title            string    `json:"title"`
-	Description      string    `json:"description"`
-	Points           int       `json:"points"`
-	Status           string    `json:"status"`
-	AssignedToMember int64     `json:"assigned_to_member"`
-	CreatedByUser    int64     `json:"created_by_user"`
-	CreatedAt        time.Time `json:"created_at"`
-	UpdatedAt        time.Time `json:"updated_at"`
+	ID               int64             `json:"id"`
+	TeamID           int64             `json:"team_id"`
+	Title            string            `json:"title"`
+	Description      string            `json:"description"`
+	Points           int               `json:"points"`
+	Status           domain.TaskStatus `json:"status"`
+	AssignedToMember int64             `json:"assigned_to_member"`
+	CreatedByUser    int64             `json:"created_by_user"`
+	CreatedAt        time.Time         `json:"created_at"`
+	UpdatedAt        time.Time         `json:"updated_at"`
 }
 
 type httpTeamTasks struct {

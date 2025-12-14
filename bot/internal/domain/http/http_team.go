@@ -64,9 +64,10 @@ func (h httpTeam) MemberWithUserID(ctx context.Context, id int64) (domain.Member
 	}
 	resp := struct {
 		Members []struct {
-			ID     int64  `json:"member_id"`
-			UserID int64  `json:"user_id"`
-			Role   string `json:"role"`
+			ID       int64             `json:"member_id"`
+			UserID   int64             `json:"user_id"`
+			Username string            `json:"username"`
+			Role     domain.MemberRole `json:"role"`
 		} `json:"members"`
 	}{}
 	err = json.Unmarshal(data, &resp)
@@ -75,7 +76,7 @@ func (h httpTeam) MemberWithUserID(ctx context.Context, id int64) (domain.Member
 	}
 	for _, m := range resp.Members {
 		if m.UserID == id {
-			return Member(m.ID, m.UserID, h.id, getUsername(), m.Role, h.client), nil
+			return Member(m.ID, m.UserID, h.id, m.Username, m.Role, h.client), nil
 		}
 	}
 	return nil, fmt.Errorf("member with user ID %d not found in team %d", id, h.id)

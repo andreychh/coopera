@@ -138,6 +138,28 @@ func (h httpCommunity) Team(ctx context.Context, id int64) (domain.Team, error) 
 	return Team(id, resp.Name, h.client), nil
 }
 
+func (h httpCommunity) Task(ctx context.Context, id int64) (domain.Task, error) {
+	data, err := h.client.Get(
+		ctx,
+		transport.NewOutcomingURL("tasks").
+			With("task_id", strconv.FormatInt(id, 10)).
+			String(),
+	)
+	if err != nil {
+		return nil, fmt.Errorf("getting task %d: %w", id, err)
+	}
+	var resp []task
+	err = json.Unmarshal(data, &resp)
+	if err != nil {
+		return nil, fmt.Errorf("unmarshaling data: %w", err)
+	}
+	if len(resp) == 0 {
+		return nil, fmt.Errorf("task %d not found", id)
+	}
+	taskResp := resp[0]
+	return Task(taskResp.ID, taskResp.Title, taskResp.Points, taskResp.Status, taskResp.TeamID, h.client), nil
+}
+
 func Community(client transport.Client) domain.Community {
 	return httpCommunity{
 		client: client,

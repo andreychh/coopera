@@ -4,6 +4,21 @@ import (
 	"context"
 )
 
+type TaskStatus string
+
+const (
+	StatusOpen      = "open"
+	StatusAssigned  = "assigned"
+	StatusCompleted = "completed"
+)
+
+type MemberRole string
+
+const (
+	RoleManager = "manager"
+	RoleMember  = "member"
+)
+
 type Community interface {
 	CreateUser(ctx context.Context, tgID int64, tgUsername string) (User, error)
 	UserWithTelegramID(ctx context.Context, tgID int64) (User, error)
@@ -11,6 +26,7 @@ type Community interface {
 	Team(ctx context.Context, id int64) (Team, error)
 	UserWithTelegramIDExists(ctx context.Context, tgID int64) (bool, error)
 	UserWithUsernameExists(ctx context.Context, tgUsername string) (bool, error)
+	Task(ctx context.Context, id int64) (Task, error)
 }
 
 type User interface {
@@ -44,7 +60,7 @@ type Members interface {
 type Member interface {
 	ID() int64
 	Name() string
-	Role() string
+	Role() MemberRole
 	CreateTask(ctx context.Context, title string, description string, points int) (Task, error)
 	Tasks(ctx context.Context) (Tasks, error)
 }
@@ -58,6 +74,6 @@ type Task interface {
 	ID() int64
 	Title() string
 	Points() int
-	Status() string
+	Status() TaskStatus
 	Team(ctx context.Context) (Team, error)
 }

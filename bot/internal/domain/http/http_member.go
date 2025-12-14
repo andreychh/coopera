@@ -19,16 +19,16 @@ type createTaskRequest struct {
 }
 
 type createTaskResponse struct {
-	ID               int64     `json:"id"`
-	TeamID           int64     `json:"team_id"`
-	Title            string    `json:"title"`
-	Description      string    `json:"description"`
-	Points           int       `json:"points"`
-	Status           string    `json:"status"`
-	AssignedToMember int       `json:"assigned_to_member"`
-	CreatedByUser    int       `json:"created_by_user"`
-	CreatedAt        time.Time `json:"created_at"`
-	UpdatedAt        time.Time `json:"updated_at"`
+	ID               int64             `json:"id"`
+	TeamID           int64             `json:"team_id"`
+	Title            string            `json:"title"`
+	Description      string            `json:"description"`
+	Points           int               `json:"points"`
+	Status           domain.TaskStatus `json:"status"`
+	AssignedToMember int               `json:"assigned_to_member"`
+	CreatedByUser    int               `json:"created_by_user"`
+	CreatedAt        time.Time         `json:"created_at"`
+	UpdatedAt        time.Time         `json:"updated_at"`
 }
 
 type httpMember struct {
@@ -36,7 +36,7 @@ type httpMember struct {
 	userID int64
 	teamID int64
 	name   string
-	role   string
+	role   domain.MemberRole
 	client transport.Client
 }
 
@@ -48,7 +48,7 @@ func (h httpMember) Name() string {
 	return h.name
 }
 
-func (h httpMember) Role() string {
+func (h httpMember) Role() domain.MemberRole {
 	return h.role
 }
 
@@ -79,7 +79,7 @@ func (h httpMember) Tasks(ctx context.Context) (domain.Tasks, error) {
 	return MemberTasks(h.id, h.teamID, h.client), nil
 }
 
-func Member(id int64, userID int64, teamID int64, name string, role string, client transport.Client) domain.Member {
+func Member(id int64, userID int64, teamID int64, name string, role domain.MemberRole, client transport.Client) domain.Member {
 	return httpMember{
 		id:     id,
 		userID: userID,

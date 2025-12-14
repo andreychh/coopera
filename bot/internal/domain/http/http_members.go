@@ -27,9 +27,10 @@ func (h httpMembers) All(ctx context.Context) ([]domain.Member, error) {
 	}
 	resp := struct {
 		Members []struct {
-			ID     int64  `json:"member_id"`
-			UserID int64  `json:"user_id"`
-			Role   string `json:"role"`
+			ID       int64             `json:"member_id"`
+			Username string            `json:"username"`
+			UserID   int64             `json:"user_id"`
+			Role     domain.MemberRole `json:"role"`
 		} `json:"members"`
 	}{}
 	err = json.Unmarshal(data, &resp)
@@ -38,14 +39,9 @@ func (h httpMembers) All(ctx context.Context) ([]domain.Member, error) {
 	}
 	members := make([]domain.Member, 0, len(resp.Members))
 	for _, m := range resp.Members {
-		members = append(members, Member(m.ID, m.UserID, h.teamID, getUsername(), m.Role, h.client))
+		members = append(members, Member(m.ID, m.UserID, h.teamID, m.Username, m.Role, h.client))
 	}
 	return members, nil
-}
-
-func getUsername() string {
-	// TODO implement me
-	return "unknown"
 }
 
 func Members(teamID int64, client transport.Client) domain.Members {
