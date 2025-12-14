@@ -80,13 +80,13 @@ func (uc *TaskUsecase) GetUsecase(ctx context.Context, f entity.TaskFilter) ([]e
 			result = []entity.Task{task}
 			return nil
 
-		case f.UserID > 0:
-			exists, err := uc.membershipsUsecase.ExistsMemberUsecase(ctx, f.UserID)
+		case f.MemberID > 0:
+			exists, err := uc.membershipsUsecase.ExistsMemberUsecase(ctx, f.MemberID)
 			if err != nil {
 				return fmt.Errorf("failed to check membership: %w", err)
 			}
 			if exists {
-				tasks, err := uc.taskRepository.GetByAssignedToID(txCtx, f.UserID)
+				tasks, err := uc.taskRepository.GetByAssignedTo(txCtx, f.MemberID)
 				if err != nil {
 					return fmt.Errorf("failed to get task: %w", err)
 				}

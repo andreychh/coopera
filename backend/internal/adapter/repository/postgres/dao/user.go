@@ -192,3 +192,62 @@ func (ur *UserRepository) GetByUsername(ctx context.Context, username string) (e
 
 	return converter.FromModelToEntityWithTeams(user), nil
 }
+
+func (ur *UserRepository) GetByUserID(ctx context.Context, userID int32) (entity.UserEntity, error) {
+	const query = `
+		SELECT 
+			u.id, u.telegram_id, u.username, u.created_at,
+			t.id AS team_id, t.name AS team_name, m.role
+		FROM coopera.users u
+		LEFT JOIN coopera.memberships m ON m.user_id = u.id
+		LEFT JOIN coopera.teams t ON t.id = m.team_id
+		WHERE u.id = $1
+	`
+
+	tx, ok := ctx.Value(postgres.TransactionKey{}).(postgres.Transaction)
+	if !ok {
+		return entity.UserEntity{}, repoErr.ErrTransactionNotFound
+	}
+
+	rows, err := tx.Query(ctx, query, userID)
+	if err != nil {
+		return entity.UserEntity{}, fmt.Errorf("%w: %v", repoErr.ErrFailGet, err)
+	}
+	defer rows.Close()
+
+	var user user_model.UserWithTeams
+
+	for rows.Next() {
+		var (
+			teamID   *int32
+			teamName *string
+			role     *string
+		)
+
+		if err := rows.Scan(
+			&user.ID,
+			&user.TelegramID,
+			&user.Username,
+			&user.CreatedAt,
+			&teamID,
+			&teamName,
+			&role,
+		); err != nil {
+			return entity.UserEntity{}, fmt.Errorf("%w: %v", repoErr.ErrFailGet, err)
+		}
+
+		if teamID != nil && teamName != nil && role != nil {
+			user.Teams = append(user.Teams, user_model.TeamWithRole{
+				ID:   *teamID,
+				Name: *teamName,
+				Role: *role,
+			})
+		}
+	}
+
+	if user.ID == 0 {
+		return entity.UserEntity{}, repoErr.ErrNotFound
+	}
+
+	return converter.FromModelToEntityWithTeams(user), nil
+}

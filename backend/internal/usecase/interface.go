@@ -3,6 +3,7 @@ package usecase
 import (
 	"context"
 	"github.com/andreychh/coopera-backend/internal/entity"
+	"time"
 )
 
 type UserUseCase interface {
@@ -14,13 +15,13 @@ type UserUseCase interface {
 type TeamUseCase interface {
 	CreateUsecase(ctx context.Context, team entity.TeamEntity) (entity.TeamEntity, error)
 	DeleteUsecase(ctx context.Context, teamID, currentUserID int32) error
-	GetByIDUsecase(ctx context.Context, teamID int32) (entity.TeamEntity, []entity.MembershipEntity, error)
+	GetByIDUsecase(ctx context.Context, teamID int32) (entity.TeamEntity, []entity.MembershipEntity, map[int32]string, error)
 	ExistTeamByIDUsecase(ctx context.Context, teamID int32) (bool, error)
 }
 
 type MembershipUseCase interface {
 	AddMemberUsecase(ctx context.Context, membership entity.MembershipEntity) (int32, error)
-	DeleteMemberUsecase(ctx context.Context, membership entity.MembershipEntity, currentUserID int32) error
+	DeleteMemberUsecase(ctx context.Context, memberID, teamID, currentUserID int32) error
 	GetMembersUsecase(ctx context.Context, teamID int32) ([]entity.MembershipEntity, error)
 	ExistsMemberUsecase(ctx context.Context, memberID int32) (bool, error)
 	GetMemberUsecase(ctx context.Context, teamID, memberID int32) (entity.MembershipEntity, error)
@@ -38,5 +39,5 @@ type TaskUseCase interface {
 }
 
 type TaskAssignmentUsecase interface {
-	AssignTasks(ctx context.Context) error
+	AssignTasks(ctx context.Context, taskMinAge time.Duration) error
 }

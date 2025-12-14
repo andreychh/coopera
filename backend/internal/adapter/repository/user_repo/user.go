@@ -36,12 +36,15 @@ func (ur *UserRepository) GetRepo(ctx context.Context, opts ...any) (entity.User
 	var (
 		telegramID int64
 		username   string
+		userID     int32
 		user       entity.UserEntity
 		err        error
 	)
 
 	for _, opt := range opts {
 		switch v := opt.(type) {
+		case int32:
+			userID = v
 		case int64:
 			telegramID = v
 		case string:
@@ -50,6 +53,8 @@ func (ur *UserRepository) GetRepo(ctx context.Context, opts ...any) (entity.User
 	}
 
 	switch {
+	case userID != 0:
+		user, err = ur.UserDAO.GetByUserID(ctx, userID)
 	case telegramID != 0:
 		user, err = ur.UserDAO.GetByTelegramID(ctx, telegramID)
 	case username != "":

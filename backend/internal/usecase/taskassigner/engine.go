@@ -2,88 +2,92 @@ package taskassigner
 
 import (
 	"context"
-	"errors"
-
 	"github.com/andreychh/coopera-backend/internal/entity"
 	"github.com/andreychh/coopera-backend/internal/usecase"
+	"time"
 )
 
 type taskAssignmentUsecase struct {
-	taskUsecase    usecase.TaskUseCase
-	membersUsecase usecase.MembershipUseCase
-	txRepo         usecase.TransactionManageRepository
+	txManager          usecase.TransactionManageRepository
+	taskUsecase        usecase.TaskUseCase
+	membershipsUsecase usecase.MembershipUseCase
 }
 
 func NewTaskAssignmentUsecase(
+	txManager usecase.TransactionManageRepository,
 	taskUsecase usecase.TaskUseCase,
-	membersUsecase usecase.MembershipUseCase,
-	txRepo usecase.TransactionManageRepository,
+	membershipsUsecase usecase.MembershipUseCase,
 ) usecase.TaskAssignmentUsecase {
 	return &taskAssignmentUsecase{
-		taskUsecase:    taskUsecase,
-		membersUsecase: membersUsecase,
-		txRepo:         txRepo,
+		txManager:          txManager,
+		taskUsecase:        taskUsecase,
+		membershipsUsecase: membershipsUsecase,
 	}
 }
 
-func (u *taskAssignmentUsecase) AssignTasks(ctx context.Context) error {
-	return u.txRepo.WithinTransaction(ctx, func(txCtx context.Context) error {
+func (u *taskAssignmentUsecase) AssignTasks(ctx context.Context, taskMinAge time.Duration) error {
+	return u.txManager.WithinTransaction(ctx, func(txCtx context.Context) error {
+
 		tasks, err := u.taskUsecase.GetAllTasks(txCtx)
 		if err != nil {
 			return err
 		}
 
-		// валидация по статусу open - сутки (для презы поставить 20 секунд)
-		// TODO: в будущем подумать над тем что у задачи может не быть баллов
-
+		mapTaskTeam := make(map[int32][]entity.Task)
 		for _, task := range tasks {
-			if task.AssignedToMember != nil {
-				continue
-			}
+			mapTaskTeam[task.TeamID] = append(mapTaskTeam[task.TeamID], task)
+		}
 
-			users, err := u.membersUsecase.GetMembersUsecase(txCtx, task.TeamID)
+		now := time.Now()
+
+		for teamID, teamTasks := range mapTaskTeam {
+
+			members, err := u.membershipsUsecase.GetMembersUsecase(txCtx, teamID)
 			if err != nil {
 				return err
 			}
 
-			if len(users) == 0 {
-				return errors.New("no users available for assignment")
+			mapUserIDPoints := make(map[int32]int32, len(members))
+			for _, m := range members {
+				mapUserIDPoints[m.ID] = 0
 			}
 
-			var targetUser entity.MembershipEntity
-			minLoad := int32(1<<31 - 1)
-			for _, user := range users {
-				userTasks, err := u.taskUsecase.GetUsecase(txCtx, entity.TaskFilter{UserID: user.ID})
-				if err != nil {
-					return err
+			var notAssignedTasks []entity.Task
+			for _, teamTask := range teamTasks {
+				if teamTask.AssignedToMember == nil && now.Sub(*teamTask.CreatedAt) >= taskMinAge && teamTask.Points != nil {
+					notAssignedTasks = append(notAssignedTasks, teamTask)
+				} else if teamTask.AssignedToMember != nil &&
+					(*teamTask.Status == entity.StatusAssigned || *teamTask.Status == entity.StatusInReview) {
+					mapUserIDPoints[*teamTask.AssignedToMember] += *teamTask.Points
 				}
+			}
 
-				var totalPoints int32
-				for _, t := range userTasks {
-					if *t.Status == entity.StatusAssigned || *t.Status == entity.StatusInReview {
-						totalPoints += *t.Points
+			for _, task := range notAssignedTasks {
+				var minPoints int32 = -1
+				var selectedMemberID int32
+
+				for memberID, points := range mapUserIDPoints {
+					if minPoints == -1 || points < minPoints {
+						minPoints = points
+						selectedMemberID = memberID
 					}
 				}
 
-				load := totalPoints + int32(len(userTasks))
-				if load < minLoad {
-					minLoad = load
-					targetUser = user
+				if err := u.taskUsecase.UpdateForEngine(txCtx, entity.UpdateTask{
+					TaskID:           task.ID,
+					AssignedToMember: &selectedMemberID,
+				}); err != nil {
+					return err
 				}
-			}
 
-			if err := u.taskUsecase.UpdateForEngine(txCtx, entity.UpdateTask{
-				TaskID:           task.ID,
-				AssignedToMember: &targetUser.UserID,
-				Description:      task.Description,
-			}); err != nil {
-				return err
-			}
-			if err := u.taskUsecase.UpdateStatusForEngine(txCtx, entity.TaskStatus{
-				TaskID: task.ID,
-				Status: entity.StatusAssigned.String(),
-			}); err != nil {
-				return err
+				if err := u.taskUsecase.UpdateStatusForEngine(txCtx, entity.TaskStatus{
+					TaskID: task.ID,
+					Status: entity.StatusAssigned.String(),
+				}); err != nil {
+					return err
+				}
+
+				mapUserIDPoints[selectedMemberID] += *task.Points
 			}
 		}
 
