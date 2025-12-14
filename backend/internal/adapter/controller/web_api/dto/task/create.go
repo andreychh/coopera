@@ -21,6 +21,7 @@ type CreateTaskResponse struct {
 	Points           *int32  `json:"points,omitempty"`
 	Status           string  `json:"status,omitempty"`
 	CreatedByUser    int32   `json:"created_by_user"`
+	CreatedByMember  int32   `json:"created_by_member,omitempty"`
 	AssignedToMember *int32  `json:"assigned_to_member,omitempty"`
 	CreatedAt        string  `json:"created_at"`
 	UpdatedAt        *string `json:"updated_at"`
@@ -28,9 +29,9 @@ type CreateTaskResponse struct {
 
 func ToEntityCreateTaskRequest(req *CreateTaskRequest) *entity.Task {
 	task := &entity.Task{
-		TeamID:    req.TeamID,
-		CreatedBy: req.CurrentUserID,
-		Title:     req.Title,
+		TeamID:          req.TeamID,
+		CreatedByUserID: req.CurrentUserID,
+		Title:           req.Title,
 	}
 
 	if req.AssignedToMember != 0 {
@@ -50,12 +51,13 @@ func ToEntityCreateTaskRequest(req *CreateTaskRequest) *entity.Task {
 
 func ToCreateTaskResponse(task *entity.Task) *CreateTaskResponse {
 	taskResponse := &CreateTaskResponse{
-		ID:            task.ID,
-		TeamID:        task.TeamID,
-		Title:         task.Title,
-		Status:        task.Status.String(),
-		CreatedByUser: task.CreatedBy,
-		CreatedAt:     task.CreatedAt.Format("2006-01-02T15:04:05Z"),
+		ID:              task.ID,
+		TeamID:          task.TeamID,
+		Title:           task.Title,
+		Status:          task.Status.String(),
+		CreatedByMember: task.CreatedByMemberID,
+		CreatedByUser:   task.CreatedByUserID,
+		CreatedAt:       task.CreatedAt.Format("2006-01-02T15:04:05Z"),
 	}
 
 	if task.Points != nil {

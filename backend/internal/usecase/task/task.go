@@ -28,7 +28,7 @@ func (uc *TaskUsecase) CreateUsecase(ctx context.Context, task entity.Task) (ent
 	var createdTask entity.Task
 
 	err := uc.txManager.WithinTransaction(ctx, func(txCtx context.Context) error {
-		currentMember, err := uc.membershipsUsecase.GetMemberUsecase(txCtx, task.TeamID, task.CreatedBy)
+		currentMember, err := uc.membershipsUsecase.GetMemberUsecase(txCtx, task.TeamID, task.CreatedByUserID)
 		if err != nil {
 			return fmt.Errorf("failed to get current member: %w", err)
 		}
@@ -51,7 +51,7 @@ func (uc *TaskUsecase) CreateUsecase(ctx context.Context, task entity.Task) (ent
 				return appErr.ErrAssignedMemberNotExists
 			}
 		}
-
+		task.CreatedByMemberID = currentMember.ID
 		t, err := uc.taskRepository.CreateRepo(txCtx, task)
 		if err != nil {
 			return fmt.Errorf("failed to create task: %w", err)
@@ -78,6 +78,7 @@ func (uc *TaskUsecase) GetUsecase(ctx context.Context, f entity.TaskFilter) ([]e
 				return fmt.Errorf("failed to get task: %w", err)
 			}
 			result = []entity.Task{task}
+
 			return nil
 
 		case f.MemberID > 0:
@@ -137,7 +138,7 @@ func (uc *TaskUsecase) UpdateUsecase(ctx context.Context, task entity.UpdateTask
 			return fmt.Errorf("failed to get current member: %w", err)
 		}
 
-		isCreator := existingTask.CreatedBy == currentMember.ID
+		isCreator := existingTask.CreatedByUserID == currentMember.ID
 		isManager := currentMember.Role == entity.RoleManager
 
 		if task.Title != nil || task.Description != nil {
@@ -256,7 +257,7 @@ func (uc *TaskUsecase) DeleteUsecase(ctx context.Context, taskID, currentUserID 
 			return fmt.Errorf("failed to get current member: %w", err)
 		}
 
-		isCreator := existingTask.CreatedBy == currentMember.ID
+		isCreator := existingTask.CreatedByUserID == currentMember.ID
 		isManager := currentMember.Role == entity.RoleManager
 
 		if !isCreator && !isManager {
