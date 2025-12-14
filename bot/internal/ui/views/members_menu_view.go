@@ -35,14 +35,33 @@ func (m membersMenuView) Value(ctx context.Context, update telegram.Update) (con
 	if err != nil {
 		return nil, fmt.Errorf("getting members for team %d: %w", id, err)
 	}
-	details, err := members.All(ctx)
+	slice, err := members.All(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("getting memebers slice: %w", err)
 	}
+	chatID, found := attributes.ChatID().Value(update)
+	if !found {
+		return nil, fmt.Errorf("chat ID not found in update")
+	}
+	user, err := m.community.UserWithTelegramID(ctx, chatID)
+	if err != nil {
+		return nil, fmt.Errorf("getting user with telegram ID %d: %w", chatID, err)
+	}
+	member, err := team.MemberWithUserID(ctx, user.ID())
+	if err != nil {
+		return nil, fmt.Errorf("getting member with user ID %d in team %d: %w", user.ID(), id, err)
+	}
+	if member.Role() == domain.RoleManager {
+		return keyboards.Inline(
+			content.Text(fmt.Sprintf("Team %s members (As manager):", team.Name())),
+			m.membersMatrix(slice).
+				WithRow(buttons.Row(buttons.CallbackButton("Add member", protocol.StartAddMemberForm(team.ID())))).
+				WithRow(buttons.Row(buttons.CallbackButton("Team menu", protocol.ToTeamMenu(team.ID())))),
+		), nil
+	}
 	return keyboards.Inline(
-		content.Text(fmt.Sprintf("Team %s members:", team.Name())),
-		m.membersMatrix(details).
-			WithRow(buttons.Row(buttons.CallbackButton("Add member", protocol.StartAddMemberForm(team.ID())))).
+		content.Text(fmt.Sprintf("Team %s members (As member):", team.Name())),
+		m.membersMatrix(slice).
 			WithRow(buttons.Row(buttons.CallbackButton("Team menu", protocol.ToTeamMenu(team.ID())))),
 	), nil
 }
@@ -56,10 +75,13 @@ func (m membersMenuView) membersMatrix(members []domain.Member) buttons.ButtonMa
 }
 
 func (m membersMenuView) memberButton(member domain.Member) buttons.InlineButton {
-	return buttons.CallbackButton(
-		fmt.Sprintf("@%s (%d)", member.Username(), member.ID()),
-		protocol.ToMemberMenu(member.ID()),
-	)
+	var text string
+	if member.Role() == domain.RoleManager {
+		text = fmt.Sprintf("* @%s", member.Username())
+	} else {
+		text = fmt.Sprintf("  @%s", member.Username())
+	}
+	return buttons.CallbackButton(text, protocol.ToMemberMenu(member.ID()))
 }
 
 func MembersMenu(community domain.Community) sources.Source[content.Content] {

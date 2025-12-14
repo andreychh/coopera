@@ -37,19 +37,14 @@ func (h httpTeam) AddMember(ctx context.Context, user domain.User) (domain.Membe
 		return nil, fmt.Errorf("adding member: %w", err)
 	}
 	resp := struct {
-		Message string `json:"message"`
+		MemberID int64 `json:"id"`
 	}{}
 	err = json.Unmarshal(data, &resp)
 	if err != nil {
 		return nil, fmt.Errorf("unmarshaling data: %w", err)
 	}
-	var id int64
-	_, err = fmt.Sscanf(resp.Message, "Member added successfully with id: %d", &id)
-	if err != nil {
-		return nil, fmt.Errorf("failed to parse id from message: %w", err)
-	}
 	// TODO: get role from response
-	return Member(id, user.ID(), h.id, user.Username(), "unknown", h.client), nil
+	return Member(resp.MemberID, user.ID(), h.id, user.Username(), "unknown", h.client), nil
 }
 
 func (h httpTeam) MemberWithUserID(ctx context.Context, id int64) (domain.Member, error) {

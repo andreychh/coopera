@@ -46,7 +46,9 @@ func (t userTaskMenuView) Value(ctx context.Context, update telegram.Update) (co
 	}
 	return keyboards.Inline(
 		content.Text(description),
-		buttons.Matrix(buttons.Row(buttons.CallbackButton("My tasks", protocol.ToTasksAssignedToUserMenu()))),
+		buttons.Matrix(
+			buttons.Row(buttons.CallbackButton("My tasks", protocol.ToTasksAssignedToUserMenu())),
+		),
 	), nil
 }
 
