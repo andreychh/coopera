@@ -27,9 +27,12 @@ func (m allTeamTasksMenuView) Value(ctx context.Context, update telegram.Update)
 	if err != nil {
 		return nil, fmt.Errorf("parsing team ID from callback data %q: %w", callbackData, err)
 	}
-	team, err := m.community.Team(ctx, id)
+	team, exists, err := m.community.Team(ctx, id)
 	if err != nil {
 		return nil, fmt.Errorf("getting team %d: %w", id, err)
+	}
+	if !exists {
+		return nil, fmt.Errorf("team %d does not exist", id)
 	}
 	tasks, err := team.Tasks(ctx)
 	if err != nil {
@@ -62,20 +65,47 @@ func (m allTeamTasksMenuView) tasksMatrix(ctx context.Context, tasks []domain.Ta
 }
 
 func (m allTeamTasksMenuView) taskButton(ctx context.Context, task domain.Task) (buttons.InlineButton, error) {
-	assignee, err := task.Assignee(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("getting assignees for task %d with status %q: %w", task.ID(), task.Status(), err)
+	if task.Status() == domain.StatusDraft {
+		return buttons.CallbackButton(
+			fmt.Sprintf("%q | Open (needs estimation)", task.Title()),
+			"not_implemented",
+		), nil
 	}
-	var text string
-	if assignee == domain.NullMember() {
-		text = fmt.Sprintf("%q | %d | %s", task.Title(), task.Points(), task.Status())
-	} else {
-		text = fmt.Sprintf("%q | %d | %s (@%s)", task.Title(), task.Points(), task.Status(), assignee.Username())
+	points, exists := task.Points()
+	if !exists {
+		return nil, fmt.Errorf("task %d has status %q but no points assigned", task.ID(), task.Status())
+	}
+	var statusLabel string
+	needsAssignee := false
+	switch task.Status() {
+	case domain.StatusOpen:
+		statusLabel = "Open"
+	case domain.StatusInProgress:
+		statusLabel = "In Progress"
+		needsAssignee = true
+	case domain.StatusInReview:
+		statusLabel = "In Review"
+		needsAssignee = true
+	case domain.StatusDone:
+		statusLabel = "Done"
+		needsAssignee = true
+	default:
+		return nil, fmt.Errorf("unknown task status %q for task %d", task.Status(), task.ID())
+	}
+	var assigneeStr string
+	if needsAssignee {
+		assignee, found, err := task.Assignee(ctx)
+		if err != nil {
+			return nil, fmt.Errorf("getting assignee for task %d: %w", task.ID(), err)
+		}
+		if !found {
+			return nil, fmt.Errorf("task %d is %q but has no assignee", task.ID(), statusLabel)
+		}
+		assigneeStr = fmt.Sprintf(" (@%s)", assignee.Username())
 	}
 	return buttons.CallbackButton(
-		text,
-		"not_implemented",
-		// protocol.ToTaskMenu(task.ID()),
+		fmt.Sprintf("%q | %d | %s%s", task.Title(), points, statusLabel, assigneeStr),
+		"not_implemented", // protocol.ToTaskMenu(task.ID()),
 	), nil
 }
 

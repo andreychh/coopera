@@ -122,7 +122,7 @@ func UserTaskSpec(bot tg.Bot, c domain.Community) hsm.Spec {
 				hsm.JustIf(protocol.OnChangeMenu(protocol.MenuTasksAssignedToUser), hsm.Transit(SpecTasksAssignedToUser)),
 				hsm.TryAction(
 					protocol.OnChangeMenu(protocol.MenuUserTask),
-					domainactions.MarkTaskAsCompleted(c),
+					domainactions.SubmitTaskForReview(c),
 					hsm.Transit(SpecUserTask),
 				),
 			),
@@ -140,7 +140,7 @@ func MemberTaskSpec(bot tg.Bot, c domain.Community) hsm.Spec {
 				hsm.JustIf(protocol.OnChangeMenu(protocol.MenuMemberTasks), hsm.Transit(SpecMemberTasks)),
 				hsm.TryAction(
 					protocol.OnChangeMenu(protocol.MenuMemberTask),
-					domainactions.MarkTaskAsCompleted(c),
+					domainactions.SubmitTaskForReview(c),
 					hsm.Transit(SpecMemberTask),
 				),
 			),

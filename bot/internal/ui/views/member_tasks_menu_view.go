@@ -31,19 +31,32 @@ func (m memberTasksMenuView) Value(ctx context.Context, update telegram.Update) 
 	if err != nil {
 		return nil, fmt.Errorf("parsing team ID from callback data %q: %w", callbackData, err)
 	}
-	team, err := m.community.Team(ctx, teamID)
+	team, exists, err := m.community.Team(ctx, teamID)
 	if err != nil {
 		return nil, fmt.Errorf("getting team %d: %w", teamID, err)
 	}
-	user, err := m.community.UserWithTelegramID(ctx, chatID)
+	if !exists {
+		return nil, fmt.Errorf("team %d does not exist", teamID)
+	}
+	user, exists, err := m.community.UserWithTelegramID(ctx, chatID)
 	if err != nil {
 		return nil, fmt.Errorf("getting user with telegram ID %d: %w", chatID, err)
 	}
-	member, err := team.MemberWithUserID(ctx, user.ID())
-	if err != nil {
-		return nil, fmt.Errorf("getting member with user ID %d in team %d: %w", user.ID(), teamID, err)
+	if !exists {
+		return nil, fmt.Errorf("user with telegram ID %d does not exist", chatID)
 	}
-	tasks, err := member.Tasks(ctx)
+	members, err := team.Members(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("getting members of team %d: %w", team.ID(), err)
+	}
+	member, exists, err := members.MemberWithUsername(ctx, user.Username())
+	if err != nil {
+		return nil, fmt.Errorf("getting member for user %d in team %d: %w", user.ID(), team.ID(), err)
+	}
+	if !exists {
+		return nil, fmt.Errorf("member for user %d in team %d does not exist", user.ID(), team.ID())
+	}
+	tasks, err := member.AssignedTasks(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("getting assigned tasks for user %d: %w", user.ID(), err)
 	}
@@ -51,26 +64,38 @@ func (m memberTasksMenuView) Value(ctx context.Context, update telegram.Update) 
 	if err != nil {
 		return nil, fmt.Errorf("getting assigned tasks slice for user %d: %w", user.ID(), err)
 	}
+	matrix, err := m.tasksMatrix(ctx, slice)
+	if err != nil {
+		return nil, fmt.Errorf("creating tasks matrix for user %d: %w", user.ID(), err)
+	}
 	return keyboards.Inline(
 		content.Text("your tasks:"),
-		m.tasksMatrix(slice).
+		matrix.
 			WithRow(buttons.Row(buttons.CallbackButton("Team menu", protocol.ToTeamMenu(team.ID())))),
 	), nil
 }
 
-func (m memberTasksMenuView) tasksMatrix(tasks []domain.Task) buttons.ButtonMatrix[buttons.InlineButton] {
+func (m memberTasksMenuView) tasksMatrix(ctx context.Context, tasks []domain.Task) (buttons.ButtonMatrix[buttons.InlineButton], error) {
 	matrix := buttons.Matrix[buttons.InlineButton]()
 	for _, task := range tasks {
-		matrix = matrix.WithRow(buttons.Row(m.taskButton(task)))
+		button, err := m.taskButton(ctx, task)
+		if err != nil {
+			return nil, fmt.Errorf("creating button for task %d: %w", task.ID(), err)
+		}
+		matrix = matrix.WithRow(buttons.Row(button))
 	}
-	return matrix
+	return matrix, nil
 }
 
-func (m memberTasksMenuView) taskButton(task domain.Task) buttons.InlineButton {
+func (m memberTasksMenuView) taskButton(_ context.Context, task domain.Task) (buttons.InlineButton, error) {
+	points, exists := task.Points()
+	if !exists {
+		return nil, fmt.Errorf("getting points for task %d: points not set", task.ID())
+	}
 	return buttons.CallbackButton(
-		fmt.Sprintf("%q | %d | %s", task.Title(), task.Points(), task.Status()),
+		fmt.Sprintf("%q | %d | %s", task.Title(), points, task.Status()),
 		protocol.ToMemberTaskMenu(task.ID()),
-	)
+	), nil
 }
 
 func MemberTasksMenuView(community domain.Community) sources.Source[content.Content] {

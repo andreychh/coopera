@@ -25,9 +25,12 @@ func (c createTeamAction) Perform(ctx context.Context, update telegram.Update) e
 	if err != nil {
 		return fmt.Errorf("getting team_name field for user %d: %w", id, err)
 	}
-	user, err := c.community.UserWithTelegramID(ctx, id)
+	user, exists, err := c.community.UserWithTelegramID(ctx, id)
 	if err != nil {
 		return fmt.Errorf("getting user with telegram ID %d: %w", id, err)
+	}
+	if !exists {
+		return fmt.Errorf("user with telegram ID %d does not exist", id)
 	}
 	_, err = user.CreateTeam(ctx, name)
 	if err != nil {

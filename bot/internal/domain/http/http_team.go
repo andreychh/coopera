@@ -2,8 +2,9 @@ package http
 
 import (
 	"context"
-	"encoding/json"
+	"errors"
 	"fmt"
+	"net/http"
 	"strconv"
 
 	"github.com/andreychh/coopera-bot/internal/domain"
@@ -24,94 +25,55 @@ func (h httpTeam) Name() string {
 	return h.name
 }
 
-func (h httpTeam) AddMember(ctx context.Context, user domain.User) (domain.Member, error) {
-	payload, err := json.Marshal(struct {
-		TeamID int64 `json:"team_id"`
-		UserID int64 `json:"user_id"`
-	}{h.id, user.ID()})
-	if err != nil {
-		return nil, fmt.Errorf("marshaling payload: %w", err)
-	}
-	data, err := h.client.Post(ctx, "memberships", payload)
-	if err != nil {
-		return nil, fmt.Errorf("adding member: %w", err)
-	}
-	resp := struct {
-		MemberID int64 `json:"id"`
-	}{}
-	err = json.Unmarshal(data, &resp)
-	if err != nil {
-		return nil, fmt.Errorf("unmarshaling data: %w", err)
-	}
-	// TODO: get role from response
-	return Member(resp.MemberID, user.ID(), h.id, user.Username(), "unknown", h.client), nil
+func (h httpTeam) Stats(ctx context.Context) (domain.TeamStats, error) {
+	panic("not implemented")
 }
 
-func (h httpTeam) MemberWithUserID(ctx context.Context, id int64) (domain.Member, error) {
-	data, err := h.client.Get(
-		ctx,
-		transport.NewOutcomingURL("teams").
-			With("team_id", strconv.FormatInt(h.id, 10)).
-			String(),
-	)
+func (h httpTeam) AddMember(ctx context.Context, userID int64) (domain.Member, error) {
+	req := createMemberRequest{
+		TeamId: h.id,
+		UserId: userID,
+	}
+	resp := createMemberResponse{}
+	err := h.client.Post(ctx, "memberships", req, &resp)
 	if err != nil {
-		return nil, fmt.Errorf("getting team %d: %w", h.id, err)
+		return nil, fmt.Errorf("adding member to team %d: %w", h.id, err)
 	}
-	resp := struct {
-		Members []struct {
-			ID       int64             `json:"member_id"`
-			UserID   int64             `json:"user_id"`
-			Username string            `json:"username"`
-			Role     domain.MemberRole `json:"role"`
-		} `json:"members"`
-	}{}
-	err = json.Unmarshal(data, &resp)
+	username, role, err := h.member(ctx, userID)
 	if err != nil {
-		return nil, fmt.Errorf("unmarshaling data: %w", err)
+		return nil, fmt.Errorf("getting username for member %d in team %d: %w", userID, h.id, err)
 	}
-	for _, m := range resp.Members {
-		if m.UserID == id {
-			return Member(m.ID, m.UserID, h.id, m.Username, m.Role, h.client), nil
-		}
-	}
-	return nil, fmt.Errorf("member with user ID %d not found in team %d", id, h.id)
+	return Member(resp.Id, username, role, h.id, h.client), nil
 }
 
-func (h httpTeam) ContainsUser(ctx context.Context, user domain.User) (bool, error) {
-	data, err := h.client.Get(
-		ctx,
-		transport.NewOutcomingURL("teams").
-			With("team_id", strconv.FormatInt(h.id, 10)).
-			String(),
-	)
-	if err != nil {
-		return false, fmt.Errorf("getting team %d: %w", h.id, err)
-	}
-	resp := struct {
-		Members []struct {
-			ID     int64  `json:"member_id"`
-			UserID int64  `json:"user_id"`
-			Role   string `json:"role"`
-		} `json:"members"`
-	}{}
-	err = json.Unmarshal(data, &resp)
-	if err != nil {
-		return false, fmt.Errorf("unmarshaling data: %w", err)
-	}
-	for _, m := range resp.Members {
-		if m.UserID == user.ID() {
-			return true, nil
-		}
-	}
-	return false, nil
-}
-
-func (h httpTeam) Members(_ context.Context) (domain.Members, error) {
+func (h httpTeam) Members(ctx context.Context) (domain.Members, error) {
 	return Members(h.id, h.client), nil
 }
 
 func (h httpTeam) Tasks(ctx context.Context) (domain.Tasks, error) {
 	return TeamTasks(h.id, h.client), nil
+}
+
+func (h httpTeam) member(ctx context.Context, memberID int64) (string, domain.MemberRole, error) {
+	resp := findTeamResponse{}
+	err := h.client.Get(
+		ctx,
+		transport.URL("teams").With("team_id", strconv.FormatInt(h.id, 10)).String(),
+		&resp,
+	)
+	var apiErr transport.APIError
+	if errors.As(err, &apiErr) && apiErr.StatusCode == http.StatusNotFound {
+		return "", "", fmt.Errorf("team %d not found", h.id)
+	}
+	if err != nil {
+		return "", "", fmt.Errorf("getting team %d: %w", h.id, err)
+	}
+	for _, member := range resp.Members {
+		if member.MemberId == memberID {
+			return member.Username, domain.MemberRole(member.Role), nil
+		}
+	}
+	return "", "", fmt.Errorf("member %d not found in team %d", memberID, h.id)
 }
 
 func Team(id int64, name string, client transport.Client) domain.Team {

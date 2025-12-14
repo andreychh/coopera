@@ -2,63 +2,50 @@ package http
 
 import (
 	"context"
-	"encoding/json"
-	"fmt"
 
 	"github.com/andreychh/coopera-bot/internal/domain"
 	"github.com/andreychh/coopera-bot/internal/domain/transport"
 )
 
 type httpUser struct {
-	id         int64
-	tgID       int64
-	tgUsername string
-	client     transport.Client
-}
-
-func (h httpUser) Username() string {
-	return h.tgUsername
+	id       int64
+	username string
+	client   transport.Client
 }
 
 func (h httpUser) ID() int64 {
 	return h.id
 }
 
-func (h httpUser) CreatedTeams(_ context.Context) (domain.Teams, error) {
-	return Teams(h.id, h.tgID, h.client), nil
+func (h httpUser) Username() string {
+	return h.username
 }
 
 func (h httpUser) CreateTeam(ctx context.Context, name string) (domain.Team, error) {
-	payload, err := json.Marshal(struct {
-		ID   int64  `json:"user_id"`
-		Name string `json:"name"`
-	}{h.id, name})
-	if err != nil {
-		return nil, fmt.Errorf("marshaling payload: %w", err)
+	req := createTeamRequest{
+		UserId: h.id,
+		Name:   name,
 	}
-	data, err := h.client.Post(ctx, "teams", payload)
+	resp := createTeamResponse{}
+	err := h.client.Post(ctx, "teams", req, &resp)
 	if err != nil {
-		return nil, fmt.Errorf("getting user: %w", err)
+		return nil, err
 	}
-	resp := struct {
-		ID int64 `json:"id"`
-	}{}
-	err = json.Unmarshal(data, &resp)
-	if err != nil {
-		return nil, fmt.Errorf("unmarshaling data: %w", err)
-	}
-	return Team(resp.ID, name, h.client), nil
+	return Team(resp.Id, resp.Name, h.client), nil
 }
 
-func (h httpUser) AssignedTasks(_ context.Context) (domain.Tasks, error) {
-	return UserTasks(h.id, h.tgID, h.client), nil
+func (h httpUser) Teams(ctx context.Context) (domain.Teams, error) {
+	return Teams(h.id, h.client), nil
 }
 
-func User(id int64, tgID int64, tgUsername string, client transport.Client) domain.User {
+func (h httpUser) AssignedTasks(ctx context.Context) (domain.Tasks, error) {
+	return UserTasks(h.id, h.username, h.client), nil
+}
+
+func User(id int64, username string, client transport.Client) domain.User {
 	return httpUser{
-		id:         id,
-		tgID:       tgID,
-		tgUsername: tgUsername,
-		client:     client,
+		id:       id,
+		username: username,
+		client:   client,
 	}
 }

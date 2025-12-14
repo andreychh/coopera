@@ -19,11 +19,14 @@ func (i isTeamsEmptyCondition) Holds(ctx context.Context, update telegram.Update
 	if !found {
 		return false, fmt.Errorf("chat ID not found in update")
 	}
-	user, err := i.community.UserWithTelegramID(ctx, id)
+	user, exists, err := i.community.UserWithTelegramID(ctx, id)
 	if err != nil {
 		return false, fmt.Errorf("getting user with telegram ID %d: %w", id, err)
 	}
-	teams, err := user.CreatedTeams(ctx)
+	if !exists {
+		return false, fmt.Errorf("user with telegram ID %d does not exist", id)
+	}
+	teams, err := user.Teams(ctx)
 	if err != nil {
 		return false, fmt.Errorf("getting created teams for user %d: %w", id, err)
 	}

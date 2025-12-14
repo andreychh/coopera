@@ -2,6 +2,7 @@ package conditions
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/andreychh/coopera-bot/internal/domain"
 	"github.com/andreychh/coopera-bot/pkg/botlib/core"
@@ -18,7 +19,11 @@ func (u userExistsCondition) Holds(ctx context.Context, update telegram.Update) 
 	if !found {
 		return false, nil
 	}
-	return u.community.UserWithUsernameExists(ctx, username)
+	_, exists, err := u.community.UserWithUsername(ctx, username)
+	if err != nil {
+		return false, fmt.Errorf("getting user with username %q: %w", username, err)
+	}
+	return exists, nil
 }
 
 func UserExists(community domain.Community) core.Condition {

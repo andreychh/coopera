@@ -25,25 +25,28 @@ func (m membersMatrixView) Value(ctx context.Context, update telegram.Update) (c
 	if !found {
 		return nil, fmt.Errorf("chat ID not found in update")
 	}
-	teamID, err := m.forms.Form(chatID).Field("team_id").Value(ctx)
+	teamIDStr, err := m.forms.Form(chatID).Field("team_id").Value(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("getting team_id field for user %d: %w", chatID, err)
 	}
-	intTeamID, err := strconv.ParseInt(teamID, 10, 64)
+	teamID, err := strconv.ParseInt(teamIDStr, 10, 64)
 	if err != nil {
-		return nil, fmt.Errorf("parsing team_id %q to int64: %w", teamID, err)
+		return nil, fmt.Errorf("parsing team_id %q to int64: %w", teamIDStr, err)
 	}
-	team, err := m.community.Team(ctx, intTeamID)
+	team, exists, err := m.community.Team(ctx, teamID)
 	if err != nil {
-		return nil, fmt.Errorf("getting team with ID %d: %w", intTeamID, err)
+		return nil, fmt.Errorf("getting team with ID %d: %w", teamID, err)
+	}
+	if !exists {
+		return nil, fmt.Errorf("team with ID %d does not exist", teamID)
 	}
 	members, err := team.Members(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("getting members of team %d: %w", intTeamID, err)
+		return nil, fmt.Errorf("getting members of team %d: %w", teamID, err)
 	}
 	slice, err := members.All(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("getting members slice for team %d: %w", intTeamID, err)
+		return nil, fmt.Errorf("getting members slice for team %d: %w", teamID, err)
 	}
 	matrix := buttons.Matrix(buttons.Row(buttons.TextButton("(unassigned)")))
 	for _, member := range slice {

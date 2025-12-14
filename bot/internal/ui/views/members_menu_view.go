@@ -23,17 +23,20 @@ func (m membersMenuView) Value(ctx context.Context, update telegram.Update) (con
 	if !exists {
 		return nil, fmt.Errorf("getting callback data from update: callback data not found")
 	}
-	id, err := protocol.ParseTeamID(callbackData)
+	teamID, err := protocol.ParseTeamID(callbackData)
 	if err != nil {
 		return nil, fmt.Errorf("parsing team ID from callback data %q: %w", callbackData, err)
 	}
-	team, err := m.community.Team(ctx, id)
+	team, exists, err := m.community.Team(ctx, teamID)
 	if err != nil {
-		return nil, fmt.Errorf("getting team %d: %w", id, err)
+		return nil, fmt.Errorf("getting team %d: %w", teamID, err)
+	}
+	if !exists {
+		return nil, fmt.Errorf("team %d does not exist", teamID)
 	}
 	members, err := team.Members(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("getting members for team %d: %w", id, err)
+		return nil, fmt.Errorf("getting members for team %d: %w", teamID, err)
 	}
 	slice, err := members.All(ctx)
 	if err != nil {
@@ -43,13 +46,16 @@ func (m membersMenuView) Value(ctx context.Context, update telegram.Update) (con
 	if !found {
 		return nil, fmt.Errorf("chat ID not found in update")
 	}
-	user, err := m.community.UserWithTelegramID(ctx, chatID)
+	user, exists, err := m.community.UserWithTelegramID(ctx, chatID)
 	if err != nil {
 		return nil, fmt.Errorf("getting user with telegram ID %d: %w", chatID, err)
 	}
-	member, err := team.MemberWithUserID(ctx, user.ID())
+	member, exists, err := members.MemberWithUsername(ctx, user.Username())
 	if err != nil {
-		return nil, fmt.Errorf("getting member with user ID %d in team %d: %w", user.ID(), id, err)
+		return nil, fmt.Errorf("getting member with user ID %d in team %d: %w", user.ID(), teamID, err)
+	}
+	if !exists {
+		return nil, fmt.Errorf("member with user ID %d in team %d does not exist", user.ID(), teamID)
 	}
 	if member.Role() == domain.RoleManager {
 		return keyboards.Inline(

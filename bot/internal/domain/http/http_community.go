@@ -2,7 +2,6 @@ package http
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
@@ -17,147 +16,79 @@ type httpCommunity struct {
 }
 
 func (h httpCommunity) CreateUser(ctx context.Context, tgID int64, tgUsername string) (domain.User, error) {
-	payload, err := json.Marshal(struct {
-		ID       int64  `json:"telegram_id"`
-		Username string `json:"username"`
-	}{tgID, tgUsername})
-	if err != nil {
-		return nil, fmt.Errorf("marshaling payload: %w", err)
+	req := createUserRequest{
+		TelegramId: tgID,
+		Username:   tgUsername,
 	}
-	data, err := h.client.Post(ctx, "users", payload)
+	resp := createUserResponse{}
+	err := h.client.Post(ctx, "users", req, &resp)
 	if err != nil {
 		return nil, fmt.Errorf("creating user: %w", err)
 	}
-	resp := struct {
-		ID int64 `json:"id"`
-	}{}
-	err = json.Unmarshal(data, &resp)
-	if err != nil {
-		return nil, fmt.Errorf("unmarshaling data: %w", err)
-	}
-	return User(resp.ID, tgID, tgUsername, h.client), nil
+	return User(resp.Id, resp.Username, h.client), nil
 }
 
-func (h httpCommunity) UserWithTelegramID(ctx context.Context, tgID int64) (domain.User, error) {
-	data, err := h.client.Get(
-		ctx,
-		transport.NewOutcomingURL("users").
-			With("telegram_id", strconv.FormatInt(tgID, 10)).
-			String(),
-	)
-	if err != nil {
-		return nil, fmt.Errorf("getting user: %w", err)
-	}
-	resp := struct {
-		ID       int64  `json:"id"`
-		Username string `json:"username"`
-	}{}
-	err = json.Unmarshal(data, &resp)
-	if err != nil {
-		return nil, fmt.Errorf("unmarshaling data: %w", err)
-	}
-	return User(resp.ID, tgID, resp.Username, h.client), nil
+func (h httpCommunity) UserWithID(ctx context.Context, id int64) (domain.User, bool, error) {
+	return h.user(ctx, "id", strconv.FormatInt(id, 10))
 }
 
-func (h httpCommunity) UserWithUsername(ctx context.Context, tgUsername string) (domain.User, error) {
-	data, err := h.client.Get(
-		ctx,
-		transport.NewOutcomingURL("users").
-			With("username", tgUsername).
-			String(),
-	)
-	if err != nil {
-		return nil, fmt.Errorf("getting user: %w", err)
-	}
-	resp := struct {
-		ID         int64 `json:"id"`
-		TelegramID int64 `json:"telegram_id"`
-	}{}
-	err = json.Unmarshal(data, &resp)
-	if err != nil {
-		return nil, fmt.Errorf("unmarshaling data: %w", err)
-	}
-	return User(resp.ID, resp.TelegramID, tgUsername, h.client), nil
+func (h httpCommunity) UserWithTelegramID(ctx context.Context, tgID int64) (domain.User, bool, error) {
+	return h.user(ctx, "telegram_id", strconv.FormatInt(tgID, 10))
 }
 
-func (h httpCommunity) UserWithTelegramIDExists(ctx context.Context, tgID int64) (bool, error) {
-	_, err := h.client.Get(
+func (h httpCommunity) UserWithUsername(ctx context.Context, tgUsername string) (domain.User, bool, error) {
+	return h.user(ctx, "username", tgUsername)
+}
+
+func (h httpCommunity) user(ctx context.Context, key, value string) (domain.User, bool, error) {
+	resp := findUserResponse{}
+	err := h.client.Get(
 		ctx,
-		transport.NewOutcomingURL("users").
-			With("telegram_id", strconv.FormatInt(tgID, 10)).
-			String(),
+		transport.URL("users").With(key, value).String(),
+		&resp,
 	)
 	var apiErr transport.APIError
-	if errors.As(err, &apiErr) {
-		if apiErr.StatusCode == http.StatusNotFound {
-			return false, nil
-		}
+	if errors.As(err, &apiErr) && apiErr.StatusCode == http.StatusNotFound {
+		return nil, false, nil
 	}
 	if err != nil {
-		return false, fmt.Errorf("getting user: %w", err)
+		return nil, false, fmt.Errorf("getting user by %s=%s: %w", key, value, err)
 	}
-	return true, nil
+	return User(resp.Id, resp.Username, h.client), true, nil
 }
 
-func (h httpCommunity) UserWithUsernameExists(ctx context.Context, tgUsername string) (bool, error) {
-	_, err := h.client.Get(
+func (h httpCommunity) Team(ctx context.Context, id int64) (domain.Team, bool, error) {
+	resp := findTeamResponse{}
+	err := h.client.Get(
 		ctx,
-		transport.NewOutcomingURL("users").
-			With("username", tgUsername).
-			String(),
+		transport.URL("teams").With("team_id", strconv.FormatInt(id, 10)).String(),
+		&resp,
 	)
 	var apiErr transport.APIError
-	if errors.As(err, &apiErr) {
-		if apiErr.StatusCode == http.StatusNotFound {
-			return false, nil
-		}
+	if errors.As(err, &apiErr) && apiErr.StatusCode == http.StatusNotFound {
+		return nil, false, nil
 	}
 	if err != nil {
-		return false, fmt.Errorf("getting user: %w", err)
+		return nil, false, fmt.Errorf("getting team %d: %w", id, err)
 	}
-	return true, nil
+	return Team(resp.Id, resp.Name, h.client), true, nil
 }
 
-func (h httpCommunity) Team(ctx context.Context, id int64) (domain.Team, error) {
-	data, err := h.client.Get(
+func (h httpCommunity) Task(ctx context.Context, id int64) (domain.Task, bool, error) {
+	var resp []findTasksResponse
+	err := h.client.Get(
 		ctx,
-		transport.NewOutcomingURL("teams").
-			With("team_id", strconv.FormatInt(id, 10)).
-			String(),
+		transport.URL("tasks").With("task_id", strconv.FormatInt(id, 10)).String(),
+		&resp,
 	)
+	var apiErr transport.APIError
+	if errors.As(err, &apiErr) && apiErr.StatusCode == http.StatusNotFound {
+		return nil, false, nil
+	}
 	if err != nil {
-		return nil, fmt.Errorf("getting team %d: %w", id, err)
+		return nil, false, fmt.Errorf("getting task %d: %w", id, err)
 	}
-	resp := struct {
-		Name string `json:"name"`
-	}{}
-	err = json.Unmarshal(data, &resp)
-	if err != nil {
-		return nil, fmt.Errorf("unmarshaling data: %w", err)
-	}
-	return Team(id, resp.Name, h.client), nil
-}
-
-func (h httpCommunity) Task(ctx context.Context, id int64) (domain.Task, error) {
-	data, err := h.client.Get(
-		ctx,
-		transport.NewOutcomingURL("tasks").
-			With("task_id", strconv.FormatInt(id, 10)).
-			String(),
-	)
-	if err != nil {
-		return nil, fmt.Errorf("getting task %d: %w", id, err)
-	}
-	var resp []task
-	err = json.Unmarshal(data, &resp)
-	if err != nil {
-		return nil, fmt.Errorf("unmarshaling data: %w", err)
-	}
-	if len(resp) == 0 {
-		return nil, fmt.Errorf("task %d not found", id)
-	}
-	taskResp := resp[0]
-	return Task(taskResp.ID, taskResp.Title, taskResp.Description, taskResp.Points, taskResp.Status, taskResp.TeamID, h.client), nil
+	return RespToTask(resp[0], h.client), true, nil
 }
 
 func Community(client transport.Client) domain.Community {

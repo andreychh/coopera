@@ -27,9 +27,12 @@ func (t teamMenuView) Value(ctx context.Context, update telegram.Update) (conten
 	if err != nil {
 		return nil, fmt.Errorf("parsing team ID from callback data %q: %w", callbackData, err)
 	}
-	team, err := t.community.Team(ctx, id)
+	team, exists, err := t.community.Team(ctx, id)
 	if err != nil {
 		return nil, fmt.Errorf("getting team %d: %w", id, err)
+	}
+	if !exists {
+		return nil, fmt.Errorf("team %d does not exist", id)
 	}
 	return keyboards.Inline(
 		content.Text(fmt.Sprintf("Team %s:", team.Name())),

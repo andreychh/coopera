@@ -32,6 +32,17 @@ func (c createTaskAction) Perform(ctx context.Context, update telegram.Update) e
 	if err != nil {
 		return fmt.Errorf("parsing team_id: %w", err)
 	}
+	team, exists, err := c.community.Team(ctx, teamID)
+	if err != nil {
+		return fmt.Errorf("getting team %d: %w", teamID, err)
+	}
+	if !exists {
+		return fmt.Errorf("team with ID %d does not exist", teamID)
+	}
+	members, err := team.Members(ctx)
+	if err != nil {
+		return fmt.Errorf("getting members of team %d: %w", teamID, err)
+	}
 	// Title
 	title, err := f.Field("task_title").Value(ctx)
 	if err != nil {
@@ -56,33 +67,39 @@ func (c createTaskAction) Perform(ctx context.Context, update telegram.Update) e
 	if err != nil {
 		return fmt.Errorf("getting task_points: %w", err)
 	}
-	team, err := c.community.Team(ctx, teamID)
+	creatorUser, exists, err := c.community.UserWithTelegramID(ctx, chatID)
 	if err != nil {
-		return fmt.Errorf("getting team %d: %w", teamID, err)
+		return fmt.Errorf("getting user with telegram ID %d: %w", chatID, err)
 	}
-	var assignee domain.Member
+	if !exists {
+		return fmt.Errorf("user with telegram ID %d does not exist", chatID)
+	}
+	creatorMember, exists, err := members.MemberWithUsername(ctx, creatorUser.Username())
+	if err != nil {
+		return fmt.Errorf("getting member with username %q in team %d: %w", creatorUser.Username(), teamID, err)
+	}
+	if !exists {
+		return fmt.Errorf("user with username %q is not a member of team %d", creatorUser.Username(), teamID)
+	}
 	if assigneeUsername == "" {
-		assignee = domain.NullMember()
-	} else {
-		user, err := c.community.UserWithUsername(ctx, assigneeUsername)
+		_, err = creatorMember.CreateUnassigned(ctx, title, description, points)
 		if err != nil {
-			return fmt.Errorf("getting user with username %q: %w", assigneeUsername, err)
+			return fmt.Errorf("creating unassigned task in team %d: %w", teamID, err)
 		}
-		assignee, err = team.MemberWithUserID(ctx, user.ID())
-		if err != nil {
-			return fmt.Errorf("getting assignee %q: %w", assigneeUsername, err)
-		}
+		return nil
 	}
-	creator, err := c.community.UserWithTelegramID(ctx, chatID)
+	assigneeUser, exists, err := c.community.UserWithUsername(ctx, assigneeUsername)
 	if err != nil {
-		return fmt.Errorf("getting creator user: %w", err)
+		return fmt.Errorf("getting user with username %q: %w", assigneeUsername, err)
 	}
-	member, err := team.MemberWithUserID(ctx, creator.ID())
+	if !exists {
+		return fmt.Errorf("user with username %q does not exist", assigneeUsername)
+	}
+	_, err = creatorMember.CreateAssigned(ctx, title, description, points, assigneeUser.ID())
 	if err != nil {
-		return fmt.Errorf("getting member for user %d in team %d: %w", creator.ID(), teamID, err)
+		return fmt.Errorf("creating assigned task in team %d: %w", teamID, err)
 	}
-	_, err = member.CreateTask(ctx, title, description, points, assignee)
-	return err
+	return nil
 }
 
 func CreateTask(community domain.Community, forms forms.Forms) core.Action {

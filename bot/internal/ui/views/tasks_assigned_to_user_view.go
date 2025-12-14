@@ -23,9 +23,12 @@ func (m allMyTasksMenuView) Value(ctx context.Context, update telegram.Update) (
 	if !found {
 		return nil, fmt.Errorf("chat ID not found in update")
 	}
-	user, err := m.community.UserWithTelegramID(ctx, id)
+	user, exists, err := m.community.UserWithTelegramID(ctx, id)
 	if err != nil {
 		return nil, fmt.Errorf("getting user with telegram ID %d: %w", id, err)
+	}
+	if !exists {
+		return nil, fmt.Errorf("user with telegram ID %d does not exist", id)
 	}
 	tasks, err := user.AssignedTasks(ctx)
 	if err != nil {
@@ -62,8 +65,12 @@ func (m allMyTasksMenuView) taskButton(ctx context.Context, task domain.Task) (b
 	if err != nil {
 		return nil, fmt.Errorf("getting team for task %d: %w", task.ID(), err)
 	}
+	points, exists := task.Points()
+	if !exists {
+		return nil, fmt.Errorf("points not set for task %d", task.ID())
+	}
 	return buttons.CallbackButton(
-		fmt.Sprintf("%q | %q | %s (+%d)", team.Name(), task.Title(), task.Status(), task.Points()),
+		fmt.Sprintf("%q | %q | %s (+%d)", team.Name(), task.Title(), task.Status(), points),
 		protocol.ToUserTaskMenu(task.ID()),
 	), nil
 }

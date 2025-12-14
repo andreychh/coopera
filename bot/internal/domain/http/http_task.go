@@ -2,7 +2,6 @@ package http
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"strconv"
 	"time"
@@ -11,27 +10,17 @@ import (
 	"github.com/andreychh/coopera-bot/internal/domain/transport"
 )
 
-type getTeamResponse struct {
-	ID            int64     `json:"id"`
-	Name          string    `json:"name"`
-	CreatedAt     time.Time `json:"created_at"`
-	CreatedByUser int64     `json:"created_by_user"`
-	Members       []struct {
-		MemberID int64             `json:"member_id"`
-		UserID   int64             `json:"user_id"`
-		Username string            `json:"username"`
-		Role     domain.MemberRole `json:"role"`
-	} `json:"members"`
-}
-
 type httpTask struct {
-	id          int64
-	title       string
-	description string
-	points      int
-	teamID      int64
-	status      domain.TaskStatus
-	client      transport.Client
+	id               int64
+	title            string
+	description      string
+	points           *int
+	createdAt        time.Time
+	createdByMember  int64
+	assignedToMember *int64
+	teamID           int64
+	status           domain.TaskStatus
+	client           transport.Client
 }
 
 func (h httpTask) ID() int64 {
@@ -42,169 +31,79 @@ func (h httpTask) Title() string {
 	return h.title
 }
 
-func (h httpTask) Points() int {
-	return h.points
+func (h httpTask) Description() string {
+	return h.description
+}
+
+func (h httpTask) Points() (int, bool) {
+	if h.points == nil {
+		return 0, false
+	}
+	return *h.points, true
 }
 
 func (h httpTask) Status() domain.TaskStatus {
 	return h.status
 }
 
-func (h httpTask) Assignee(ctx context.Context) (domain.Member, error) {
-	data, err := h.client.Get(
+func (h httpTask) CreatedAt() time.Time {
+	return h.createdAt
+}
+
+func (h httpTask) Assignee(ctx context.Context) (domain.Member, bool, error) {
+	if h.assignedToMember == nil {
+		return nil, false, nil
+	}
+	resp := findTeamResponse{}
+	err := h.client.Get(
 		ctx,
-		transport.NewOutcomingURL("tasks").
-			With("task_id", strconv.FormatInt(h.id, 10)).
-			String(),
+		transport.URL("teams").With("team_id", strconv.FormatInt(h.teamID, 10)).String(),
+		&resp,
 	)
 	if err != nil {
-		return nil, fmt.Errorf("getting task %d: %w", h.id, err)
+		return nil, false, fmt.Errorf("getting team %d: %w", h.teamID, err)
 	}
-	var resp []task
-	err = json.Unmarshal(data, &resp)
-	if err != nil {
-		return nil, fmt.Errorf("unmarshaling data: %w", err)
-	}
-	if len(resp) == 0 {
-		return nil, fmt.Errorf("task %d not found", h.id)
-	}
-	memberID := resp[0].AssignedToMember
-	if memberID == nil {
-		return domain.NullMember(), nil
-	}
-	data, err = h.client.Get(
-		ctx,
-		transport.NewOutcomingURL("teams").
-			With("team_id", strconv.FormatInt(h.teamID, 10)).
-			String(),
-	)
-	if err != nil {
-		return nil, fmt.Errorf("getting team %d: %w", h.teamID, err)
-	}
-	var resp2 getTeamResponse
-	err = json.Unmarshal(data, &resp2)
-	if err != nil {
-		return nil, fmt.Errorf("unmarshaling data: %w", err)
-	}
-	for _, m := range resp2.Members {
-		if m.MemberID == *memberID {
-			return Member(m.MemberID, m.UserID, h.teamID, m.Username, m.Role, h.client), nil
+	for _, member := range resp.Members {
+		if member.MemberId == *h.assignedToMember {
+			return Member(member.MemberId, member.Username, domain.MemberRole(member.Role), h.teamID, h.client), true, nil
 		}
 	}
-	return nil, fmt.Errorf("assignee for task %d not found in team %d", h.id, h.teamID)
+	return nil, false, fmt.Errorf("member %d not found in team %d", *h.assignedToMember, h.teamID)
 }
 
 func (h httpTask) Team(ctx context.Context) (domain.Team, error) {
-	data, err := h.client.Get(
-		ctx,
-		transport.NewOutcomingURL("teams").
-			With("team_id", strconv.FormatInt(h.teamID, 10)).
-			String(),
-	)
+	team, exists, err := Community(h.client).Team(ctx, h.teamID)
+	if !exists {
+		return nil, fmt.Errorf("team %d not found", h.teamID)
+	}
 	if err != nil {
 		return nil, fmt.Errorf("getting team %d: %w", h.teamID, err)
 	}
-	var resp getTeamResponse
-	err = json.Unmarshal(data, &resp)
-	if err != nil {
-		return nil, fmt.Errorf("unmarshaling data: %w", err)
-	}
-	return Team(h.teamID, resp.Name, h.client), nil
+	return team, nil
 }
 
-func (h httpTask) Description() string {
-	return h.description
-}
-
-func (h httpTask) CreatedBy(ctx context.Context) (domain.Member, error) {
-	data, err := h.client.Get(
-		ctx,
-		transport.NewOutcomingURL("tasks").
-			With("task_id", strconv.FormatInt(h.id, 10)).
-			String(),
-	)
-	if err != nil {
-		return nil, fmt.Errorf("getting task %d: %w", h.id, err)
-	}
-	var resp []task
-	err = json.Unmarshal(data, &resp)
-	if err != nil {
-		return nil, fmt.Errorf("unmarshaling data: %w", err)
-	}
-	if len(resp) == 0 {
-		return nil, fmt.Errorf("task %d not found", h.id)
-	}
-	data, err = h.client.Get(
-		ctx,
-		transport.NewOutcomingURL("teams").
-			With("team_id", strconv.FormatInt(h.teamID, 10)).
-			String(),
-	)
-	if err != nil {
-		return nil, fmt.Errorf("getting team %d: %w", h.teamID, err)
-	}
-	var teamResp getTeamResponse
-	err = json.Unmarshal(data, &teamResp)
-	if err != nil {
-		return nil, fmt.Errorf("unmarshaling data: %w", err)
-	}
-	for _, m := range teamResp.Members {
-		if m.UserID == resp[0].CreatedByUser {
-			return Member(m.MemberID, m.UserID, h.teamID, m.Username, m.Role, h.client), nil
-		}
-	}
-	return nil, fmt.Errorf("creator for task %d not found in team %d", h.id, h.teamID)
-}
-
-func (h httpTask) CreatedAt(ctx context.Context) (time.Time, error) {
-	data, err := h.client.Get(
-		ctx,
-		transport.NewOutcomingURL("tasks").
-			With("task_id", strconv.FormatInt(h.id, 10)).
-			String(),
-	)
-	if err != nil {
-		return time.Time{}, fmt.Errorf("getting task %d: %w", h.id, err)
-	}
-	var resp []task
-	err = json.Unmarshal(data, &resp)
-	if err != nil {
-		return time.Time{}, fmt.Errorf("unmarshaling data: %w", err)
-	}
-	if len(resp) == 0 {
-		return time.Time{}, fmt.Errorf("task %d not found", h.id)
-	}
-	return resp[0].CreatedAt, nil
-}
-
-func (h httpTask) AssignToMember(ctx context.Context, member domain.Member, by domain.Member) error {
-	panic("not implemented")
-}
-
-func (h httpTask) MarkAsCompleted(ctx context.Context, by domain.User) error {
-	payload, err := json.Marshal(struct {
-		TaskID int64             `json:"task_id"`
-		UserID int64             `json:"current_user_id"`
-		Status domain.TaskStatus `json:"status"`
-	}{h.id, by.ID(), domain.StatusCompleted})
-	if err != nil {
-		return fmt.Errorf("marshaling payload: %w", err)
-	}
-	_, err = h.client.Patch(ctx, "tasks/status", payload)
-	if err != nil {
-		return fmt.Errorf("marking task %d as completed: %w", h.id, err)
-	}
-	return nil
-}
-
-func Task(id int64, title string, description string, points int, status domain.TaskStatus, teamID int64, client transport.Client) domain.Task {
+func Task(
+	id int64,
+	title string,
+	description string,
+	points *int,
+	createdAt time.Time,
+	createdByMember int64,
+	assignedToMember *int64,
+	teamID int64,
+	status domain.TaskStatus,
+	client transport.Client,
+) domain.Task {
 	return httpTask{
-		id:          id,
-		title:       title,
-		description: description,
-		points:      points,
-		teamID:      teamID,
-		status:      status,
-		client:      client,
+		id:               id,
+		title:            title,
+		description:      description,
+		points:           points,
+		createdAt:        createdAt,
+		createdByMember:  createdByMember,
+		assignedToMember: assignedToMember,
+		teamID:           teamID,
+		status:           status,
+		client:           client,
 	}
 }

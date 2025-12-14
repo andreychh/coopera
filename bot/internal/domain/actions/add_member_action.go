@@ -34,15 +34,21 @@ func (a addMemberAction) Perform(ctx context.Context, update telegram.Update) er
 	if err != nil {
 		return fmt.Errorf("getting member_username field for user %d: %w", chatID, err)
 	}
-	user, err := a.community.UserWithUsername(ctx, username)
+	user, exists, err := a.community.UserWithUsername(ctx, username)
 	if err != nil {
 		return fmt.Errorf("getting user with username %q: %w", username, err)
 	}
-	team, err := a.community.Team(ctx, intTeamID)
+	if !exists {
+		return fmt.Errorf("user with username %q does not exist", username)
+	}
+	team, exists, err := a.community.Team(ctx, intTeamID)
 	if err != nil {
 		return fmt.Errorf("getting team with ID %d: %w", intTeamID, err)
 	}
-	_, err = team.AddMember(ctx, user)
+	if !exists {
+		return fmt.Errorf("team with ID %d does not exist", intTeamID)
+	}
+	_, err = team.AddMember(ctx, user.ID())
 	if err != nil {
 		return fmt.Errorf("adding user %q to team %d: %w", username, intTeamID, err)
 	}

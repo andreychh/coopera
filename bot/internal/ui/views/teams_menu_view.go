@@ -79,11 +79,14 @@ func (c currentTeams) Value(ctx context.Context, update telegram.Update) (domain
 	if !found {
 		return nil, fmt.Errorf("chat ID not found in update")
 	}
-	user, err := c.community.UserWithTelegramID(ctx, id)
+	user, exists, err := c.community.UserWithTelegramID(ctx, id)
 	if err != nil {
 		return nil, fmt.Errorf("getting user with telegram ID %d: %w", id, err)
 	}
-	teams, err := user.CreatedTeams(ctx)
+	if !exists {
+		return nil, fmt.Errorf("user with telegram ID %d does not exist", id)
+	}
+	teams, err := user.Teams(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("getting created teams for user %d: %w", id, err)
 	}

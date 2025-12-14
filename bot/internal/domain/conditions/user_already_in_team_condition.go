@@ -22,27 +22,41 @@ func (u userAlreadyInTeamCondition) Holds(ctx context.Context, update telegram.U
 	if !found {
 		return false, fmt.Errorf("chat ID not found in update")
 	}
-	teamID, err := u.forms.Form(chatID).Field("team_id").Value(ctx)
+	teamIDStr, err := u.forms.Form(chatID).Field("team_id").Value(ctx)
 	if err != nil {
 		return false, fmt.Errorf("getting team_id field for user %d: %w", chatID, err)
 	}
-	intTeamID, err := strconv.ParseInt(teamID, 10, 64)
+	teamID, err := strconv.ParseInt(teamIDStr, 10, 64)
 	if err != nil {
-		return false, fmt.Errorf("parsing team_id %q to int64: %w", teamID, err)
+		return false, fmt.Errorf("parsing team_id %d to int64: %w", teamID, err)
 	}
 	username, found := attributes.Text().Value(update)
 	if !found {
 		return false, nil
 	}
-	team, err := u.community.Team(ctx, intTeamID)
+	team, exists, err := u.community.Team(ctx, teamID)
 	if err != nil {
-		return false, fmt.Errorf("getting team with ID %d: %w", intTeamID, err)
+		return false, fmt.Errorf("getting team with ID %d: %w", teamID, err)
 	}
-	user, err := u.community.UserWithUsername(ctx, username)
+	if !exists {
+		return false, fmt.Errorf("team with ID %d does not exist", teamID)
+	}
+	user, exists, err := u.community.UserWithUsername(ctx, username)
 	if err != nil {
 		return false, fmt.Errorf("getting user with username %q: %w", username, err)
 	}
-	return team.ContainsUser(ctx, user)
+	if !exists {
+		return false, nil
+	}
+	members, err := team.Members(ctx)
+	if err != nil {
+		return false, fmt.Errorf("getting members of team %d: %w", teamID, err)
+	}
+	_, exists, err = members.MemberWithUsername(ctx, user.Username())
+	if err != nil {
+		return false, fmt.Errorf("checking if user %q is member of team %d: %w", username, teamID, err)
+	}
+	return exists, nil
 }
 
 func UserAlreadyInTeam(community domain.Community, forms forms.Forms) core.Condition {
