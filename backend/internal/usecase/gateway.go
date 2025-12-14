@@ -38,7 +38,7 @@ type MembershipRepository interface {
 type TaskRepository interface {
 	CreateRepo(ctx context.Context, task entity.Task) (entity.Task, error)
 	GetByTaskID(ctx context.Context, id int32) (entity.Task, error)
-	GetByAssignedToID(ctx context.Context, userID int32) ([]entity.Task, error)
+	GetByAssignedTo(ctx context.Context, memberID int32) ([]entity.Task, error)
 	GetByTeamID(ctx context.Context, teamID int32) ([]entity.Task, error)
 	UpdateStatus(ctx context.Context, status entity.TaskStatus) error
 	DeleteRepo(ctx context.Context, taskID int32) error

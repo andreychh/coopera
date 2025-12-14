@@ -3,16 +3,16 @@ package task
 import "github.com/andreychh/coopera-backend/internal/entity"
 
 type GetTaskRequest struct {
-	TaskID int32 `form:"task_id" validate:"omitempty,gt=0"`
-	UserID int32 `form:"user_id" validate:"omitempty,gt=0"`
-	TeamID int32 `form:"team_id" validate:"omitempty,gt=0"`
+	TaskID   int32 `form:"task_id" validate:"omitempty,gt=0"`
+	MemberID int32 `form:"member_id" validate:"omitempty,gt=0"`
+	TeamID   int32 `form:"team_id" validate:"omitempty,gt=0"`
 }
 
 func ToEntityGetTaskRequest(req *GetTaskRequest) *entity.TaskFilter {
 	return &entity.TaskFilter{
-		TaskID: req.TaskID,
-		UserID: req.UserID,
-		TeamID: req.TeamID,
+		TaskID:   req.TaskID,
+		MemberID: req.MemberID,
+		TeamID:   req.TeamID,
 	}
 }
 
