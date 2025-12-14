@@ -62,15 +62,14 @@ func (m allTeamTasksMenuView) tasksMatrix(ctx context.Context, tasks []domain.Ta
 }
 
 func (m allTeamTasksMenuView) taskButton(ctx context.Context, task domain.Task) (buttons.InlineButton, error) {
-	status := task.Status()
+	assignee, err := task.Assignee(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("getting assignees for task %d with status %q: %w", task.ID(), task.Status(), err)
+	}
 	var text string
-	if status == domain.StatusOpen {
+	if assignee == domain.NullMember() {
 		text = fmt.Sprintf("%q | %d | %s", task.Title(), task.Points(), task.Status())
 	} else {
-		assignee, err := task.Assignee(ctx)
-		if err != nil {
-			return nil, fmt.Errorf("getting assignees for task %d: %w", task.ID(), err)
-		}
 		text = fmt.Sprintf("%q | %d | %s (@%s)", task.Title(), task.Points(), task.Status(), assignee.Username())
 	}
 	return buttons.CallbackButton(

@@ -18,7 +18,7 @@ type task struct {
 	Description      string            `json:"description"`
 	Points           int               `json:"points"`
 	Status           domain.TaskStatus `json:"status"`
-	AssignedToMember int64             `json:"assigned_to_member"`
+	AssignedToMember *int64            `json:"assigned_to_member"`
 	CreatedByUser    int64             `json:"created_by_user"`
 	CreatedAt        time.Time         `json:"created_at"`
 	UpdatedAt        time.Time         `json:"updated_at"`

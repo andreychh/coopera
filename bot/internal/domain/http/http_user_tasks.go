@@ -51,7 +51,7 @@ func (h httpUserTasks) fetchTasks(ctx context.Context, teamID int64) ([]domain.T
 		return nil, fmt.Errorf("fetching membership ID for team %d: %w", teamID, err)
 	}
 	data, err := h.client.Get(ctx, transport.NewOutcomingURL("tasks").
-		With("team_id", strconv.FormatInt(teamID, 10)).
+		With("member_id", strconv.FormatInt(myMemberID, 10)).
 		String(),
 	)
 	if err != nil {
@@ -64,9 +64,7 @@ func (h httpUserTasks) fetchTasks(ctx context.Context, teamID int64) ([]domain.T
 	}
 	tasks := make([]domain.Task, 0)
 	for _, t := range resp {
-		if t.AssignedToMember == myMemberID {
-			tasks = append(tasks, Task(t.ID, t.Title, t.Description, t.Points, t.Status, t.TeamID, h.client))
-		}
+		tasks = append(tasks, Task(t.ID, t.Title, t.Description, t.Points, t.Status, t.TeamID, h.client))
 	}
 	return tasks, nil
 }

@@ -53,6 +53,27 @@ func (h httpTask) Status() domain.TaskStatus {
 func (h httpTask) Assignee(ctx context.Context) (domain.Member, error) {
 	data, err := h.client.Get(
 		ctx,
+		transport.NewOutcomingURL("tasks").
+			With("task_id", strconv.FormatInt(h.id, 10)).
+			String(),
+	)
+	if err != nil {
+		return nil, fmt.Errorf("getting task %d: %w", h.id, err)
+	}
+	var resp []task
+	err = json.Unmarshal(data, &resp)
+	if err != nil {
+		return nil, fmt.Errorf("unmarshaling data: %w", err)
+	}
+	if len(resp) == 0 {
+		return nil, fmt.Errorf("task %d not found", h.id)
+	}
+	memberID := resp[0].AssignedToMember
+	if memberID == nil {
+		return domain.NullMember(), nil
+	}
+	data, err = h.client.Get(
+		ctx,
 		transport.NewOutcomingURL("teams").
 			With("team_id", strconv.FormatInt(h.teamID, 10)).
 			String(),
@@ -60,13 +81,13 @@ func (h httpTask) Assignee(ctx context.Context) (domain.Member, error) {
 	if err != nil {
 		return nil, fmt.Errorf("getting team %d: %w", h.teamID, err)
 	}
-	var resp getTeamResponse
-	err = json.Unmarshal(data, &resp)
+	var resp2 getTeamResponse
+	err = json.Unmarshal(data, &resp2)
 	if err != nil {
 		return nil, fmt.Errorf("unmarshaling data: %w", err)
 	}
-	for _, m := range resp.Members {
-		if m.MemberID == h.id {
+	for _, m := range resp2.Members {
+		if m.MemberID == *memberID {
 			return Member(m.MemberID, m.UserID, h.teamID, m.Username, m.Role, h.client), nil
 		}
 	}

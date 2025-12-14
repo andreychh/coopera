@@ -4,33 +4,10 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"time"
 
 	"github.com/andreychh/coopera-bot/internal/domain"
 	"github.com/andreychh/coopera-bot/internal/domain/transport"
 )
-
-type createTaskRequest struct {
-	TeamId           int64  `json:"team_id"`
-	Points           int    `json:"points"`
-	CurrentUserId    int64  `json:"current_user_id"`
-	AssignedToMember *int64 `json:"assigned_to_member"`
-	Title            string `json:"title"`
-	Description      string `json:"description"`
-}
-
-type createTaskResponse struct {
-	ID               int64             `json:"id"`
-	TeamID           int64             `json:"team_id"`
-	Title            string            `json:"title"`
-	Description      string            `json:"description"`
-	Points           int               `json:"points"`
-	Status           domain.TaskStatus `json:"status"`
-	AssignedToMember *int64            `json:"assigned_to_member"`
-	CreatedByUser    int64             `json:"created_by_user"`
-	CreatedAt        time.Time         `json:"created_at"`
-	UpdatedAt        time.Time         `json:"updated_at"`
-}
 
 type httpMember struct {
 	id     int64
@@ -56,7 +33,6 @@ func (h httpMember) Role() domain.MemberRole {
 func (h httpMember) CreateTask(ctx context.Context, title string, description string, points int, assignee domain.Member) (domain.Task, error) {
 	req := createTaskRequest{
 		TeamId:        h.teamID,
-		Points:        points,
 		CurrentUserId: h.userID,
 		Title:         title,
 		Description:   description,
@@ -64,6 +40,9 @@ func (h httpMember) CreateTask(ctx context.Context, title string, description st
 	if assignee != domain.NullMember() {
 		id := assignee.ID()
 		req.AssignedToMember = &id
+	}
+	if points != 0 {
+		req.Points = &points
 	}
 	payload, err := json.Marshal(req)
 	if err != nil {
@@ -82,7 +61,7 @@ func (h httpMember) CreateTask(ctx context.Context, title string, description st
 }
 
 func (h httpMember) Tasks(ctx context.Context) (domain.Tasks, error) {
-	return MemberTasks(h.id, h.teamID, h.client), nil
+	return MemberTasks(h.id, h.client), nil
 }
 
 func Member(id int64, userID int64, teamID int64, name string, role domain.MemberRole, client transport.Client) domain.Member {
