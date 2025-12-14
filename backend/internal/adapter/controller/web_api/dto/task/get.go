@@ -24,6 +24,7 @@ type GetTaskResponse struct {
 	Points           *int32  `json:"points,omitempty"`
 	Status           string  `json:"status"`
 	AssignedToMember *int32  `json:"assigned_to_member,omitempty"`
+	CreatedByMember  int32   `json:"created_by_member"`
 	CreatedByUser    int32   `json:"created_by_user"`
 	CreatedAt        string  `json:"created_at"`
 	UpdatedAt        *string `json:"updated_at,omitempty"`
@@ -31,12 +32,13 @@ type GetTaskResponse struct {
 
 func ToGetTaskResponse(task *entity.Task) *GetTaskResponse {
 	resp := &GetTaskResponse{
-		ID:            task.ID,
-		TeamID:        task.TeamID,
-		Title:         task.Title,
-		Status:        task.Status.String(),
-		CreatedByUser: task.CreatedBy,
-		CreatedAt:     task.CreatedAt.Format("2006-01-02T15:04:05Z"),
+		ID:              task.ID,
+		TeamID:          task.TeamID,
+		Title:           task.Title,
+		Status:          task.Status.String(),
+		CreatedByMember: task.CreatedByMemberID,
+		CreatedByUser:   task.CreatedByUserID,
+		CreatedAt:       task.CreatedAt.Format("2006-01-02T15:04:05Z"),
 	}
 
 	if task.Points != nil {
