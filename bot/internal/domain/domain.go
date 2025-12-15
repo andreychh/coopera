@@ -36,6 +36,8 @@ type User interface {
 	ID() int64
 	Username() string
 
+	Stats(ctx context.Context) (UserStats, error)
+
 	CreateTeam(ctx context.Context, name string) (Team, error)
 
 	Teams(ctx context.Context) (Teams, error)
@@ -60,12 +62,6 @@ type Team interface {
 	Tasks(ctx context.Context) (Tasks, error)
 }
 
-type TeamStats struct {
-	TotalTasks     int
-	CompletedTasks int
-	TotalPoints    int
-}
-
 type Members interface {
 	All(ctx context.Context) ([]Member, error)
 	MemberWithUsername(ctx context.Context, username string) (Member, bool, error)
@@ -87,11 +83,6 @@ type Member interface {
 	AssignTask(ctx context.Context, taskID int64, memberID int64) error
 	SubmitTaskForReview(ctx context.Context, taskID int64) error
 	ApproveTask(ctx context.Context, taskID int64) error
-}
-
-type MemberStats struct {
-	CompletedTasks int
-	TotalPoints    int
 }
 
 type Tasks interface {

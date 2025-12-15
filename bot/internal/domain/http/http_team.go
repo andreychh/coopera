@@ -26,7 +26,39 @@ func (h httpTeam) Name() string {
 }
 
 func (h httpTeam) Stats(ctx context.Context) (domain.TeamStats, error) {
-	panic("not implemented")
+	var resp []findTasksResponse
+	err := h.client.Get(
+		ctx,
+		transport.URL("tasks").With("team_id", strconv.FormatInt(h.id, 10)).String(),
+		&resp,
+	)
+	if err != nil {
+		return domain.TeamStats{}, fmt.Errorf("getting tasks for team %d: %w", h.id, err)
+	}
+	var stats domain.TeamStats
+	for _, t := range resp {
+		if t.Points == nil {
+			stats.Backlog.DraftsCount++
+			continue
+		}
+		if t.AssignedToMember == nil {
+			stats.Backlog.UnassignedCount++
+			stats.Backlog.UnassignedPoints += *t.Points
+			continue
+		}
+		switch t.Status {
+		case "assigned":
+			stats.ActiveWork.InProgressCount++
+			stats.ActiveWork.InProgressPoints += *t.Points
+		case "in_review":
+			stats.ActiveWork.InReviewCount++
+			stats.ActiveWork.InReviewPoints += *t.Points
+		case "completed":
+			stats.Achievements.CompletedCount++
+			stats.Achievements.CompletedPoints += *t.Points
+		}
+	}
+	return stats, nil
 }
 
 func (h httpTeam) AddMember(ctx context.Context, userID int64) (domain.Member, error) {

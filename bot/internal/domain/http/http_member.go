@@ -3,6 +3,7 @@ package http
 import (
 	"context"
 	"fmt"
+	"strconv"
 
 	"github.com/andreychh/coopera-bot/internal/domain"
 	"github.com/andreychh/coopera-bot/internal/domain/transport"
@@ -29,7 +30,33 @@ func (h httpMember) Role() domain.MemberRole {
 }
 
 func (h httpMember) Stats(ctx context.Context) (domain.MemberStats, error) {
-	panic("not implemented")
+	var resp []findTasksResponse
+	err := h.client.Get(
+		ctx,
+		transport.URL("tasks").With("member_id", strconv.FormatInt(h.id, 10)).String(),
+		&resp,
+	)
+	if err != nil {
+		return domain.MemberStats{}, fmt.Errorf("getting tasks for member %d: %w", h.id, err)
+	}
+	stats := domain.MemberStats{}
+	for _, t := range resp {
+		if t.AssignedToMember == nil || *t.AssignedToMember != h.id {
+			continue
+		}
+		if t.Points == nil {
+			continue
+		}
+		points := *t.Points
+		if t.Status == "completed" {
+			stats.Contribution.TasksDone++
+			stats.Contribution.PointsDone += points
+		} else {
+			stats.CurrentState.AssignedTasks++
+			stats.CurrentState.AssignedPoints += points
+		}
+	}
+	return stats, nil
 }
 
 func (h httpMember) CreateDraft(ctx context.Context, title string, description string) (domain.Task, error) {
