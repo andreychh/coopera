@@ -17,7 +17,6 @@ const (
 	MenuTeams       = "teams"
 	MenuTeam        = "team"
 	MenuMembers     = "members"
-	MenuMember      = "member"
 	MenuUserTasks   = "user_ts"
 	MenuTeamTasks   = "team_ts"
 	MenuMemberTasks = "member_ts"
@@ -33,7 +32,6 @@ const (
 
 	keyMenuName = "mn"
 	keyTeamID   = "tmid"
-	keyMemberID = "mid"
 	keyTaskID   = "tsid"
 	keyAction   = "act"
 )
@@ -61,13 +59,6 @@ func ToMembersMenu(teamID int64) string {
 	return callbacks.OutcomingData(prefixChangeMenu).
 		With(keyMenuName, MenuMembers).
 		With(keyTeamID, strconv.FormatInt(teamID, 10)).
-		String()
-}
-
-func ToMemberMenu(memberID int64) string {
-	return callbacks.OutcomingData(prefixChangeMenu).
-		With(keyMenuName, MenuMember).
-		With(keyMemberID, strconv.FormatInt(memberID, 10)).
 		String()
 }
 

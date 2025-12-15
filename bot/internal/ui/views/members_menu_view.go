@@ -38,10 +38,6 @@ func (m membersMenuView) Value(ctx context.Context, update telegram.Update) (con
 	if err != nil {
 		return nil, fmt.Errorf("getting members for team %d: %w", teamID, err)
 	}
-	slice, err := members.All(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("getting memebers slice: %w", err)
-	}
 	chatID, found := attributes.ChatID().Value(update)
 	if !found {
 		return nil, fmt.Errorf("chat ID not found in update")
@@ -50,6 +46,9 @@ func (m membersMenuView) Value(ctx context.Context, update telegram.Update) (con
 	if err != nil {
 		return nil, fmt.Errorf("getting user with telegram ID %d: %w", chatID, err)
 	}
+	if !exists {
+		return nil, fmt.Errorf("user with telegram ID %d does not exist", chatID)
+	}
 	member, exists, err := members.MemberWithUsername(ctx, user.Username())
 	if err != nil {
 		return nil, fmt.Errorf("getting member with user ID %d in team %d: %w", user.ID(), teamID, err)
@@ -57,37 +56,52 @@ func (m membersMenuView) Value(ctx context.Context, update telegram.Update) (con
 	if !exists {
 		return nil, fmt.Errorf("member with user ID %d in team %d does not exist", user.ID(), teamID)
 	}
+	text, err := m.membersText(ctx, team)
+	if err != nil {
+		return nil, fmt.Errorf("generating members text: %w", err)
+	}
 	if member.Role() == domain.RoleManager {
 		return keyboards.Inline(
-			content.Text(fmt.Sprintf("Team %s members (As manager):", team.Name())),
-			m.membersMatrix(slice).
-				WithRow(buttons.Row(buttons.CallbackButton("Add member", protocol.StartAddMemberForm(team.ID())))).
-				WithRow(buttons.Row(buttons.CallbackButton("Team menu", protocol.ToTeamMenu(team.ID())))),
+			content.Text(text),
+			buttons.Matrix(
+				buttons.Row(buttons.CallbackButton("Add member", protocol.StartAddMemberForm(team.ID()))),
+				buttons.Row(buttons.CallbackButton("Team menu", protocol.ToTeamMenu(team.ID()))),
+			),
 		), nil
 	}
 	return keyboards.Inline(
-		content.Text(fmt.Sprintf("Team %s members (As member):", team.Name())),
-		m.membersMatrix(slice).
-			WithRow(buttons.Row(buttons.CallbackButton("Team menu", protocol.ToTeamMenu(team.ID())))),
+		content.Text(text),
+		buttons.Matrix(
+			buttons.Row(buttons.CallbackButton("Team menu", protocol.ToTeamMenu(team.ID()))),
+		),
 	), nil
 }
 
-func (m membersMenuView) membersMatrix(members []domain.Member) buttons.ButtonMatrix[buttons.InlineButton] {
-	matrix := buttons.Matrix[buttons.InlineButton]()
-	for _, member := range members {
-		matrix = matrix.WithRow(buttons.Row(m.memberButton(member)))
+func (m membersMenuView) membersText(ctx context.Context, team domain.Team) (string, error) {
+	members, err := team.Members(ctx)
+	if err != nil {
+		return "", fmt.Errorf("getting members for team %d: %w", team.ID(), err)
 	}
-	return matrix
+	slice, err := members.All(ctx)
+	if err != nil {
+		return "", fmt.Errorf("getting all members for team %d: %w", team.ID(), err)
+	}
+	text := fmt.Sprintf("👥 *Team %s Members:*\n\n", team.Name())
+	for _, member := range slice {
+		memberText, err := m.memberText(ctx, member)
+		if err != nil {
+			return "", fmt.Errorf("generating text for member %d: %w", member.ID(), err)
+		}
+		text += memberText + "\n"
+	}
+	return text, nil
 }
 
-func (m membersMenuView) memberButton(member domain.Member) buttons.InlineButton {
-	var text string
+func (m membersMenuView) memberText(ctx context.Context, member domain.Member) (string, error) {
 	if member.Role() == domain.RoleManager {
-		text = fmt.Sprintf("* @%s", member.Username())
-	} else {
-		text = fmt.Sprintf("  @%s", member.Username())
+		return fmt.Sprintf("* @%s", member.Username()), nil
 	}
-	return buttons.CallbackButton(text, protocol.ToMemberMenu(member.ID()))
+	return fmt.Sprintf("  @%s", member.Username()), nil
 }
 
 func MembersMenu(community domain.Community) sources.Source[content.Content] {
