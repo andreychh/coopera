@@ -22,9 +22,9 @@ import (
 	"github.com/andreychh/coopera-bot/pkg/botlib/updates/conditions"
 )
 
-func CreateTaskTitleSpec(bot tg.Bot, f forms.Forms) hsm.Spec {
+func CreateTaskByManagerTitleSpec(bot tg.Bot, f forms.Forms) hsm.Spec {
 	return hsm.Leaf(
-		SpecCreateTaskFormTitle,
+		SpecCreateTaskByManagerFormTitle,
 		hsm.CoreBehavior(
 			base.SendContent(
 				bot,
@@ -42,7 +42,7 @@ func CreateTaskTitleSpec(bot tg.Bot, f forms.Forms) hsm.Spec {
 					),
 					hsm.Try(
 						routing.Terminal(actions.SaveTextToField(f, "task_title")),
-						hsm.Transit(SpecCreateTaskFormDescription),
+						hsm.Transit(SpecCreateTaskByManagerFormDescription),
 					),
 				),
 			),
@@ -51,9 +51,9 @@ func CreateTaskTitleSpec(bot tg.Bot, f forms.Forms) hsm.Spec {
 	)
 }
 
-func CreateTaskDescriptionSpec(bot tg.Bot, f forms.Forms) hsm.Spec {
+func CreateTaskByManagerDescriptionSpec(bot tg.Bot, f forms.Forms) hsm.Spec {
 	return hsm.Leaf(
-		SpecCreateTaskFormDescription,
+		SpecCreateTaskByManagerFormDescription,
 		hsm.CoreBehavior(
 			base.SendContent(bot, sources.Static[content.Content](
 				keyboards.Resized(keyboards.Reply(
@@ -73,7 +73,7 @@ func CreateTaskDescriptionSpec(bot tg.Bot, f forms.Forms) hsm.Spec {
 					),
 					hsm.Try(
 						routing.Terminal(actions.SaveTextToField(f, "task_description")),
-						hsm.Transit(SpecCreateTaskFormPoints),
+						hsm.Transit(SpecCreateTaskByManagerFormPoints),
 					),
 				),
 			),
@@ -82,9 +82,9 @@ func CreateTaskDescriptionSpec(bot tg.Bot, f forms.Forms) hsm.Spec {
 	)
 }
 
-func CreateTaskPointsSpec(bot tg.Bot, f forms.Forms) hsm.Spec {
+func CreateTaskByManagerPointsSpec(bot tg.Bot, f forms.Forms) hsm.Spec {
 	return hsm.Leaf(
-		SpecCreateTaskFormPoints,
+		SpecCreateTaskByManagerFormPoints,
 		hsm.CoreBehavior(
 			base.SendContent(bot, sources.Static[content.Content](
 				keyboards.Empty(content.Text(
@@ -103,7 +103,7 @@ func CreateTaskPointsSpec(bot tg.Bot, f forms.Forms) hsm.Spec {
 					),
 					hsm.Try(
 						routing.Terminal(actions.SaveTextToField(f, "task_points")),
-						hsm.Transit(SpecCreateTaskFormAssignTo),
+						hsm.Transit(SpecCreateTaskByManagerFormAssignTo),
 					),
 				),
 			),
@@ -112,9 +112,9 @@ func CreateTaskPointsSpec(bot tg.Bot, f forms.Forms) hsm.Spec {
 	)
 }
 
-func CreateTaskAssignToSpec(bot tg.Bot, c domain.Community, f forms.Forms) hsm.Spec {
+func CreateTaskByManagerAssignToSpec(bot tg.Bot, c domain.Community, f forms.Forms) hsm.Spec {
 	return hsm.Leaf(
-		SpecCreateTaskFormAssignTo,
+		SpecCreateTaskByManagerFormAssignTo,
 		hsm.CoreBehavior(
 			base.SendContent(bot, views.MembersMatrixView(c, f)),
 			hsm.If(
@@ -123,8 +123,7 @@ func CreateTaskAssignToSpec(bot tg.Bot, c domain.Community, f forms.Forms) hsm.S
 					hsm.TryAction(
 						conditions.TextIs("(unassigned)"),
 						composition.Sequential(
-							actions.SaveValueToField(f, "task_assignee", ""),
-							domainactions.CreateTask(c, f),
+							domainactions.CreateUnassigned(c, f),
 							base.SendContent(bot, sources.Static[content.Content](
 								keyboards.Empty(content.Text("Task created successfully!")),
 							)),
@@ -142,7 +141,7 @@ func CreateTaskAssignToSpec(bot tg.Bot, c domain.Community, f forms.Forms) hsm.S
 									return field.ChangeValue(ctx, username)
 								},
 							),
-							domainactions.CreateTask(c, f),
+							domainactions.CreateAssigned(c, f),
 							base.SendContent(bot, sources.Static[content.Content](
 								keyboards.Empty(content.Text("Task created successfully!")),
 							)),
@@ -156,9 +155,9 @@ func CreateTaskAssignToSpec(bot tg.Bot, c domain.Community, f forms.Forms) hsm.S
 	)
 }
 
-func CreateTaskSpec(bot tg.Bot, c domain.Community, f forms.Forms) hsm.Spec {
+func CreateTaskByManagerSpec(bot tg.Bot, c domain.Community, f forms.Forms) hsm.Spec {
 	return hsm.Node(
-		SpecCreateTaskForm,
+		SpecCreateTaskByManagerForm,
 		hsm.CoreBehavior(
 			composition.Sequential(
 				base.EditOrSendContent(
@@ -189,10 +188,10 @@ func CreateTaskSpec(bot tg.Bot, c domain.Community, f forms.Forms) hsm.Spec {
 			composition.Nothing(),
 		),
 		hsm.Group(
-			CreateTaskTitleSpec(bot, f),
-			CreateTaskDescriptionSpec(bot, f),
-			CreateTaskPointsSpec(bot, f),
-			CreateTaskAssignToSpec(bot, c, f),
+			CreateTaskByManagerTitleSpec(bot, f),
+			CreateTaskByManagerDescriptionSpec(bot, f),
+			CreateTaskByManagerPointsSpec(bot, f),
+			CreateTaskByManagerAssignToSpec(bot, c, f),
 		),
 	)
 }

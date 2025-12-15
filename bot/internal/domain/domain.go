@@ -80,7 +80,7 @@ type Member interface {
 
 	CreateDraft(ctx context.Context, title string, description string) (Task, error)
 	CreateUnassigned(ctx context.Context, title string, description string, points int) (Task, error)
-	CreateAssigned(ctx context.Context, title string, description string, points int, userID int64) (Task, error)
+	CreateAssigned(ctx context.Context, title string, description string, points int, memberID int64) (Task, error)
 	AssignedTasks(ctx context.Context) (Tasks, error)
 
 	EstimateTask(ctx context.Context, taskID int64, points int) error

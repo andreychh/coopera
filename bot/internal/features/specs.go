@@ -21,9 +21,13 @@ const (
 	SpecAddMemberForm         = "add_member_form_spec"
 	SpecAddMemberFormUsername = "add_member_form_name_spec"
 
-	SpecCreateTaskForm            = "create_task_form_spec"
-	SpecCreateTaskFormTitle       = "create_task_form_title_spec"
-	SpecCreateTaskFormDescription = "create_task_form_description_spec"
-	SpecCreateTaskFormPoints      = "create_task_form_points_spec"
-	SpecCreateTaskFormAssignTo    = "create_task_form_assignee_spec"
+	SpecCreateTaskByManagerForm            = "create_task_by_manager_form_spec"
+	SpecCreateTaskByManagerFormTitle       = "create_task_by_manager_form_title_spec"
+	SpecCreateTaskByManagerFormDescription = "create_task_by_manager_form_description_spec"
+	SpecCreateTaskByManagerFormPoints      = "create_task_by_manager_form_points_spec"
+	SpecCreateTaskByManagerFormAssignTo    = "create_task_by_manager_form_assignee_spec"
+
+	SpecCreateTaskByMemberForm            = "create_task_by_member_form_spec"
+	SpecCreateTaskByMemberFormTitle       = "create_task_by_member_form_title_spec"
+	SpecCreateTaskByMemberFormDescription = "create_task_by_member_form_description_spec"
 )

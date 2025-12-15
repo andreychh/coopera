@@ -3,6 +3,7 @@ package features
 import (
 	"github.com/andreychh/coopera-bot/internal/domain"
 	domainactions "github.com/andreychh/coopera-bot/internal/domain/actions"
+	domainconditions "github.com/andreychh/coopera-bot/internal/domain/conditions"
 	"github.com/andreychh/coopera-bot/internal/ui/protocol"
 	"github.com/andreychh/coopera-bot/internal/ui/views"
 	"github.com/andreychh/coopera-bot/pkg/botlib/base"
@@ -53,7 +54,20 @@ func TeamMenuSpec(bot tg.Bot, c domain.Community) hsm.Spec {
 				hsm.JustIf(protocol.OnChangeMenu(protocol.MenuTeams), hsm.Transit(SpecTeamsMenu)),
 				hsm.JustIf(protocol.OnChangeMenu(protocol.MenuAllTeamTasks), hsm.Transit(SpecAllTeamTasks)),
 				hsm.JustIf(protocol.OnChangeMenu(protocol.MenuMemberTasks), hsm.Transit(SpecMemberTasks)),
-				hsm.JustIf(protocol.OnStartForm(protocol.FormCreateTask), hsm.Transit(SpecCreateTaskForm)),
+				hsm.JustIf(
+					composition.All(
+						protocol.OnStartForm(protocol.FormCreateTask),
+						domainconditions.MemberRoleIs(c, domain.RoleManager),
+					),
+					hsm.Transit(SpecCreateTaskByManagerForm),
+				),
+				hsm.JustIf(
+					composition.All(
+						protocol.OnStartForm(protocol.FormCreateTask),
+						domainconditions.MemberRoleIs(c, domain.RoleMember),
+					),
+					hsm.Transit(SpecCreateTaskByMemberForm),
+				),
 			),
 			composition.Nothing(),
 		),
