@@ -14,7 +14,8 @@ func MainMenuView() sources.Source[content.Content] {
 			content.Text("Main menu"),
 			buttons.Matrix(
 				buttons.Row(buttons.CallbackButton("Teams", protocol.ToTeamsMenu())),
-				buttons.Row(buttons.CallbackButton("My tasks", protocol.ToTasksAssignedToUserMenu())),
+				buttons.Row(buttons.CallbackButton("My tasks", protocol.ToUserTasksMenu())),
+				buttons.Row(buttons.CallbackButton("My stats", protocol.ToUserStatsMenu())),
 			),
 		),
 	)

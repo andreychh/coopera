@@ -43,14 +43,14 @@ func (t userTaskMenuView) Value(ctx context.Context, update telegram.Update) (co
 			content.Text(description),
 			buttons.Matrix(
 				buttons.Row(buttons.CallbackButton("Submit for review", protocol.ToUserTaskMenu(id))),
-				buttons.Row(buttons.CallbackButton("My tasks", protocol.ToTasksAssignedToUserMenu())),
+				buttons.Row(buttons.CallbackButton("My tasks", protocol.ToUserTasksMenu())),
 			),
 		), nil
 	}
 	return keyboards.Inline(
 		content.Text(description),
 		buttons.Matrix(
-			buttons.Row(buttons.CallbackButton("My tasks", protocol.ToTasksAssignedToUserMenu())),
+			buttons.Row(buttons.CallbackButton("My tasks", protocol.ToUserTasksMenu())),
 		),
 	), nil
 }

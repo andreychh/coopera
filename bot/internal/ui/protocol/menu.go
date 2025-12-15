@@ -23,6 +23,7 @@ const (
 	MenuUserTask    = "user_t"
 	MenuMemberTask  = "member_t"
 	MenuTeamTask    = "team_t"
+	MenuUserStats   = "user_st"
 
 	ActionSubmitTaskForReview = "submit"
 	ActionApproveTask         = "approve"
@@ -62,7 +63,7 @@ func ToMembersMenu(teamID int64) string {
 		String()
 }
 
-func ToTasksAssignedToUserMenu() string {
+func ToUserTasksMenu() string {
 	return callbacks.OutcomingData(prefixChangeMenu).
 		With(keyMenuName, MenuUserTasks).
 		String()
@@ -108,6 +109,12 @@ func ToTeamTaskMenuWithAction(taskID int64, action string) string {
 		With(keyMenuName, MenuTeamTask).
 		With(keyTaskID, strconv.FormatInt(taskID, 10)).
 		With(keyAction, action).
+		String()
+}
+
+func ToUserStatsMenu() string {
+	return callbacks.OutcomingData(prefixChangeMenu).
+		With(keyMenuName, MenuUserStats).
 		String()
 }
 
