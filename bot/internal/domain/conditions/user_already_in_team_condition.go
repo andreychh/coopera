@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"strconv"
+	"strings"
 
 	"github.com/andreychh/coopera-bot/internal/domain"
 	"github.com/andreychh/coopera-bot/pkg/botlib/core"
@@ -41,6 +42,7 @@ func (u userAlreadyInTeamCondition) Holds(ctx context.Context, update telegram.U
 	if !exists {
 		return false, fmt.Errorf("team with ID %d does not exist", teamID)
 	}
+	username = strings.TrimPrefix(username, "@")
 	user, exists, err := u.community.UserWithUsername(ctx, username)
 	if err != nil {
 		return false, fmt.Errorf("getting user with username %q: %w", username, err)
@@ -59,7 +61,7 @@ func (u userAlreadyInTeamCondition) Holds(ctx context.Context, update telegram.U
 	return exists, nil
 }
 
-func UserAlreadyInTeam(community domain.Community, forms forms.Forms) core.Condition {
+func UserInTeam(community domain.Community, forms forms.Forms) core.Condition {
 	return userAlreadyInTeamCondition{
 		community: community,
 		forms:     forms,

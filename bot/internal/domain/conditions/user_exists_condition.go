@@ -3,6 +3,7 @@ package conditions
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/andreychh/coopera-bot/internal/domain"
 	"github.com/andreychh/coopera-bot/pkg/botlib/core"
@@ -19,6 +20,7 @@ func (u userExistsCondition) Holds(ctx context.Context, update telegram.Update) 
 	if !found {
 		return false, nil
 	}
+	username = strings.TrimPrefix(username, "@")
 	_, exists, err := u.community.UserWithUsername(ctx, username)
 	if err != nil {
 		return false, fmt.Errorf("getting user with username %q: %w", username, err)

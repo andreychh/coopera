@@ -12,6 +12,7 @@ import (
 	"github.com/andreychh/coopera-bot/pkg/botlib/base"
 	"github.com/andreychh/coopera-bot/pkg/botlib/composition"
 	"github.com/andreychh/coopera-bot/pkg/botlib/content"
+	"github.com/andreychh/coopera-bot/pkg/botlib/content/keyboards"
 	"github.com/andreychh/coopera-bot/pkg/botlib/forms"
 	"github.com/andreychh/coopera-bot/pkg/botlib/forms/actions"
 	"github.com/andreychh/coopera-bot/pkg/botlib/hsm"
@@ -35,21 +36,28 @@ func AddMemberUsernameSpec(bot tg.Bot, c domain.Community, f forms.Forms) hsm.Sp
 				composition.Not(conditions.CommandIs("cancel")),
 				hsm.FirstHandled(
 					hsm.TryAction(
-						composition.Not(conditions.TextMatchesRegexp(`^.{5,32}$`)),
+						composition.Not(conditions.TextMatchesRegexp(`^@`)),
+						base.SendContent(bot,
+							sources.Static(content.Text("Invalid format. Username must start with '@' symbol.")),
+						),
+						hsm.Stay(),
+					),
+					hsm.TryAction(
+						composition.Not(conditions.TextMatchesRegexp(`^@.{5,32}$`)),
 						base.SendContent(bot,
 							sources.Static(content.Text("Incorrect length. Username must be between 5 and 32 characters.")),
 						),
 						hsm.Stay(),
 					),
 					hsm.TryAction(
-						composition.Not(conditions.TextMatchesRegexp(`^[a-zA-Z0-9_]+$`)),
+						composition.Not(conditions.TextMatchesRegexp(`^@[a-zA-Z0-9_]+$`)),
 						base.SendContent(bot,
 							sources.Static(content.Text("Invalid characters. Only Latin letters (a-z), numbers (0-9), and underscores (_) are allowed.")),
 						),
 						hsm.Stay(),
 					),
 					hsm.TryAction(
-						composition.Not(conditions.TextMatchesRegexp(`^[a-zA-Z]`)),
+						composition.Not(conditions.TextMatchesRegexp(`^@[a-zA-Z]`)),
 						base.SendContent(bot,
 							sources.Static(content.Text("Invalid start. Username must start with a letter.")),
 						),
@@ -75,7 +83,7 @@ func AddMemberUsernameSpec(bot tg.Bot, c domain.Community, f forms.Forms) hsm.Sp
 						hsm.Stay(),
 					),
 					hsm.TryAction(
-						domainconditions.UserAlreadyInTeam(c, f),
+						domainconditions.UserInTeam(c, f),
 						base.SendContent(bot, sources.Static(content.Text("User is already a member of this team."))),
 						hsm.Stay(),
 					),
@@ -116,7 +124,17 @@ func AddMemberSpec(bot tg.Bot, c domain.Community, f forms.Forms) hsm.Spec {
 				),
 			),
 			hsm.Greedy(
-				hsm.JustIf(conditions.CommandIs("cancel"), hsm.Transit(SpecTeamsMenu)),
+				hsm.If(
+					conditions.CommandIs("cancel"),
+					hsm.Try(
+						routing.Terminal(
+							base.SendContent(bot, sources.Static[content.Content](
+								keyboards.Empty(content.Text("Form canceled."))),
+							),
+						),
+						hsm.Transit(SpecTeamsMenu),
+					),
+				),
 			),
 			composition.Nothing(),
 		),

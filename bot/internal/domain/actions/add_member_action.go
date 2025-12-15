@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"strconv"
+	"strings"
 
 	"github.com/andreychh/coopera-bot/internal/domain"
 	"github.com/andreychh/coopera-bot/pkg/botlib/core"
@@ -34,6 +35,7 @@ func (a addMemberAction) Perform(ctx context.Context, update telegram.Update) er
 	if err != nil {
 		return fmt.Errorf("getting member_username field for user %d: %w", chatID, err)
 	}
+	username = strings.TrimPrefix(username, "@")
 	user, exists, err := a.community.UserWithUsername(ctx, username)
 	if err != nil {
 		return fmt.Errorf("getting user with username %q: %w", username, err)
@@ -48,7 +50,7 @@ func (a addMemberAction) Perform(ctx context.Context, update telegram.Update) er
 	if !exists {
 		return fmt.Errorf("team with ID %d does not exist", intTeamID)
 	}
-	_, err = team.AddMember(ctx, user.ID())
+	_, err = team.AddMember(ctx, user.ID()) // AddMember returns nil, nil
 	if err != nil {
 		return fmt.Errorf("adding user %q to team %d: %w", username, intTeamID, err)
 	}

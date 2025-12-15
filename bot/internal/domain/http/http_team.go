@@ -39,11 +39,12 @@ func (h httpTeam) AddMember(ctx context.Context, userID int64) (domain.Member, e
 	if err != nil {
 		return nil, fmt.Errorf("adding member to team %d: %w", h.id, err)
 	}
-	username, role, err := h.member(ctx, userID)
-	if err != nil {
-		return nil, fmt.Errorf("getting username for member %d in team %d: %w", userID, h.id, err)
-	}
-	return Member(resp.Id, username, role, h.id, h.client), nil
+	return nil, nil
+	// username, role, err := h.member(ctx, resp.Id)
+	// if err != nil {
+	// 	return nil, fmt.Errorf("getting username for member %d in team %d: %w", userID, h.id, err)
+	// }
+	// return Member(resp.Id, username, role, h.id, h.client), nil
 }
 
 func (h httpTeam) Members(ctx context.Context) (domain.Members, error) {

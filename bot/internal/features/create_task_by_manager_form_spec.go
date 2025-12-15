@@ -6,6 +6,7 @@ import (
 
 	"github.com/andreychh/coopera-bot/internal/domain"
 	domainactions "github.com/andreychh/coopera-bot/internal/domain/actions"
+	domainconditions "github.com/andreychh/coopera-bot/internal/domain/conditions"
 	"github.com/andreychh/coopera-bot/internal/ui/views"
 	"github.com/andreychh/coopera-bot/pkg/botlib/base"
 	"github.com/andreychh/coopera-bot/pkg/botlib/composition"
@@ -131,20 +132,33 @@ func CreateTaskByManagerAssignToSpec(bot tg.Bot, c domain.Community, f forms.For
 						hsm.Transit(SpecTeamsMenu),
 					),
 					hsm.TryAction(
-						conditions.TextMatchesRegexp(`^@\w+$`),
-						composition.Sequential(
-							sources.Apply(
-								sources.Required(attributes.Text()),
-								forms.CurrentField(f, "task_assignee"),
-								func(ctx context.Context, text string, field forms.Field) error {
-									username := strings.TrimPrefix(text, "@")
-									return field.ChangeValue(ctx, username)
-								},
+						composition.Not(conditions.TextMatchesRegexp(`^@`)),
+						base.SendContent(bot,
+							sources.Static(content.Text("Invalid format. Username must start with '@' symbol.")),
+						),
+						hsm.Stay(),
+					),
+					hsm.TryAction(
+						composition.Not(domainconditions.UserInTeam(c, f)),
+						base.SendContent(bot, sources.Static(content.Text("User is not a member of this team."))),
+						hsm.Stay(),
+					),
+					hsm.Try(
+						routing.Terminal(
+							composition.Sequential(
+								sources.Apply(
+									sources.Required(attributes.Text()),
+									forms.CurrentField(f, "task_assignee"),
+									func(ctx context.Context, text string, field forms.Field) error {
+										username := strings.TrimPrefix(text, "@")
+										return field.ChangeValue(ctx, username)
+									},
+								),
+								domainactions.CreateAssigned(c, f),
+								base.SendContent(bot, sources.Static[content.Content](
+									keyboards.Empty(content.Text("Task created successfully!")),
+								)),
 							),
-							domainactions.CreateAssigned(c, f),
-							base.SendContent(bot, sources.Static[content.Content](
-								keyboards.Empty(content.Text("Task created successfully!")),
-							)),
 						),
 						hsm.Transit(SpecTeamsMenu),
 					),

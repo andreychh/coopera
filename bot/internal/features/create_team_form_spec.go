@@ -7,6 +7,7 @@ import (
 	"github.com/andreychh/coopera-bot/pkg/botlib/base"
 	"github.com/andreychh/coopera-bot/pkg/botlib/composition"
 	"github.com/andreychh/coopera-bot/pkg/botlib/content"
+	"github.com/andreychh/coopera-bot/pkg/botlib/content/keyboards"
 	"github.com/andreychh/coopera-bot/pkg/botlib/forms"
 	"github.com/andreychh/coopera-bot/pkg/botlib/forms/actions"
 	"github.com/andreychh/coopera-bot/pkg/botlib/hsm"
@@ -75,7 +76,17 @@ func CreateTeamFormSpec(bot tg.Bot, c domain.Community, f forms.Forms) hsm.Spec 
 				sources.Static(content.Text("Please fill out the form below or use /cancel to exit the form.")),
 			),
 			hsm.Greedy(
-				hsm.JustIf(conditions.CommandIs("cancel"), hsm.Transit(SpecTeamsMenu)),
+				hsm.If(
+					conditions.CommandIs("cancel"),
+					hsm.Try(
+						routing.Terminal(
+							base.SendContent(bot, sources.Static[content.Content](
+								keyboards.Empty(content.Text("Form canceled."))),
+							),
+						),
+						hsm.Transit(SpecTeamsMenu),
+					),
+				),
 			),
 			composition.Nothing(),
 		),
