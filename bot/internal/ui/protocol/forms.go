@@ -12,13 +12,14 @@ import (
 )
 
 const (
-	FormCreateTeam = "create_team_from"
-	FormAddMember  = "add_member_form"
-	FormCreateTask = "create_task_form"
+	FormCreateTeam   = "c_tm"
+	FormAddMember    = "a_m"
+	FormCreateTask   = "c_ts"
+	FormEstimateTask = "e_ts"
 
-	prefixStartForm = "start_form"
+	prefixStartForm = "sf"
 
-	keyFormName = "form_name"
+	keyFormName = "fn"
 )
 
 func OnStartForm(name string) core.Condition {
@@ -46,5 +47,12 @@ func StartCreateTaskForm(teamID int64) string {
 	return callbacks.OutcomingData(prefixStartForm).
 		With(keyFormName, FormCreateTask).
 		With(keyTeamID, strconv.FormatInt(teamID, 10)).
+		String()
+}
+
+func StartEstimateTaskForm(taskID int64) string {
+	return callbacks.OutcomingData(prefixStartForm).
+		With(keyFormName, FormEstimateTask).
+		With(keyTaskID, strconv.FormatInt(taskID, 10)).
 		String()
 }

@@ -10,10 +10,11 @@ const (
 	SpecTeamMenu            = "team_menu_spec"
 	SpecMembersMenu         = "members_menu_spec"
 	SpecTasksAssignedToUser = "tasks_assigned_to_user_spec"
-	SpecAllTeamTasks        = "all_team_tasks_spec"
+	SpecTeamTasks           = "all_team_tasks_spec"
 	SpecMemberTasks         = "member_tasks_spec"
 	SpecUserTask            = "user_task_spec"
 	SpecMemberTask          = "member_task_spec"
+	SpecTeamTask            = "team_task_menu_spec"
 
 	SpecCreateTeamForm     = "create_team_form_spec"
 	SpecCreateTeamFormName = "create_team_form_name_spec"
@@ -30,4 +31,7 @@ const (
 	SpecCreateTaskByMemberForm            = "create_task_by_member_form_spec"
 	SpecCreateTaskByMemberFormTitle       = "create_task_by_member_form_title_spec"
 	SpecCreateTaskByMemberFormDescription = "create_task_by_member_form_description_spec"
+
+	SpecEstimateTaskForm       = "estimate_task_form_spec"
+	SpecEstimateTaskFormPoints = "estimate_task_form_points_spec"
 )

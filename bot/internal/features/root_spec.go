@@ -25,15 +25,17 @@ func RootSpec(bot tg.Bot, c domain.Community, f forms.Forms) hsm.Spec {
 			TeamMenuSpec(bot, c),
 			MembersMenuSpec(bot, c),
 			TasksAssignedToUserSpec(bot, c),
-			AllTeamTasksSpec(bot, c),
+			TeamTasksSpec(bot, c),
 			MemberTasksSpec(bot, c),
 			UserTaskSpec(bot, c),
 			MemberTaskSpec(bot, c),
+			TeamTaskSpec(bot, c),
 
 			CreateTeamFormSpec(bot, c, f),
 			AddMemberSpec(bot, c, f),
 			CreateTaskByManagerSpec(bot, c, f),
 			CreateTaskByMemberSpec(bot, c, f),
+			EstimateTaskSpec(bot, c, f),
 		),
 	)
 }

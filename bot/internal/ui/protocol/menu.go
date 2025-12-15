@@ -13,23 +13,29 @@ import (
 )
 
 const (
-	MenuMain                = "main_menu"
-	MenuTeams               = "teams_menu"
-	MenuTeam                = "team_menu"
-	MenuMembers             = "members_menu"
-	MenuMember              = "member_menu"
-	MenuTasksAssignedToUser = "tasks_assigned_to_user_menu"
-	MenuAllTeamTasks        = "all_team_tasks_menu"
-	MenuMemberTasks         = "member_tasks_menu"
-	MenuUserTask            = "user_task_menu"
-	MenuMemberTask          = "member_task_menu"
+	MenuMain        = "main"
+	MenuTeams       = "teams"
+	MenuTeam        = "team"
+	MenuMembers     = "members"
+	MenuMember      = "member"
+	MenuUserTasks   = "user_ts"
+	MenuTeamTasks   = "team_ts"
+	MenuMemberTasks = "member_ts"
+	MenuUserTask    = "user_t"
+	MenuMemberTask  = "member_t"
+	MenuTeamTask    = "team_t"
 
-	prefixChangeMenu = "change_menu"
+	ActionSubmitTaskForReview = "submit"
+	ActionApproveTask         = "approve"
+	ActionAssignTaskToSelf    = "assign"
 
-	keyMenuName = "menu_name"
-	keyTeamID   = "team_id"
-	keyMemberID = "member_id"
-	keyTaskID   = "task_id"
+	prefixChangeMenu = "cm"
+
+	keyMenuName = "mn"
+	keyTeamID   = "tmid"
+	keyMemberID = "mid"
+	keyTaskID   = "tsid"
+	keyAction   = "act"
 )
 
 func ToMainMenu() string {
@@ -67,13 +73,13 @@ func ToMemberMenu(memberID int64) string {
 
 func ToTasksAssignedToUserMenu() string {
 	return callbacks.OutcomingData(prefixChangeMenu).
-		With(keyMenuName, MenuTasksAssignedToUser).
+		With(keyMenuName, MenuUserTasks).
 		String()
 }
 
-func ToAllTeamTasksMenu(teamID int64) string {
+func ToTeamTasksMenu(teamID int64) string {
 	return callbacks.OutcomingData(prefixChangeMenu).
-		With(keyMenuName, MenuAllTeamTasks).
+		With(keyMenuName, MenuTeamTasks).
 		With(keyTeamID, strconv.FormatInt(teamID, 10)).
 		String()
 }
@@ -99,11 +105,33 @@ func ToMemberTaskMenu(taskID int64) string {
 		String()
 }
 
+func ToTeamTaskMenu(taskID int64) string {
+	return callbacks.OutcomingData(prefixChangeMenu).
+		With(keyMenuName, MenuTeamTask).
+		With(keyTaskID, strconv.FormatInt(taskID, 10)).
+		String()
+}
+
+func ToTeamTaskMenuWithAction(taskID int64, action string) string {
+	return callbacks.OutcomingData(prefixChangeMenu).
+		With(keyMenuName, MenuTeamTask).
+		With(keyTaskID, strconv.FormatInt(taskID, 10)).
+		With(keyAction, action).
+		String()
+}
+
 func OnChangeMenu(id string) core.Condition {
 	return composition.All(
 		updatesconditions.UpdateTypeIs(updates.UpdateTypeCallbackQuery),
 		conditions.PrefixIs(prefixChangeMenu),
 		conditions.ValueIs(keyMenuName, id),
+	)
+}
+
+func OnAction(action string) core.Condition {
+	return composition.All(
+		updatesconditions.UpdateTypeIs(updates.UpdateTypeCallbackQuery),
+		conditions.ValueIs(keyAction, action),
 	)
 }
 

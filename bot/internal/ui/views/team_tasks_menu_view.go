@@ -68,7 +68,7 @@ func (m allTeamTasksMenuView) taskButton(ctx context.Context, task domain.Task) 
 	if task.Status() == domain.StatusDraft {
 		return buttons.CallbackButton(
 			fmt.Sprintf("%q | Open (needs estimation)", task.Title()),
-			"not_implemented",
+			protocol.ToTeamTaskMenu(task.ID()),
 		), nil
 	}
 	points, exists := task.Points()
@@ -105,10 +105,10 @@ func (m allTeamTasksMenuView) taskButton(ctx context.Context, task domain.Task) 
 	}
 	return buttons.CallbackButton(
 		fmt.Sprintf("%q | %d | %s%s", task.Title(), points, statusLabel, assigneeStr),
-		"not_implemented", // protocol.ToTaskMenu(task.ID()),
+		protocol.ToTeamTaskMenu(task.ID()),
 	), nil
 }
 
-func AllTeamTasks(community domain.Community) sources.Source[content.Content] {
+func TeamTasks(community domain.Community) sources.Source[content.Content] {
 	return allTeamTasksMenuView{community: community}
 }

@@ -82,6 +82,24 @@ func (h httpTask) Team(ctx context.Context) (domain.Team, error) {
 	return team, nil
 }
 
+func (h httpTask) CreatedBy(ctx context.Context) (domain.Member, error) {
+	resp := findTeamResponse{}
+	err := h.client.Get(
+		ctx,
+		transport.URL("teams").With("team_id", strconv.FormatInt(h.teamID, 10)).String(),
+		&resp,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("getting team %d: %w", h.teamID, err)
+	}
+	for _, member := range resp.Members {
+		if member.MemberId == h.createdByMember {
+			return Member(member.MemberId, member.Username, domain.MemberRole(member.Role), h.teamID, h.client), nil
+		}
+	}
+	return nil, fmt.Errorf("member %d not found in team %d", h.createdByMember, h.teamID)
+}
+
 func Task(
 	id int64,
 	title string,

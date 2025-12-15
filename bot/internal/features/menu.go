@@ -20,7 +20,7 @@ func MainMenuSpec(bot tg.Bot) hsm.Spec {
 			hsm.FirstHandled(
 				hsm.JustIf(protocol.OnChangeMenu(protocol.MenuTeams), hsm.Transit(SpecTeamsMenu)),
 				hsm.JustIf(
-					protocol.OnChangeMenu(protocol.MenuTasksAssignedToUser),
+					protocol.OnChangeMenu(protocol.MenuUserTasks),
 					hsm.Transit(SpecTasksAssignedToUser),
 				),
 			),
@@ -52,7 +52,7 @@ func TeamMenuSpec(bot tg.Bot, c domain.Community) hsm.Spec {
 			hsm.FirstHandled(
 				hsm.JustIf(protocol.OnChangeMenu(protocol.MenuMembers), hsm.Transit(SpecMembersMenu)),
 				hsm.JustIf(protocol.OnChangeMenu(protocol.MenuTeams), hsm.Transit(SpecTeamsMenu)),
-				hsm.JustIf(protocol.OnChangeMenu(protocol.MenuAllTeamTasks), hsm.Transit(SpecAllTeamTasks)),
+				hsm.JustIf(protocol.OnChangeMenu(protocol.MenuTeamTasks), hsm.Transit(SpecTeamTasks)),
 				hsm.JustIf(protocol.OnChangeMenu(protocol.MenuMemberTasks), hsm.Transit(SpecMemberTasks)),
 				hsm.JustIf(
 					composition.All(
@@ -102,12 +102,15 @@ func TasksAssignedToUserSpec(bot tg.Bot, c domain.Community) hsm.Spec {
 	)
 }
 
-func AllTeamTasksSpec(bot tg.Bot, c domain.Community) hsm.Spec {
+func TeamTasksSpec(bot tg.Bot, c domain.Community) hsm.Spec {
 	return hsm.Leaf(
-		SpecAllTeamTasks,
+		SpecTeamTasks,
 		hsm.CoreBehavior(
-			base.EditOrSendContent(bot, views.AllTeamTasks(c)),
-			hsm.JustIf(protocol.OnChangeMenu(protocol.MenuTeam), hsm.Transit(SpecTeamMenu)),
+			base.EditOrSendContent(bot, views.TeamTasks(c)),
+			hsm.FirstHandled(
+				hsm.JustIf(protocol.OnChangeMenu(protocol.MenuTeam), hsm.Transit(SpecTeamMenu)),
+				hsm.JustIf(protocol.OnChangeMenu(protocol.MenuTeamTask), hsm.Transit(SpecTeamTask)),
+			),
 			composition.Nothing(),
 		),
 	)
@@ -133,11 +136,52 @@ func UserTaskSpec(bot tg.Bot, c domain.Community) hsm.Spec {
 		hsm.CoreBehavior(
 			base.EditOrSendContent(bot, views.UserTaskMenuView(c)),
 			hsm.FirstHandled(
-				hsm.JustIf(protocol.OnChangeMenu(protocol.MenuTasksAssignedToUser), hsm.Transit(SpecTasksAssignedToUser)),
+				hsm.JustIf(protocol.OnChangeMenu(protocol.MenuUserTasks), hsm.Transit(SpecTasksAssignedToUser)),
 				hsm.TryAction(
 					protocol.OnChangeMenu(protocol.MenuUserTask),
 					domainactions.SubmitTaskForReview(c),
 					hsm.Transit(SpecUserTask),
+				),
+			),
+			composition.Nothing(),
+		),
+	)
+}
+
+func TeamTaskSpec(bot tg.Bot, c domain.Community) hsm.Spec {
+	return hsm.Leaf(
+		SpecTeamTask,
+		hsm.CoreBehavior(
+			base.EditOrSendContent(bot, views.TeamTaskMenuView(c)),
+			hsm.FirstHandled(
+				hsm.JustIf(protocol.OnChangeMenu(protocol.MenuTeamTasks), hsm.Transit(SpecTeamTasks)),
+				hsm.JustIf(
+					protocol.OnStartForm(protocol.FormEstimateTask),
+					hsm.Transit(SpecEstimateTaskForm),
+				),
+				hsm.TryAction(
+					composition.All(
+						protocol.OnChangeMenu(protocol.MenuTeamTask),
+						protocol.OnAction(protocol.ActionAssignTaskToSelf),
+					),
+					domainactions.AssignTaskToSelf(c),
+					hsm.Transit(SpecTeamTask),
+				),
+				hsm.TryAction(
+					composition.All(
+						protocol.OnChangeMenu(protocol.MenuTeamTask),
+						protocol.OnAction(protocol.ActionSubmitTaskForReview),
+					),
+					domainactions.SubmitTaskForReview(c),
+					hsm.Transit(SpecTeamTask),
+				),
+				hsm.TryAction(
+					composition.All(
+						protocol.OnChangeMenu(protocol.MenuTeamTask),
+						protocol.OnAction(protocol.ActionApproveTask),
+					),
+					domainactions.ApproveTask(c),
+					hsm.Transit(SpecTeamTask),
 				),
 			),
 			composition.Nothing(),

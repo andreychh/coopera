@@ -107,6 +107,7 @@ type Task interface {
 	Status() TaskStatus
 	CreatedAt() time.Time
 
+	CreatedBy(ctx context.Context) (Member, error)
 	Assignee(ctx context.Context) (Member, bool, error)
 	Team(ctx context.Context) (Team, error)
 }

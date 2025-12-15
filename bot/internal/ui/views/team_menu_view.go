@@ -39,7 +39,7 @@ func (t teamMenuView) Value(ctx context.Context, update telegram.Update) (conten
 		buttons.Matrix(
 			buttons.Row(buttons.CallbackButton("Members", protocol.ToMembersMenu(team.ID()))),
 			buttons.Row(
-				buttons.CallbackButton("All tasks", protocol.ToAllTeamTasksMenu(team.ID())),
+				buttons.CallbackButton("All tasks", protocol.ToTeamTasksMenu(team.ID())),
 				buttons.CallbackButton("My tasks", protocol.ToMemberTasksMenu(team.ID())),
 			),
 			buttons.Row(buttons.CallbackButton("Add task", protocol.StartCreateTaskForm(team.ID()))),
