@@ -6,31 +6,39 @@ import (
 
 	"github.com/andreychh/coopera-bot/pkg/botlib/core"
 	"github.com/andreychh/coopera-bot/pkg/botlib/forms"
-	"github.com/andreychh/coopera-bot/pkg/botlib/updates/attrs"
+	"github.com/andreychh/coopera-bot/pkg/botlib/sources"
+	"github.com/andreychh/coopera-bot/pkg/botlib/updates/attributes"
 	telegram "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 )
 
-type saveTextToFieldAction struct {
+func SaveTextToField(f forms.Forms, name string) core.Action {
+	return sources.Apply(
+		forms.CurrentField(f, name),
+		sources.Required(attributes.Text()),
+		func(ctx context.Context, field forms.Field, value string) error {
+			return field.ChangeValue(ctx, value)
+		},
+	)
+}
+
+type safeValueToFieldAction struct {
 	forms forms.Forms
 	name  string
+	value string
 }
 
-func (s saveTextToFieldAction) Perform(ctx context.Context, update telegram.Update) error {
-	id, exists := attrs.ChatID(update).Value()
-	if !exists {
-		return fmt.Errorf("getting chat ID from update: chat ID not found")
+func (s safeValueToFieldAction) Perform(ctx context.Context, update telegram.Update) error {
+	chatID, found := attributes.ChatID().Value(update)
+	if !found {
+		return fmt.Errorf("chat ID not found in update")
 	}
-	text, exists := attrs.Text(update).Value()
-	if !exists {
-		return fmt.Errorf("getting text from update: text not found")
-	}
-	err := s.forms.Form(id).Field(s.name).ChangeValue(ctx, text)
-	if err != nil {
-		return fmt.Errorf("changing value of field %q in form for chat %d to %q: %w", s.name, id, text, err)
-	}
-	return nil
+	return s.forms.Form(chatID).Field(s.name).ChangeValue(ctx, s.value)
 }
 
-func SaveTextToField(forms forms.Forms, name string) core.Action {
-	return saveTextToFieldAction{forms: forms, name: name}
+func SaveValueToField(f forms.Forms, name string, value string) core.Action {
+	return safeValueToFieldAction{
+		forms: f,
+		name:  name,
+		value: value,
+	}
 }

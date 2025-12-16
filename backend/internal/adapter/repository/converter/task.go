@@ -7,15 +7,16 @@ import (
 
 func FromEntityToModelTask(task entity.Task) taskModel.Task {
 	mtask := taskModel.Task{
-		ID:          task.ID,
-		TeamID:      task.TeamID,
-		Title:       task.Title,
-		Description: task.Description,
-		Points:      task.Points,
-		AssignedTo:  task.AssignedToMember,
-		CreatedBy:   task.CreatedBy,
-		CreatedAt:   task.CreatedAt,
-		UpdatedAt:   task.UpdatedAt,
+		ID:              task.ID,
+		TeamID:          task.TeamID,
+		Title:           task.Title,
+		Description:     task.Description,
+		Points:          task.Points,
+		AssignedTo:      task.AssignedToMember,
+		CreatedByUser:   task.CreatedByUserID,
+		CreatedByMember: task.CreatedByMemberID,
+		CreatedAt:       task.CreatedAt,
+		UpdatedAt:       task.UpdatedAt,
 	}
 
 	if task.AssignedToMember != nil {
@@ -30,16 +31,17 @@ func FromEntityToModelTask(task entity.Task) taskModel.Task {
 func FromModelToEntityTask(m taskModel.Task) entity.Task {
 	status := entity.Status(m.Status)
 	return entity.Task{
-		ID:               m.ID,
-		TeamID:           m.TeamID,
-		Title:            m.Title,
-		Description:      m.Description,
-		Points:           m.Points,
-		Status:           &status,
-		AssignedToMember: m.AssignedTo,
-		CreatedBy:        m.CreatedBy,
-		CreatedAt:        m.CreatedAt,
-		UpdatedAt:        m.UpdatedAt,
+		ID:                m.ID,
+		TeamID:            m.TeamID,
+		Title:             m.Title,
+		Description:       m.Description,
+		Points:            m.Points,
+		Status:            &status,
+		AssignedToMember:  m.AssignedTo,
+		CreatedByUserID:   m.CreatedByUser,
+		CreatedByMemberID: m.CreatedByMember,
+		CreatedAt:         m.CreatedAt,
+		UpdatedAt:         m.UpdatedAt,
 	}
 }
 

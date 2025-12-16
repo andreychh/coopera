@@ -56,15 +56,15 @@ func Start() error {
 
 	userUC := user.NewUserUsecase(userRepo, db)
 	memberUC := memberships.NewMembershipsUsecase(memberRepo, db)
-	teamUC := team.NewTeamUsecase(teamRepo, memberUC, db)
+	teamUC := team.NewTeamUsecase(teamRepo, memberUC, userUC, db)
 	taskUC := task.NewTaskUsecase(taskRepo, memberUC, db, teamUC)
 
 	taskCtx, taskCancel := context.WithCancel(context.Background())
 	defer taskCancel()
 
-	taskAssignerUsecase := taskassigner.NewTaskAssignmentUsecase(taskUC, memberUC, db)
+	taskAssignerUsecase := taskassigner.NewTaskAssignmentUsecase(db, taskUC, memberUC)
 	taskAssigner := task_controller.NewTaskAssignmentController(taskAssignerUsecase)
-	go taskAssigner.StartAssignmentLoop(taskCtx, 10*time.Second)
+	go taskAssigner.StartAssignmentLoop(taskCtx, cfg.AssignmentsWorkerInterval, cfg.TaskMinAge)
 
 	router := web_api.NewRouter(userUC, teamUC, taskUC, memberUC, logService, cfg).SetupRoutes()
 

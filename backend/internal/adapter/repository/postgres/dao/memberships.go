@@ -44,10 +44,10 @@ func (r *MembershipDAO) AddMember(ctx context.Context, m membership_model.Member
 	return id, nil
 }
 
-func (r *MembershipDAO) DeleteMember(ctx context.Context, m membership_model.Membership) error {
+func (r *MembershipDAO) DeleteMember(ctx context.Context, memberID int32) error {
 	const query = `
 		DELETE FROM coopera.memberships
-		WHERE team_id = $1 AND user_id = $2
+		WHERE id = $1
 	`
 
 	tx, ok := ctx.Value(postgres.TransactionKey{}).(postgres.Transaction)
@@ -55,7 +55,7 @@ func (r *MembershipDAO) DeleteMember(ctx context.Context, m membership_model.Mem
 		return repoErr.ErrTransactionNotFound
 	}
 
-	result, err := tx.Exec(ctx, query, m.TeamID, m.UserID)
+	result, err := tx.Exec(ctx, query, memberID)
 	if err != nil {
 		return fmt.Errorf("%w: %v", repoErr.ErrFailDelete, err)
 	}

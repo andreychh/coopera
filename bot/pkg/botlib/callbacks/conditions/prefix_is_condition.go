@@ -2,11 +2,10 @@ package conditions
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/andreychh/coopera-bot/pkg/botlib/callbacks"
 	"github.com/andreychh/coopera-bot/pkg/botlib/core"
-	"github.com/andreychh/coopera-bot/pkg/botlib/updates/attrs"
+	"github.com/andreychh/coopera-bot/pkg/botlib/updates/attributes"
 	telegram "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 )
 
@@ -15,14 +14,13 @@ type prefixIsCondition struct {
 }
 
 func (p prefixIsCondition) Holds(_ context.Context, update telegram.Update) (bool, error) {
-	callbackData, exists := attrs.CallbackData(update).Value()
+	callbackData, exists := attributes.CallbackData().Value(update)
 	if !exists {
-		return false, fmt.Errorf("getting callback data from update: callback data not found")
+		return false, nil
 	}
 	return callbacks.IncomingData(callbackData).Prefix() == p.prefix, nil
 }
 
-// PrefixIs requires attrs.CallbackData
 func PrefixIs(prefix string) core.Condition {
 	return prefixIsCondition{prefix: prefix}
 }

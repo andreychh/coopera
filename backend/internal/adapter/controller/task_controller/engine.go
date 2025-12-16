@@ -18,18 +18,21 @@ func NewTaskAssignmentController(u usecase.TaskAssignmentUsecase) *TaskAssignmen
 	}
 }
 
-func (c *TaskAssignmentController) StartAssignmentLoop(ctx context.Context, interval time.Duration) {
+func (c *TaskAssignmentController) StartAssignmentLoop(ctx context.Context, interval time.Duration, taskMinAge time.Duration) {
 	ticker := time.NewTicker(interval)
 	defer ticker.Stop()
 
 	for {
 		select {
 		case <-ctx.Done():
+			log.Println("task assignment loop stopped")
 			return
 		case <-ticker.C:
-			if err := c.usecase.AssignTasks(ctx); err != nil {
+			loopCtx, cancel := context.WithTimeout(ctx, 5*time.Minute)
+			if err := c.usecase.AssignTasks(loopCtx, taskMinAge); err != nil {
 				log.Println("failed to assign tasks:", err)
 			}
+			cancel()
 		}
 	}
 }

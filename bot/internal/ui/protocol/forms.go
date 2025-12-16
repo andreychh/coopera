@@ -1,6 +1,8 @@
 package protocol
 
 import (
+	"strconv"
+
 	"github.com/andreychh/coopera-bot/pkg/botlib/callbacks"
 	"github.com/andreychh/coopera-bot/pkg/botlib/callbacks/conditions"
 	"github.com/andreychh/coopera-bot/pkg/botlib/composition"
@@ -10,24 +12,47 @@ import (
 )
 
 const (
-	FormCreateTeam = "create_team"
+	FormCreateTeam   = "c_tm"
+	FormAddMember    = "a_m"
+	FormCreateTask   = "c_ts"
+	FormEstimateTask = "e_ts"
+
+	prefixStartForm = "sf"
+
+	keyFormName = "fn"
 )
 
-const (
-	formPrefix = "start_form"
-	formKey    = "form_name"
-)
-
-func OnStartForm(formID string) core.Condition {
+func OnStartForm(name string) core.Condition {
 	return composition.All(
 		updatesconditions.UpdateTypeIs(updates.UpdateTypeCallbackQuery),
-		conditions.PrefixIs(formPrefix),
-		conditions.ValueIs(formKey, formID),
+		conditions.PrefixIs(prefixStartForm),
+		conditions.ValueIs(keyFormName, name),
 	)
 }
 
-func StartFromPayload(formID string) string {
-	return callbacks.OutcomingData(formPrefix).
-		With(formKey, formID).
+func StartCreateTeamForm() string {
+	return callbacks.OutcomingData(prefixStartForm).
+		With(keyFormName, FormCreateTeam).
+		String()
+}
+
+func StartAddMemberForm(teamID int64) string {
+	return callbacks.OutcomingData(prefixStartForm).
+		With(keyFormName, FormAddMember).
+		With(keyTeamID, strconv.FormatInt(teamID, 10)).
+		String()
+}
+
+func StartCreateTaskForm(teamID int64) string {
+	return callbacks.OutcomingData(prefixStartForm).
+		With(keyFormName, FormCreateTask).
+		With(keyTeamID, strconv.FormatInt(teamID, 10)).
+		String()
+}
+
+func StartEstimateTaskForm(taskID int64) string {
+	return callbacks.OutcomingData(prefixStartForm).
+		With(keyFormName, FormEstimateTask).
+		With(keyTaskID, strconv.FormatInt(taskID, 10)).
 		String()
 }
