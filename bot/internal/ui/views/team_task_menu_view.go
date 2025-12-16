@@ -121,7 +121,7 @@ func (t teamTaskMenuView) description(ctx context.Context, task domain.Task) (st
 	case domain.StatusDraft:
 		statusStr = "📝 Требует оценки"
 	case domain.StatusOpen:
-		statusStr = "🗄 Открыта (Backlog)"
+		statusStr = "🗄 Открыта"
 	case domain.StatusInProgress:
 		statusStr = "🔨 В работе"
 	case domain.StatusInReview:

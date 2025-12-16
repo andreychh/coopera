@@ -6,6 +6,7 @@ import (
 	"os"
 
 	"github.com/andreychh/coopera-bot/internal/app"
+	"github.com/andreychh/coopera-bot/pkg/botlib/base"
 	"github.com/andreychh/coopera-bot/pkg/botlib/composition"
 	"github.com/andreychh/coopera-bot/pkg/botlib/core"
 	"github.com/andreychh/coopera-bot/pkg/botlib/hsm"
@@ -27,15 +28,17 @@ func main() {
 	engine := app.Engine(token,
 		composition.Run(
 			logging.LoggingClause(
-				routing.If(
-					composition.All(
-						conditions.ChatTypeIs(updates.ChatTypePrivate),
-						composition.Any(
-							conditions.UpdateTypeIs(updates.UpdateTypeMessage),
-							conditions.UpdateTypeIs(updates.UpdateTypeCallbackQuery),
+				base.Recover(
+					routing.If(
+						composition.All(
+							conditions.ChatTypeIs(updates.ChatTypePrivate),
+							composition.Any(
+								conditions.UpdateTypeIs(updates.UpdateTypeMessage),
+								conditions.UpdateTypeIs(updates.UpdateTypeCallbackQuery),
+							),
 						),
+						hsm.NewEngine(sessions, graph, bot),
 					),
-					hsm.NewEngine(sessions, graph),
 				),
 				slog.Default(),
 			),

@@ -97,10 +97,10 @@ func (m membersMenuView) renderMembersList(ctx context.Context, team domain.Team
 			roleIcon = "⭐"
 		}
 		sb.WriteString(fmt.Sprintf("%s <b>@%s</b>\n", roleIcon, member.Username()))
-		sb.WriteString(fmt.Sprintf("В работе: %d (+%d)\n",
+		sb.WriteString(fmt.Sprintf("<b>В работе:</b> %d (+%d)\n",
 			stats.CurrentState.AssignedTasks, stats.CurrentState.AssignedPoints,
 		))
-		sb.WriteString(fmt.Sprintf("Завершено: %d (+%d)\n\n",
+		sb.WriteString(fmt.Sprintf("<b>Завершено:</b> %d (+%d)\n\n",
 			stats.Contribution.TasksDone, stats.Contribution.PointsDone,
 		))
 	}

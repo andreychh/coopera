@@ -6,6 +6,7 @@ import (
 	"log/slog"
 
 	"github.com/andreychh/coopera-bot/pkg/botlib/sessions"
+	"github.com/andreychh/coopera-bot/pkg/botlib/tg"
 	"github.com/andreychh/coopera-bot/pkg/botlib/updates/attributes"
 	telegram "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 )
@@ -13,9 +14,13 @@ import (
 type engine struct {
 	sessions sessions.Sessions
 	graph    Graph
+	bot      tg.Bot
 }
 
 func (e engine) TryExecute(ctx context.Context, update telegram.Update) (bool, error) {
+	if update.CallbackQuery != nil {
+		_ = e.bot.AnswerCallbackQuery(ctx, update.CallbackQuery.ID)
+	}
 	id, ok := attributes.ChatID().Value(update)
 	if !ok {
 		return false, nil
@@ -95,6 +100,6 @@ func (e engine) emergencyReset(ctx context.Context, chatID int64, u telegram.Upd
 	return rootLeaf, nil
 }
 
-func NewEngine(s sessions.Sessions, g Graph) *engine {
-	return &engine{sessions: s, graph: g}
+func NewEngine(s sessions.Sessions, g Graph, bot tg.Bot) *engine {
+	return &engine{sessions: s, graph: g, bot: bot}
 }

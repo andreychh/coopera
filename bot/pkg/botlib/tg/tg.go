@@ -8,6 +8,7 @@ import (
 
 type Bot interface {
 	Chat(id int64) Chat
+	AnswerCallbackQuery(ctx context.Context, id string) error
 }
 
 type Chat interface {
