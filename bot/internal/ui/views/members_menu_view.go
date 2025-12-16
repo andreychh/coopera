@@ -55,10 +55,7 @@ func (m membersMenuView) Value(ctx context.Context, update telegram.Update) (con
 	if err != nil {
 		return nil, fmt.Errorf("getting current member: %w", err)
 	}
-	isManager := false
-	if exists && currentMember.Role() == domain.RoleManager {
-		isManager = true
-	}
+	isManager := exists && currentMember.Role() == domain.RoleManager
 	text, err := m.renderMembersList(ctx, team)
 	if err != nil {
 		return nil, fmt.Errorf("generating members text: %w", err)

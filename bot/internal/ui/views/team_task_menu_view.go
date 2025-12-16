@@ -65,10 +65,7 @@ func (t teamTaskMenuView) Value(ctx context.Context, update telegram.Update) (co
 	if err != nil {
 		return nil, fmt.Errorf("getting assignee member for task %d: %w", task.ID(), err)
 	}
-	isAssignee := false
-	if assigneeFound && assigneeMember.ID() == currentMember.ID() {
-		isAssignee = true
-	}
+	isAssignee := assigneeFound && assigneeMember.ID() == currentMember.ID()
 	description, err := t.description(ctx, task)
 	if err != nil {
 		return nil, fmt.Errorf("getting description for task %d: %w", taskID, err)

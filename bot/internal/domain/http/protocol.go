@@ -1,7 +1,6 @@
 package http
 
 import (
-	"fmt"
 	"time"
 
 	"github.com/andreychh/coopera-bot/internal/domain"
@@ -130,8 +129,6 @@ func RespToTask(resp findTasksResponse, client transport.Client) domain.Task {
 		status = domain.StatusInReview
 	case resp.Status == "completed":
 		status = domain.StatusDone
-	default:
-		panic(fmt.Sprintf("unknown task status: %q", resp))
 	}
 	return Task(
 		resp.Id,

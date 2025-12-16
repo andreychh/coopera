@@ -2,9 +2,7 @@ package http
 
 import (
 	"context"
-	"errors"
 	"fmt"
-	"net/http"
 	"strconv"
 
 	"github.com/andreychh/coopera-bot/internal/domain"
@@ -87,27 +85,27 @@ func (h httpTeam) Tasks(ctx context.Context) (domain.Tasks, error) {
 	return TeamTasks(h.id, h.client), nil
 }
 
-func (h httpTeam) member(ctx context.Context, memberID int64) (string, domain.MemberRole, error) {
-	resp := findTeamResponse{}
-	err := h.client.Get(
-		ctx,
-		transport.URL("teams").With("team_id", strconv.FormatInt(h.id, 10)).String(),
-		&resp,
-	)
-	var apiErr transport.APIError
-	if errors.As(err, &apiErr) && apiErr.StatusCode == http.StatusNotFound {
-		return "", "", fmt.Errorf("team %d not found", h.id)
-	}
-	if err != nil {
-		return "", "", fmt.Errorf("getting team %d: %w", h.id, err)
-	}
-	for _, member := range resp.Members {
-		if member.MemberId == memberID {
-			return member.Username, domain.MemberRole(member.Role), nil
-		}
-	}
-	return "", "", fmt.Errorf("member %d not found in team %d", memberID, h.id)
-}
+// func (h httpTeam) member(ctx context.Context, memberID int64) (string, domain.MemberRole, error) {
+// 	resp := findTeamResponse{}
+// 	err := h.client.Get(
+// 		ctx,
+// 		transport.URL("teams").With("team_id", strconv.FormatInt(h.id, 10)).String(),
+// 		&resp,
+// 	)
+// 	var apiErr transport.APIError
+// 	if errors.As(err, &apiErr) && apiErr.StatusCode == http.StatusNotFound {
+// 		return "", "", fmt.Errorf("team %d not found", h.id)
+// 	}
+// 	if err != nil {
+// 		return "", "", fmt.Errorf("getting team %d: %w", h.id, err)
+// 	}
+// 	for _, member := range resp.Members {
+// 		if member.MemberId == memberID {
+// 			return member.Username, domain.MemberRole(member.Role), nil
+// 		}
+// 	}
+// 	return "", "", fmt.Errorf("member %d not found in team %d", memberID, h.id)
+// }
 
 func Team(id int64, name string, client transport.Client) domain.Team {
 	return httpTeam{
