@@ -1,28 +1,28 @@
 package views
 
 import (
-	"context"
-
 	"github.com/andreychh/coopera-bot/internal/ui/protocol"
 	"github.com/andreychh/coopera-bot/pkg/botlib/content"
+	"github.com/andreychh/coopera-bot/pkg/botlib/content/formatting"
 	"github.com/andreychh/coopera-bot/pkg/botlib/content/keyboards"
 	"github.com/andreychh/coopera-bot/pkg/botlib/content/keyboards/buttons"
-	telegram "github.com/go-telegram-bot-api/telegram-bot-api/v5"
+	"github.com/andreychh/coopera-bot/pkg/botlib/sources"
 )
 
-type mainMenuView struct {
-}
+func MainMenuView() sources.Source[content.Content] {
+	text := `📂 <b>Главное меню</b>
 
-func (m mainMenuView) Render(_ context.Context, _ telegram.Update) (content.Content, error) {
-	return keyboards.Inline(
-		content.Text("Main menu"),
-		buttons.Matrix(
-			buttons.Row(buttons.CallbackButton("Statistics", "not_implemented")),
-			buttons.Row(buttons.CallbackButton("Teams", protocol.ToTeamsMenu())),
+Здесь вы можете управлять командами, задачами и отслеживать личный прогресс.
+
+👇 Выберите нужный раздел:`
+	return sources.Static[content.Content](
+		keyboards.Inline(
+			formatting.Formatted(content.Text(text), formatting.ParseModeHTML),
+			buttons.Matrix(
+				buttons.Row(buttons.CallbackButton("👥 Мои команды", protocol.ToTeamsMenu())),
+				buttons.Row(buttons.CallbackButton("📋 Мои задачи", protocol.ToUserTasksMenu())),
+				buttons.Row(buttons.CallbackButton("📊 Статистика", protocol.ToUserStatsMenu())),
+			),
 		),
-	), nil
-}
-
-func MainMenu() content.View {
-	return mainMenuView{}
+	)
 }

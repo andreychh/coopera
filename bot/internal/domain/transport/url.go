@@ -35,7 +35,7 @@ func (o outcomingURL) String() string {
 	return fmt.Sprintf("%s?%s", o.url, values.Encode())
 }
 
-func NewOutcomingURL(url string) OutcomingURL {
+func URL(url string) OutcomingURL {
 	return outcomingURL{
 		url:    url,
 		values: immutable.EmptyMap[string, string](),

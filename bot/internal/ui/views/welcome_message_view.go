@@ -1,18 +1,20 @@
 package views
 
 import (
-	"context"
-
 	"github.com/andreychh/coopera-bot/pkg/botlib/content"
-	telegram "github.com/go-telegram-bot-api/telegram-bot-api/v5"
+	"github.com/andreychh/coopera-bot/pkg/botlib/content/formatting"
+	"github.com/andreychh/coopera-bot/pkg/botlib/sources"
 )
 
-type welcomeMessageView struct{}
+func WelcomeMessage() sources.Source[content.Content] {
+	text := `👋 <b>Добро пожаловать!</b>
 
-func (w welcomeMessageView) Render(ctx context.Context, update telegram.Update) (content.Content, error) {
-	return content.Text("Welcome to Coopera Bot! Use the menu below to navigate."), nil
-}
+Coopera — это платформа для командной работы, где вклад участников прозрачен и измерим.
 
-func WelcomeMessage() content.View {
-	return welcomeMessageView{}
+🤖 <b>Что умеет система:</b>
+• <b>Команды:</b> создание групп и добавление участников.
+• <b>Задачи:</b> оценка стоимости в баллах.
+• <b>Процесс:</b> назначение исполнителей и смена статусов.
+• <b>Аналитика:</b> статистика вклада каждого участника.`
+	return sources.Static(formatting.Formatted(content.Text(text), formatting.ParseModeHTML))
 }

@@ -5,40 +5,57 @@ import (
 	"fmt"
 
 	"github.com/andreychh/coopera-bot/internal/domain"
+	"github.com/andreychh/coopera-bot/internal/domain/conditions"
 	"github.com/andreychh/coopera-bot/internal/ui/protocol"
 	"github.com/andreychh/coopera-bot/pkg/botlib/content"
+	"github.com/andreychh/coopera-bot/pkg/botlib/content/formatting"
 	"github.com/andreychh/coopera-bot/pkg/botlib/content/keyboards"
 	"github.com/andreychh/coopera-bot/pkg/botlib/content/keyboards/buttons"
-	"github.com/andreychh/coopera-bot/pkg/botlib/updates/attrs"
+	"github.com/andreychh/coopera-bot/pkg/botlib/sources"
+	"github.com/andreychh/coopera-bot/pkg/botlib/updates/attributes"
 	telegram "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 )
 
-type teamsMenuView struct {
-	community domain.Community
+func TeamsEmptyView() sources.Source[content.Content] {
+	text := `👥 <b>Мои команды</b>
+
+У вас пока нет ни одной команды.
+Создайте свою первую команду, чтобы начать распределять задачи и добавлять участников!`
+
+	return sources.Static[content.Content](keyboards.Inline(
+		formatting.Formatted(content.Text(text), formatting.ParseModeHTML),
+		buttons.Matrix(
+			buttons.Row(buttons.CallbackButton("➕ Создать команду", protocol.StartCreateTeamForm())),
+			buttons.Row(buttons.CallbackButton("🔙 Главное меню", protocol.ToMainMenu())),
+		),
+	))
 }
 
-func (t teamsMenuView) Render(ctx context.Context, update telegram.Update) (content.Content, error) {
-	chatID, exists := attrs.ChatID(update).Value()
-	if !exists {
-		return nil, fmt.Errorf("getting chat ID from update: chat ID not found")
-	}
-	teams, err := t.community.UserWithTelegramID(chatID).CreatedTeams(ctx)
+type teamsView struct {
+	teams sources.Source[domain.Teams]
+}
+
+func (t teamsView) Value(ctx context.Context, update telegram.Update) (content.Content, error) {
+	teamsSource, err := t.teams.Value(ctx, update)
 	if err != nil {
-		return nil, fmt.Errorf("getting user's created teams: %w", err)
+		return nil, fmt.Errorf("getting teams source: %w", err)
 	}
-	details, err := teams_{teams: teams}.details(ctx)
+	teams, err := teamsSource.All(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("getting teams details: %w", err)
 	}
+	text := `👥 <b>Мои команды</b>
+
+Выберите команду из списка ниже для управления задачами и участниками.`
 	return keyboards.Inline(
-		content.Text("Select a team:"),
-		t.teamsMatrix(details).
-			WithRow(buttons.Row(buttons.CallbackButton("Create team", protocol.StartFromPayload("create_team")))).
-			WithRow(buttons.Row(buttons.CallbackButton("Main menu", protocol.ToMainMenu()))),
+		formatting.Formatted(content.Text(text), formatting.ParseModeHTML),
+		t.teamsMatrix(teams).
+			WithRow(buttons.Row(buttons.CallbackButton("➕ Создать команду", protocol.StartCreateTeamForm()))).
+			WithRow(buttons.Row(buttons.CallbackButton("🔙 Главное меню", protocol.ToMainMenu()))),
 	), nil
 }
 
-func (t teamsMenuView) teamsMatrix(teams []domain.TeamDetails) buttons.ButtonMatrix[buttons.InlineButton] {
+func (t teamsView) teamsMatrix(teams []domain.Team) buttons.ButtonMatrix[buttons.InlineButton] {
 	matrix := buttons.Matrix[buttons.InlineButton]()
 	for _, team := range teams {
 		matrix = matrix.WithRow(buttons.Row(t.teamButton(team)))
@@ -46,29 +63,48 @@ func (t teamsMenuView) teamsMatrix(teams []domain.TeamDetails) buttons.ButtonMat
 	return matrix
 }
 
-func (t teamsMenuView) teamButton(team domain.TeamDetails) buttons.InlineButton {
-	return buttons.CallbackButton(team.Name(), protocol.ToTeamMenu(team.ID()))
+func (t teamsView) teamButton(team domain.Team) buttons.InlineButton {
+	return buttons.CallbackButton(
+		fmt.Sprintf("🏢 %s", team.Name()),
+		protocol.ToTeamMenu(team.ID()),
+	)
 }
 
-// TODO: add Teams interface in domain package with Details method
-type teams_ struct {
-	teams []domain.Team
+func TeamsView(teams sources.Source[domain.Teams]) sources.Source[content.Content] {
+	return teamsView{teams: teams}
 }
 
-func (t teams_) details(ctx context.Context) ([]domain.TeamDetails, error) {
-	var details []domain.TeamDetails
-	for _, team := range t.teams {
-		detail, err := team.Details(ctx)
-		if err != nil {
-			return nil, fmt.Errorf("getting details for team: %w", err)
-		}
-		details = append(details, detail)
+func TeamsMenu(comm domain.Community) sources.Source[content.Content] {
+	return sources.IfElse(
+		conditions.IsTeamsEmpty(comm),
+		TeamsEmptyView(),
+		TeamsView(CurrentTeams(comm)),
+	)
+}
+
+type currentTeams struct {
+	community domain.Community
+}
+
+func (c currentTeams) Value(ctx context.Context, update telegram.Update) (domain.Teams, error) {
+	id, found := attributes.ChatID().Value(update)
+	if !found {
+		return nil, fmt.Errorf("chat ID not found in update")
 	}
-	return details, nil
+	user, exists, err := c.community.UserWithTelegramID(ctx, id)
+	if err != nil {
+		return nil, fmt.Errorf("getting user with telegram ID %d: %w", id, err)
+	}
+	if !exists {
+		return nil, fmt.Errorf("user with telegram ID %d does not exist", id)
+	}
+	teams, err := user.Teams(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("getting created teams for user %d: %w", id, err)
+	}
+	return teams, nil
 }
 
-func TeamsMenu(community domain.Community) content.View {
-	return teamsMenuView{
-		community: community,
-	}
+func CurrentTeams(comm domain.Community) sources.Source[domain.Teams] {
+	return currentTeams{community: comm}
 }

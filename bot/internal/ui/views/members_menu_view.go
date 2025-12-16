@@ -3,15 +3,16 @@ package views
 import (
 	"context"
 	"fmt"
-	"strconv"
+	"strings"
 
 	"github.com/andreychh/coopera-bot/internal/domain"
 	"github.com/andreychh/coopera-bot/internal/ui/protocol"
-	"github.com/andreychh/coopera-bot/pkg/botlib/callbacks"
 	"github.com/andreychh/coopera-bot/pkg/botlib/content"
+	"github.com/andreychh/coopera-bot/pkg/botlib/content/formatting"
 	"github.com/andreychh/coopera-bot/pkg/botlib/content/keyboards"
 	"github.com/andreychh/coopera-bot/pkg/botlib/content/keyboards/buttons"
-	"github.com/andreychh/coopera-bot/pkg/botlib/updates/attrs"
+	"github.com/andreychh/coopera-bot/pkg/botlib/sources"
+	"github.com/andreychh/coopera-bot/pkg/botlib/updates/attributes"
 	telegram "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 )
 
@@ -19,66 +20,93 @@ type membersMenuView struct {
 	community domain.Community
 }
 
-func (m membersMenuView) Render(ctx context.Context, update telegram.Update) (content.Content, error) {
-	callbackData, exists := attrs.CallbackData(update).Value()
+func (m membersMenuView) Value(ctx context.Context, update telegram.Update) (content.Content, error) {
+	callbackData, exists := attributes.CallbackData().Value(update)
 	if !exists {
 		return nil, fmt.Errorf("getting callback data from update: callback data not found")
 	}
-	id, err := protocol.ParseTeamID(callbackData)
+	teamID, err := protocol.ParseTeamID(callbackData)
 	if err != nil {
 		return nil, fmt.Errorf("parsing team ID from callback data %q: %w", callbackData, err)
 	}
-	members, err := m.community.Team(id).Members(ctx)
+	team, exists, err := m.community.Team(ctx, teamID)
 	if err != nil {
-		return nil, fmt.Errorf("getting members details for team %d: %w", id, err)
+		return nil, fmt.Errorf("getting team %d: %w", teamID, err)
 	}
-	details, err := members_{members: members}.details(ctx)
+	if !exists {
+		return nil, fmt.Errorf("team %d does not exist", teamID)
+	}
+	chatID, found := attributes.ChatID().Value(update)
+	if !found {
+		return nil, fmt.Errorf("chat ID not found")
+	}
+	user, exists, err := m.community.UserWithTelegramID(ctx, chatID)
 	if err != nil {
-		return nil, fmt.Errorf("getting members details: %w", err)
+		return nil, fmt.Errorf("getting user %d: %w", chatID, err)
 	}
+	if !exists {
+		return nil, fmt.Errorf("user %d not found", chatID)
+	}
+	members, err := team.Members(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("getting members: %w", err)
+	}
+	currentMember, exists, err := members.MemberWithUsername(ctx, user.Username())
+	if err != nil {
+		return nil, fmt.Errorf("getting current member: %w", err)
+	}
+	isManager := exists && currentMember.Role() == domain.RoleManager
+	text, err := m.renderMembersList(ctx, team)
+	if err != nil {
+		return nil, fmt.Errorf("generating members text: %w", err)
+	}
+	btns := buttons.Matrix[buttons.InlineButton]()
+	if isManager {
+		btns = btns.WithRow(buttons.Row(
+			buttons.CallbackButton("➕ Добавить участника", protocol.StartAddMemberForm(team.ID())),
+		))
+	}
+	btns = btns.WithRow(buttons.Row(
+		buttons.CallbackButton("🔙 Меню команды", protocol.ToTeamMenu(team.ID())),
+	))
 	return keyboards.Inline(
-		content.Text("Team members:"),
-		m.membersMatrix(details).WithRow(buttons.Row(buttons.CallbackButton(
-			"Invite member",
-			"not_implemented",
-		))),
+		formatting.Formatted(content.Text(text), formatting.ParseModeHTML),
+		btns,
 	), nil
 }
 
-func (m membersMenuView) membersMatrix(members []domain.MemberDetails) buttons.ButtonMatrix[buttons.InlineButton] {
-	matrix := buttons.Matrix[buttons.InlineButton]()
-	for _, member := range members {
-		matrix = matrix.WithRow(buttons.Row(m.memberButton(member)))
+func (m membersMenuView) renderMembersList(ctx context.Context, team domain.Team) (string, error) {
+	members, err := team.Members(ctx)
+	if err != nil {
+		return "", err
 	}
-	return matrix
-}
-
-func (m membersMenuView) memberButton(member domain.MemberDetails) buttons.InlineButton {
-	return buttons.CallbackButton(
-		member.Name(),
-		callbacks.OutcomingData("change_menu").
-			With("menu_name", "member").
-			With("member_id", strconv.FormatInt(member.ID(), 10)).
-			String(),
-	)
-}
-
-type members_ struct {
-	members []domain.Member
-}
-
-func (m members_) details(ctx context.Context) ([]domain.MemberDetails, error) {
-	var details []domain.MemberDetails
-	for _, member := range m.members {
-		detail, err := member.Details(ctx)
+	slice, err := members.All(ctx)
+	if err != nil {
+		return "", err
+	}
+	var sb strings.Builder
+	sb.WriteString(fmt.Sprintf("👥 <b>Участники команды: %s</b>\n\n", team.Name()))
+	sb.WriteString("Список участников и их вклад в команде:\n\n")
+	for _, member := range slice {
+		stats, err := member.Stats(ctx)
 		if err != nil {
-			return nil, fmt.Errorf("getting details for member: %w", err)
+			stats = domain.MemberStats{}
 		}
-		details = append(details, detail)
+		roleIcon := "👤"
+		if member.Role() == domain.RoleManager {
+			roleIcon = "⭐"
+		}
+		sb.WriteString(fmt.Sprintf("%s <b>@%s</b>\n", roleIcon, member.Username()))
+		sb.WriteString(fmt.Sprintf("В работе: %d (+%d)\n",
+			stats.CurrentState.AssignedTasks, stats.CurrentState.AssignedPoints,
+		))
+		sb.WriteString(fmt.Sprintf("Завершено: %d (+%d)\n\n",
+			stats.Contribution.TasksDone, stats.Contribution.PointsDone,
+		))
 	}
-	return details, nil
+	return sb.String(), nil
 }
 
-func MembersMenu(community domain.Community) content.View {
+func MembersMenu(community domain.Community) sources.Source[content.Content] {
 	return membersMenuView{community: community}
 }

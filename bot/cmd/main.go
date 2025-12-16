@@ -6,10 +6,13 @@ import (
 	"os"
 
 	"github.com/andreychh/coopera-bot/internal/app"
-	"github.com/andreychh/coopera-bot/pkg/botlib/base"
 	"github.com/andreychh/coopera-bot/pkg/botlib/composition"
+	"github.com/andreychh/coopera-bot/pkg/botlib/core"
 	"github.com/andreychh/coopera-bot/pkg/botlib/hsm"
 	"github.com/andreychh/coopera-bot/pkg/botlib/logging"
+	"github.com/andreychh/coopera-bot/pkg/botlib/routing"
+	"github.com/andreychh/coopera-bot/pkg/botlib/updates"
+	"github.com/andreychh/coopera-bot/pkg/botlib/updates/conditions"
 )
 
 func main() {
@@ -20,17 +23,21 @@ func main() {
 	sessions := app.Sessions(store)
 	forms := app.Forms(store)
 	tree := app.Tree(bot, community, forms)
-	graph, err := hsm.NewCompiler(tree).Graph()
-	if err != nil {
-		panic(err)
-	}
+	graph := core.Must(hsm.NewCompiler(tree).Graph())
 	engine := app.Engine(token,
 		composition.Run(
-			base.Recover(
-				logging.LoggingClause(
+			logging.LoggingClause(
+				routing.If(
+					composition.All(
+						conditions.ChatTypeIs(updates.ChatTypePrivate),
+						composition.Any(
+							conditions.UpdateTypeIs(updates.UpdateTypeMessage),
+							conditions.UpdateTypeIs(updates.UpdateTypeCallbackQuery),
+						),
+					),
 					hsm.NewEngine(sessions, graph),
-					slog.Default(),
 				),
+				slog.Default(),
 			),
 		),
 	)
