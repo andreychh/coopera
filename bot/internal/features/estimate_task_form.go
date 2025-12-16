@@ -11,6 +11,7 @@ import (
 	"github.com/andreychh/coopera-bot/pkg/botlib/base"
 	"github.com/andreychh/coopera-bot/pkg/botlib/composition"
 	"github.com/andreychh/coopera-bot/pkg/botlib/content"
+	"github.com/andreychh/coopera-bot/pkg/botlib/content/formatting"
 	"github.com/andreychh/coopera-bot/pkg/botlib/content/keyboards"
 	"github.com/andreychh/coopera-bot/pkg/botlib/forms"
 	"github.com/andreychh/coopera-bot/pkg/botlib/forms/actions"
@@ -33,8 +34,9 @@ func EstimateTaskPointsSpec(bot tg.Bot, c domain.Community, f forms.Forms) hsm.S
 				hsm.FirstHandled(
 					hsm.TryAction(
 						composition.Not(conditions.TextMatchesRegexp(`^[1-9][0-9]?$`)),
-						base.SendContent(bot, sources.Static(content.Text(
-							"Invalid points. Please enter a number between 1 and 99.",
+						base.SendContent(bot, sources.Static(formatting.Formatted(
+							content.Text("<b>Ошибка:</b> Введите целое число от 1 до 99."),
+							formatting.ParseModeHTML,
 						))),
 						hsm.Stay(),
 					),
@@ -44,9 +46,10 @@ func EstimateTaskPointsSpec(bot tg.Bot, c domain.Community, f forms.Forms) hsm.S
 								actions.SaveTextToField(f, "task_points"),
 								domainactions.EstimateTask(c, f),
 								base.SendContent(bot,
-									sources.Static(
-										content.Text("Task Updated successfully!"),
-									),
+									sources.Static(formatting.Formatted(
+										content.Text("<b>Успешно:</b> Оценка сохранена. Задача открыта для выполнения."),
+										formatting.ParseModeHTML,
+									)),
 								),
 							),
 						),
@@ -66,7 +69,10 @@ func EstimateTaskSpec(bot tg.Bot, c domain.Community, f forms.Forms) hsm.Spec {
 			composition.Sequential(
 				base.EditOrSendContent(
 					bot,
-					sources.Static(content.Text("Please provide a points of the task or use /cancel to exit the form.")),
+					sources.Static(formatting.Formatted(
+						content.Text("<b>Оценка задачи</b>\n\nВведите количество баллов для этой задачи (число от 1 до 99).\nДля отмены используйте /cancel."),
+						formatting.ParseModeHTML,
+					)),
 				),
 				sources.Apply(
 					forms.CurrentField(f, "task_id"),
@@ -81,8 +87,8 @@ func EstimateTaskSpec(bot tg.Bot, c domain.Community, f forms.Forms) hsm.Spec {
 				hsm.Try(
 					routing.Terminal(
 						base.SendContent(bot, sources.Static[content.Content](
-							keyboards.Empty(content.Text("Form canceled."))),
-						),
+							keyboards.Empty(content.Text("Оценка задачи отменена.")),
+						)),
 					),
 					hsm.Transit(SpecTeamsMenu),
 				),

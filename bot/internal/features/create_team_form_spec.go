@@ -7,6 +7,7 @@ import (
 	"github.com/andreychh/coopera-bot/pkg/botlib/base"
 	"github.com/andreychh/coopera-bot/pkg/botlib/composition"
 	"github.com/andreychh/coopera-bot/pkg/botlib/content"
+	"github.com/andreychh/coopera-bot/pkg/botlib/content/formatting"
 	"github.com/andreychh/coopera-bot/pkg/botlib/content/keyboards"
 	"github.com/andreychh/coopera-bot/pkg/botlib/forms"
 	"github.com/andreychh/coopera-bot/pkg/botlib/forms/actions"
@@ -23,7 +24,10 @@ func CreateTeamFormNameSpec(bot tg.Bot, c domain.Community, f forms.Forms) hsm.S
 		hsm.CoreBehavior(
 			base.SendContent(
 				bot,
-				sources.Static(content.Text("Please provide the name of your team.")),
+				sources.Static(formatting.Formatted(
+					content.Text("<b>Название команды</b>\n\nПридумайте название для вашей команды (от 3 до 50 символов)."),
+					formatting.ParseModeHTML,
+				)),
 			),
 			hsm.If(
 				composition.Not(conditions.CommandIs("cancel")),
@@ -31,18 +35,20 @@ func CreateTeamFormNameSpec(bot tg.Bot, c domain.Community, f forms.Forms) hsm.S
 					hsm.TryAction(
 						composition.Not(conditions.TextMatchesRegexp("^[A-Za-zА-Яа-я0-9_ -]{3,50}$")),
 						base.SendContent(bot,
-							sources.Static(
-								content.Text("Please provide the name of your team using 3 to 50 characters: letters, numbers, spaces, hyphens, or underscores."),
-							),
+							sources.Static(formatting.Formatted(
+								content.Text("<b>Ошибка формата:</b> Используйте от 3 до 50 символов: буквы, цифры, пробелы, дефис (-) или подчеркивание (_)."),
+								formatting.ParseModeHTML,
+							)),
 						),
 						hsm.Stay(),
 					),
 					hsm.TryAction(
 						domainconditions.TeamExists(c),
 						base.SendContent(bot,
-							sources.Static(
-								content.Text("Team with this name already exists. Please choose a different name."),
-							),
+							sources.Static(formatting.Formatted(
+								content.Text("<b>Ошибка:</b> Команда с таким названием уже существует. Пожалуйста, придумайте другое."),
+								formatting.ParseModeHTML,
+							)),
 						),
 						hsm.Stay(),
 					),
@@ -52,9 +58,10 @@ func CreateTeamFormNameSpec(bot tg.Bot, c domain.Community, f forms.Forms) hsm.S
 								actions.SaveTextToField(f, "team_name"),
 								domainactions.CreateTeam(c, f),
 								base.SendContent(bot,
-									sources.Static(
-										content.Text("Team created successfully!"),
-									),
+									sources.Static(formatting.Formatted(
+										content.Text("<b>Успешно:</b> Команда создана! Теперь вы можете добавить в неё участников."),
+										formatting.ParseModeHTML,
+									)),
 								),
 							),
 						),
@@ -73,7 +80,10 @@ func CreateTeamFormSpec(bot tg.Bot, c domain.Community, f forms.Forms) hsm.Spec 
 		hsm.CoreBehavior(
 			base.EditOrSendContent(
 				bot,
-				sources.Static(content.Text("Please fill out the form below or use /cancel to exit the form.")),
+				sources.Static(formatting.Formatted(
+					content.Text("<b>Создание новой команды</b>\n\nЗаполните форму ниже. Для отмены используйте /cancel."),
+					formatting.ParseModeHTML,
+				)),
 			),
 			hsm.Greedy(
 				hsm.If(
@@ -81,8 +91,8 @@ func CreateTeamFormSpec(bot tg.Bot, c domain.Community, f forms.Forms) hsm.Spec 
 					hsm.Try(
 						routing.Terminal(
 							base.SendContent(bot, sources.Static[content.Content](
-								keyboards.Empty(content.Text("Form canceled."))),
-							),
+								keyboards.Empty(content.Text("Создание команды отменено.")),
+							)),
 						),
 						hsm.Transit(SpecTeamsMenu),
 					),

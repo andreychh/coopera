@@ -8,6 +8,7 @@ import (
 	"github.com/andreychh/coopera-bot/internal/domain/conditions"
 	"github.com/andreychh/coopera-bot/internal/ui/protocol"
 	"github.com/andreychh/coopera-bot/pkg/botlib/content"
+	"github.com/andreychh/coopera-bot/pkg/botlib/content/formatting"
 	"github.com/andreychh/coopera-bot/pkg/botlib/content/keyboards"
 	"github.com/andreychh/coopera-bot/pkg/botlib/content/keyboards/buttons"
 	"github.com/andreychh/coopera-bot/pkg/botlib/sources"
@@ -16,11 +17,16 @@ import (
 )
 
 func TeamsEmptyView() sources.Source[content.Content] {
+	text := `👥 <b>Мои команды</b>
+
+У вас пока нет ни одной команды.
+Создайте свою первую команду, чтобы начать распределять задачи и добавлять участников!`
+
 	return sources.Static[content.Content](keyboards.Inline(
-		content.Text("У вас пока нет команд. Создайте первую!"),
+		formatting.Formatted(content.Text(text), formatting.ParseModeHTML),
 		buttons.Matrix(
-			buttons.Row(buttons.CallbackButton("Create team", protocol.StartCreateTeamForm())),
-			buttons.Row(buttons.CallbackButton("Main menu", protocol.ToMainMenu())),
+			buttons.Row(buttons.CallbackButton("➕ Создать команду", protocol.StartCreateTeamForm())),
+			buttons.Row(buttons.CallbackButton("🔙 Главное меню", protocol.ToMainMenu())),
 		),
 	))
 }
@@ -38,11 +44,14 @@ func (t teamsView) Value(ctx context.Context, update telegram.Update) (content.C
 	if err != nil {
 		return nil, fmt.Errorf("getting teams details: %w", err)
 	}
+	text := `👥 <b>Мои команды</b>
+
+Выберите команду из списка ниже для управления задачами и участниками.`
 	return keyboards.Inline(
-		content.Text("Select a team:"),
+		formatting.Formatted(content.Text(text), formatting.ParseModeHTML),
 		t.teamsMatrix(teams).
-			WithRow(buttons.Row(buttons.CallbackButton("Create team", protocol.StartCreateTeamForm()))).
-			WithRow(buttons.Row(buttons.CallbackButton("Main menu", protocol.ToMainMenu()))),
+			WithRow(buttons.Row(buttons.CallbackButton("➕ Создать команду", protocol.StartCreateTeamForm()))).
+			WithRow(buttons.Row(buttons.CallbackButton("🔙 Главное меню", protocol.ToMainMenu()))),
 	), nil
 }
 
@@ -55,7 +64,10 @@ func (t teamsView) teamsMatrix(teams []domain.Team) buttons.ButtonMatrix[buttons
 }
 
 func (t teamsView) teamButton(team domain.Team) buttons.InlineButton {
-	return buttons.CallbackButton(team.Name(), protocol.ToTeamMenu(team.ID()))
+	return buttons.CallbackButton(
+		fmt.Sprintf("🏢 %s", team.Name()),
+		protocol.ToTeamMenu(team.ID()),
+	)
 }
 
 func TeamsView(teams sources.Source[domain.Teams]) sources.Source[content.Content] {

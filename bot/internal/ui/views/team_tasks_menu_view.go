@@ -7,6 +7,7 @@ import (
 	"github.com/andreychh/coopera-bot/internal/domain"
 	"github.com/andreychh/coopera-bot/internal/ui/protocol"
 	"github.com/andreychh/coopera-bot/pkg/botlib/content"
+	"github.com/andreychh/coopera-bot/pkg/botlib/content/formatting"
 	"github.com/andreychh/coopera-bot/pkg/botlib/content/keyboards"
 	"github.com/andreychh/coopera-bot/pkg/botlib/content/keyboards/buttons"
 	"github.com/andreychh/coopera-bot/pkg/botlib/sources"
@@ -42,13 +43,35 @@ func (m allTeamTasksMenuView) Value(ctx context.Context, update telegram.Update)
 	if err != nil {
 		return nil, fmt.Errorf("getting tasks slice for team %d: %w", id, err)
 	}
+	if len(slice) == 0 {
+		text := fmt.Sprintf(`📋 <b>Доска задач: %s</b>
+
+В этой команде пока нет задач.
+Вернитесь в меню команды, чтобы создать первую задачу.`, team.Name())
+		return keyboards.Inline(
+			formatting.Formatted(content.Text(text), formatting.ParseModeHTML),
+			buttons.Matrix(
+				buttons.Row(buttons.CallbackButton("🔙 Меню команды", protocol.ToTeamMenu(id))),
+			),
+		), nil
+	}
 	matrix, err := m.tasksMatrix(ctx, slice)
 	if err != nil {
 		return nil, fmt.Errorf("creating tasks matrix for team %d: %w", id, err)
 	}
+	text := fmt.Sprintf(`📋 <b>Доска задач: %s</b>
+
+Используйте этот список для отслеживания хода выполнения задач команды.
+
+<b>Статусы:</b>
+📝 — Требует оценки
+🗄 — Ожидает исполнителя
+🔨 — В работе (с исполнителем)
+👀 — На проверке
+✅ — Завершено`, team.Name())
 	return keyboards.Inline(
-		content.Text(fmt.Sprintf("Team %s tasks:", team.Name())),
-		matrix.WithRow(buttons.Row(buttons.CallbackButton("Team menu", protocol.ToTeamMenu(id)))),
+		formatting.Formatted(content.Text(text), formatting.ParseModeHTML),
+		matrix.WithRow(buttons.Row(buttons.CallbackButton("🔙 Меню команды", protocol.ToTeamMenu(id)))),
 	), nil
 }
 
@@ -67,44 +90,46 @@ func (m allTeamTasksMenuView) tasksMatrix(ctx context.Context, tasks []domain.Ta
 func (m allTeamTasksMenuView) taskButton(ctx context.Context, task domain.Task) (buttons.InlineButton, error) {
 	if task.Status() == domain.StatusDraft {
 		return buttons.CallbackButton(
-			fmt.Sprintf("%q | Open (needs estimation)", task.Title()),
+			fmt.Sprintf("📝 %s (Оценка...)", task.Title()),
 			protocol.ToTeamTaskMenu(task.ID()),
 		), nil
 	}
 	points, exists := task.Points()
 	if !exists {
-		return nil, fmt.Errorf("task %d has status %q but no points assigned", task.ID(), task.Status())
+		points = 0
 	}
-	var statusLabel string
+	statusIcon := ""
 	needsAssignee := false
 	switch task.Status() {
 	case domain.StatusOpen:
-		statusLabel = "Open"
+		statusIcon = "🗄"
 	case domain.StatusInProgress:
-		statusLabel = "In Progress"
+		statusIcon = "🔨"
 		needsAssignee = true
 	case domain.StatusInReview:
-		statusLabel = "In Review"
+		statusIcon = "👀"
 		needsAssignee = true
 	case domain.StatusDone:
-		statusLabel = "Done"
+		statusIcon = "✅"
 		needsAssignee = true
 	default:
-		return nil, fmt.Errorf("unknown task status %q for task %d", task.Status(), task.ID())
+		statusIcon = "❓"
 	}
-	var assigneeStr string
+	assigneeStr := ""
 	if needsAssignee {
 		assignee, found, err := task.Assignee(ctx)
 		if err != nil {
 			return nil, fmt.Errorf("getting assignee for task %d: %w", task.ID(), err)
 		}
-		if !found {
-			return nil, fmt.Errorf("task %d is %q but has no assignee", task.ID(), statusLabel)
+		if found {
+			assigneeStr = fmt.Sprintf(" @%s", assignee.Username())
+		} else {
+			assigneeStr = " (no user)"
 		}
-		assigneeStr = fmt.Sprintf(" (@%s)", assignee.Username())
 	}
+	label := fmt.Sprintf("%s %s (+%d)%s", statusIcon, task.Title(), points, assigneeStr)
 	return buttons.CallbackButton(
-		fmt.Sprintf("%q | %d | %s%s", task.Title(), points, statusLabel, assigneeStr),
+		label,
 		protocol.ToTeamTaskMenu(task.ID()),
 	), nil
 }

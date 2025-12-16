@@ -12,6 +12,7 @@ import (
 	"github.com/andreychh/coopera-bot/pkg/botlib/base"
 	"github.com/andreychh/coopera-bot/pkg/botlib/composition"
 	"github.com/andreychh/coopera-bot/pkg/botlib/content"
+	"github.com/andreychh/coopera-bot/pkg/botlib/content/formatting"
 	"github.com/andreychh/coopera-bot/pkg/botlib/content/keyboards"
 	"github.com/andreychh/coopera-bot/pkg/botlib/forms"
 	"github.com/andreychh/coopera-bot/pkg/botlib/forms/actions"
@@ -30,7 +31,12 @@ func AddMemberUsernameSpec(bot tg.Bot, c domain.Community, f forms.Forms) hsm.Sp
 		hsm.CoreBehavior(
 			base.SendContent(
 				bot,
-				sources.Static(content.Text("Please provide the username of the member to add.")),
+				sources.Static(
+					formatting.Formatted(
+						content.Text("Введите Telegram-юзернейм пользователя (в формате <b>@username</b>):"),
+						formatting.ParseModeHTML,
+					),
+				),
 			),
 			hsm.If(
 				composition.Not(conditions.CommandIs("cancel")),
@@ -38,53 +44,81 @@ func AddMemberUsernameSpec(bot tg.Bot, c domain.Community, f forms.Forms) hsm.Sp
 					hsm.TryAction(
 						composition.Not(conditions.TextMatchesRegexp(`^@`)),
 						base.SendContent(bot,
-							sources.Static(content.Text("Invalid format. Username must start with '@' symbol.")),
+							sources.Static(formatting.Formatted(
+								content.Text("<b>Ошибка формата:</b> Юзернейм должен начинаться с символа '@'."),
+								formatting.ParseModeHTML,
+							)),
 						),
 						hsm.Stay(),
 					),
 					hsm.TryAction(
 						composition.Not(conditions.TextMatchesRegexp(`^@.{5,32}$`)),
 						base.SendContent(bot,
-							sources.Static(content.Text("Incorrect length. Username must be between 5 and 32 characters.")),
+							sources.Static(formatting.Formatted(
+								content.Text("<b>Ошибка длины:</b> Юзернейм должен содержать от 5 до 32 символов."),
+								formatting.ParseModeHTML,
+							)),
 						),
 						hsm.Stay(),
 					),
 					hsm.TryAction(
 						composition.Not(conditions.TextMatchesRegexp(`^@[a-zA-Z0-9_]+$`)),
 						base.SendContent(bot,
-							sources.Static(content.Text("Invalid characters. Only Latin letters (a-z), numbers (0-9), and underscores (_) are allowed.")),
+							sources.Static(formatting.Formatted(
+								content.Text("<b>Недопустимые символы:</b> Используйте только латинские буквы (a-z), цифры (0-9) и нижнее подчеркивание (_)."),
+								formatting.ParseModeHTML,
+							)),
 						),
 						hsm.Stay(),
 					),
 					hsm.TryAction(
 						composition.Not(conditions.TextMatchesRegexp(`^@[a-zA-Z]`)),
 						base.SendContent(bot,
-							sources.Static(content.Text("Invalid start. Username must start with a letter.")),
+							sources.Static(formatting.Formatted(
+								content.Text("<b>Ошибка формата:</b> Юзернейм должен начинаться с буквы."),
+								formatting.ParseModeHTML,
+							)),
 						),
 						hsm.Stay(),
 					),
 					hsm.TryAction(
 						composition.Not(conditions.TextMatchesRegexp(`[a-zA-Z0-9]$`)),
 						base.SendContent(bot,
-							sources.Static(content.Text("Invalid ending. Username cannot end with an underscore.")),
+							sources.Static(formatting.Formatted(
+								content.Text("<b>Ошибка формата:</b> Юзернейм не может заканчиваться подчеркиванием."),
+								formatting.ParseModeHTML,
+							)),
 						),
 						hsm.Stay(),
 					),
 					hsm.TryAction(
 						conditions.TextMatchesRegexp(`__`),
 						base.SendContent(bot,
-							sources.Static(content.Text("Invalid format. Consecutive underscores (__) are not allowed.")),
+							sources.Static(formatting.Formatted(
+								content.Text("<b>Ошибка формата:</b> Двойное подчеркивание (__) запрещено."),
+								formatting.ParseModeHTML,
+							)),
 						),
 						hsm.Stay(),
 					),
 					hsm.TryAction(
 						composition.Not(domainconditions.UserExists(c)),
-						base.SendContent(bot, sources.Static(content.Text("User not found in bot database. Ask them to /start the bot first."))),
+						base.SendContent(bot,
+							sources.Static(formatting.Formatted(
+								content.Text("<b>Пользователь не найден.</b>\nПользователь должен сначала запустить этого бота (/start), чтобы вы могли добавить его в команду."),
+								formatting.ParseModeHTML,
+							)),
+						),
 						hsm.Stay(),
 					),
 					hsm.TryAction(
 						domainconditions.UserInTeam(c, f),
-						base.SendContent(bot, sources.Static(content.Text("User is already a member of this team."))),
+						base.SendContent(bot,
+							sources.Static(formatting.Formatted(
+								content.Text("<b>Ошибка:</b> Этот пользователь уже состоит в данной команде."),
+								formatting.ParseModeHTML,
+							)),
+						),
 						hsm.Stay(),
 					),
 					hsm.Try(routing.Terminal(
@@ -92,9 +126,10 @@ func AddMemberUsernameSpec(bot tg.Bot, c domain.Community, f forms.Forms) hsm.Sp
 							actions.SaveTextToField(f, "member_username"),
 							domainactions.AddMember(c, f),
 							base.SendContent(bot,
-								sources.Static(
-									content.Text("Member added successfully!"),
-								),
+								sources.Static(formatting.Formatted(
+									content.Text("<b>Успешно:</b> Пользователь добавлен в команду."),
+									formatting.ParseModeHTML,
+								)),
 							),
 						)),
 						hsm.Transit(SpecTeamsMenu),
@@ -113,7 +148,10 @@ func AddMemberSpec(bot tg.Bot, c domain.Community, f forms.Forms) hsm.Spec {
 			composition.Sequential(
 				base.EditOrSendContent(
 					bot,
-					sources.Static(content.Text("Please fill out the form below or use /cancel to exit the form.")),
+					sources.Static(formatting.Formatted(
+						content.Text("<b>Добавление участника</b>\n\nЗаполните форму ниже. Для отмены используйте команду /cancel."),
+						formatting.ParseModeHTML,
+					)),
 				),
 				sources.Apply(
 					forms.CurrentField(f, "team_id"),
@@ -129,8 +167,8 @@ func AddMemberSpec(bot tg.Bot, c domain.Community, f forms.Forms) hsm.Spec {
 					hsm.Try(
 						routing.Terminal(
 							base.SendContent(bot, sources.Static[content.Content](
-								keyboards.Empty(content.Text("Form canceled."))),
-							),
+								keyboards.Empty(content.Text("Действие отменено.")),
+							)),
 						),
 						hsm.Transit(SpecTeamsMenu),
 					),

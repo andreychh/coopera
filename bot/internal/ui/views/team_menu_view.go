@@ -7,6 +7,7 @@ import (
 	"github.com/andreychh/coopera-bot/internal/domain"
 	"github.com/andreychh/coopera-bot/internal/ui/protocol"
 	"github.com/andreychh/coopera-bot/pkg/botlib/content"
+	"github.com/andreychh/coopera-bot/pkg/botlib/content/formatting"
 	"github.com/andreychh/coopera-bot/pkg/botlib/content/keyboards"
 	"github.com/andreychh/coopera-bot/pkg/botlib/content/keyboards/buttons"
 	"github.com/andreychh/coopera-bot/pkg/botlib/sources"
@@ -34,14 +35,35 @@ func (t teamMenuView) Value(ctx context.Context, update telegram.Update) (conten
 	if !exists {
 		return nil, fmt.Errorf("team %d does not exist", id)
 	}
+	stats, err := team.Stats(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("getting stats for team %d: %w", team.ID(), err)
+	}
+	text := fmt.Sprintf(`🏢 <b>Команда: %s</b>
+
+📊 <b>Сводка по задачам:</b>
+
+<b>Очередь:</b> %d шт. (+%d)
+<b>В работе:</b> %d шт. (+%d)
+<b>На проверке:</b> %d шт. (+%d)
+<b>Завершено:</b> %d шт. (+%d)
+
+👇 Выберите действие:`,
+		team.Name(),
+		stats.Backlog.UnassignedCount, stats.Backlog.UnassignedPoints,
+		stats.ActiveWork.InProgressCount, stats.ActiveWork.InProgressPoints,
+		stats.ActiveWork.InReviewCount, stats.ActiveWork.InReviewPoints,
+		stats.Achievements.CompletedCount, stats.Achievements.CompletedPoints,
+	)
+
 	return keyboards.Inline(
-		content.Text(fmt.Sprintf("Team %s:", team.Name())),
+		formatting.Formatted(content.Text(text), formatting.ParseModeHTML),
 		buttons.Matrix(
-			buttons.Row(buttons.CallbackButton("Members", protocol.ToMembersMenu(team.ID()))),
-			buttons.Row(buttons.CallbackButton("All tasks", protocol.ToTeamTasksMenu(team.ID()))),
-			buttons.Row(buttons.CallbackButton("My tasks", protocol.ToMemberTasksMenu(team.ID()))),
-			buttons.Row(buttons.CallbackButton("Add task", protocol.StartCreateTaskForm(team.ID()))),
-			buttons.Row(buttons.CallbackButton("Teams menu", protocol.ToTeamsMenu())),
+			buttons.Row(buttons.CallbackButton("➕ Создать задачу", protocol.StartCreateTaskForm(team.ID()))),
+			buttons.Row(buttons.CallbackButton("👤 Мои задачи", protocol.ToMemberTasksMenu(team.ID()))),
+			buttons.Row(buttons.CallbackButton("📋 Доска задач", protocol.ToTeamTasksMenu(team.ID()))),
+			buttons.Row(buttons.CallbackButton("👥 Участники", protocol.ToMembersMenu(team.ID()))),
+			buttons.Row(buttons.CallbackButton("🔙 К списку команд", protocol.ToTeamsMenu())),
 		),
 	), nil
 }

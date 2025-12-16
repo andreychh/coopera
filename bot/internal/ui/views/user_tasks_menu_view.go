@@ -7,6 +7,7 @@ import (
 	"github.com/andreychh/coopera-bot/internal/domain"
 	"github.com/andreychh/coopera-bot/internal/ui/protocol"
 	"github.com/andreychh/coopera-bot/pkg/botlib/content"
+	"github.com/andreychh/coopera-bot/pkg/botlib/content/formatting"
 	"github.com/andreychh/coopera-bot/pkg/botlib/content/keyboards"
 	"github.com/andreychh/coopera-bot/pkg/botlib/content/keyboards/buttons"
 	"github.com/andreychh/coopera-bot/pkg/botlib/sources"
@@ -38,13 +39,32 @@ func (m allMyTasksMenuView) Value(ctx context.Context, update telegram.Update) (
 	if err != nil {
 		return nil, fmt.Errorf("getting assigned tasks slice for user %d: %w", id, err)
 	}
+	if len(slice) == 0 {
+		text := `📋 <b>Мои задачи</b>
+        
+У вас пока нет активных задач ни в одной из команд.`
+		return keyboards.Inline(
+			formatting.Formatted(content.Text(text), formatting.ParseModeHTML),
+			buttons.Matrix(
+				buttons.Row(buttons.CallbackButton("🔙 Главное меню", protocol.ToMainMenu())),
+			),
+		), nil
+	}
 	matrix, err := m.tasksMatrix(ctx, slice)
 	if err != nil {
 		return nil, fmt.Errorf("creating tasks matrix for user %d: %w", id, err)
 	}
+	text := `📋 <b>Мои задачи</b>
+
+Список задач, назначенных на вас во всех командах.
+
+<b>Статусы:</b>
+🔨 — В работе
+👀 — На проверке
+✅ — Выполнено`
 	return keyboards.Inline(
-		content.Text("assigned tasks:"),
-		matrix.WithRow(buttons.Row(buttons.CallbackButton("Main menu", protocol.ToMainMenu()))),
+		formatting.Formatted(content.Text(text), formatting.ParseModeHTML),
+		matrix.WithRow(buttons.Row(buttons.CallbackButton("🔙 Главное меню", protocol.ToMainMenu()))),
 	), nil
 }
 
@@ -67,10 +87,22 @@ func (m allMyTasksMenuView) taskButton(ctx context.Context, task domain.Task) (b
 	}
 	points, exists := task.Points()
 	if !exists {
-		return nil, fmt.Errorf("points not set for task %d", task.ID())
+		points = 0
 	}
+	statusIcon := ""
+	switch task.Status() {
+	case domain.StatusInProgress:
+		statusIcon = "🔨"
+	case domain.StatusInReview:
+		statusIcon = "👀"
+	case domain.StatusDone:
+		statusIcon = "✅"
+	default:
+		statusIcon = "❓"
+	}
+	label := fmt.Sprintf("%s %s: %s (+%d)", statusIcon, team.Name(), task.Title(), points)
 	return buttons.CallbackButton(
-		fmt.Sprintf("%q | %q | %s (+%d)", team.Name(), task.Title(), task.Status(), points),
+		label,
 		protocol.ToUserTaskMenu(task.ID()),
 	), nil
 }

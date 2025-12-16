@@ -7,6 +7,7 @@ import (
 	"github.com/andreychh/coopera-bot/internal/domain"
 	"github.com/andreychh/coopera-bot/internal/ui/protocol"
 	"github.com/andreychh/coopera-bot/pkg/botlib/content"
+	"github.com/andreychh/coopera-bot/pkg/botlib/content/formatting"
 	"github.com/andreychh/coopera-bot/pkg/botlib/content/keyboards"
 	"github.com/andreychh/coopera-bot/pkg/botlib/content/keyboards/buttons"
 	"github.com/andreychh/coopera-bot/pkg/botlib/sources"
@@ -64,14 +65,35 @@ func (m memberTasksMenuView) Value(ctx context.Context, update telegram.Update) 
 	if err != nil {
 		return nil, fmt.Errorf("getting assigned tasks slice for user %d: %w", user.ID(), err)
 	}
+	if len(slice) == 0 {
+		text := fmt.Sprintf(`📋 <b>Мои задачи: %s</b>
+
+В этой команде у вас пока нет активных задач.
+Создайте задачу или загляните на <b>Доску задач</b>, чтобы найти работу`, team.Name())
+		return keyboards.Inline(
+			formatting.Formatted(content.Text(text), formatting.ParseModeHTML),
+			buttons.Matrix(
+				buttons.Row(buttons.CallbackButton("🔙 Меню команды", protocol.ToTeamMenu(team.ID()))),
+			),
+		), nil
+	}
 	matrix, err := m.tasksMatrix(ctx, slice)
 	if err != nil {
 		return nil, fmt.Errorf("creating tasks matrix for user %d: %w", user.ID(), err)
 	}
+	text := fmt.Sprintf(`📋 <b>Мои задачи: %s</b>
+
+Задачи, назначенные на вас в этой команде.
+
+<b>Статусы:</b>
+🔨 — В работе
+👀 — На проверке
+✅ — Выполнено`, team.Name())
 	return keyboards.Inline(
-		content.Text("your tasks:"),
-		matrix.
-			WithRow(buttons.Row(buttons.CallbackButton("Team menu", protocol.ToTeamMenu(team.ID())))),
+		formatting.Formatted(content.Text(text), formatting.ParseModeHTML),
+		matrix.WithRow(
+			buttons.Row(buttons.CallbackButton("🔙 Меню команды", protocol.ToTeamMenu(team.ID()))),
+		),
 	), nil
 }
 
@@ -90,10 +112,22 @@ func (m memberTasksMenuView) tasksMatrix(ctx context.Context, tasks []domain.Tas
 func (m memberTasksMenuView) taskButton(_ context.Context, task domain.Task) (buttons.InlineButton, error) {
 	points, exists := task.Points()
 	if !exists {
-		return nil, fmt.Errorf("getting points for task %d: points not set", task.ID())
+		points = 0
 	}
+	statusMarker := ""
+	switch task.Status() {
+	case domain.StatusInProgress:
+		statusMarker = "🔨"
+	case domain.StatusInReview:
+		statusMarker = "👀"
+	case domain.StatusDone:
+		statusMarker = "✅"
+	default:
+		statusMarker = "❓"
+	}
+	label := fmt.Sprintf("%s %s (+%d)", statusMarker, task.Title(), points)
 	return buttons.CallbackButton(
-		fmt.Sprintf("%q | %d | %s", task.Title(), points, task.Status()),
+		label,
 		protocol.ToMemberTaskMenu(task.ID()),
 	), nil
 }

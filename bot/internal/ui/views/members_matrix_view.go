@@ -7,6 +7,7 @@ import (
 
 	"github.com/andreychh/coopera-bot/internal/domain"
 	"github.com/andreychh/coopera-bot/pkg/botlib/content"
+	"github.com/andreychh/coopera-bot/pkg/botlib/content/formatting"
 	"github.com/andreychh/coopera-bot/pkg/botlib/content/keyboards"
 	"github.com/andreychh/coopera-bot/pkg/botlib/content/keyboards/buttons"
 	"github.com/andreychh/coopera-bot/pkg/botlib/forms"
@@ -48,12 +49,15 @@ func (m membersMatrixView) Value(ctx context.Context, update telegram.Update) (c
 	if err != nil {
 		return nil, fmt.Errorf("getting members slice for team %d: %w", teamID, err)
 	}
-	matrix := buttons.Matrix(buttons.Row(buttons.TextButton("(unassigned)")))
+	matrix := buttons.Matrix(buttons.Row(buttons.TextButton("(Без исполнителя)")))
 	for _, member := range slice {
 		matrix = matrix.WithRow(buttons.Row(buttons.TextButton(fmt.Sprintf("@%s", member.Username()))))
 	}
 	return keyboards.Resized(keyboards.Reply(
-		content.Text("Select a member to assign the task to:"),
+		formatting.Formatted(
+			content.Text("<b>Шаг 4 из 4: Исполнитель</b>\n\nВыберите участника из списка, чтобы назначить задачу сразу.\nИли выберите пункт '(Без исполнителя)', чтобы задача попала в общую очередь."),
+			formatting.ParseModeHTML,
+		),
 		matrix,
 	)), nil
 }

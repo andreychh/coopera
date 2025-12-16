@@ -7,6 +7,7 @@ import (
 	"github.com/andreychh/coopera-bot/internal/domain"
 	"github.com/andreychh/coopera-bot/internal/ui/protocol"
 	"github.com/andreychh/coopera-bot/pkg/botlib/content"
+	"github.com/andreychh/coopera-bot/pkg/botlib/content/formatting"
 	"github.com/andreychh/coopera-bot/pkg/botlib/content/keyboards"
 	"github.com/andreychh/coopera-bot/pkg/botlib/content/keyboards/buttons"
 	"github.com/andreychh/coopera-bot/pkg/botlib/sources"
@@ -34,28 +35,26 @@ func (t memberTaskMenuView) Value(ctx context.Context, update telegram.Update) (
 	if !exists {
 		return nil, fmt.Errorf("task %d does not exist", taskID)
 	}
-	description, err := t.description(ctx, task)
-	if err != nil {
-		return nil, fmt.Errorf("getting description for task %d: %w", taskID, err)
-	}
 	team, err := task.Team(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("getting team for task %d: %w", task.ID(), err)
 	}
-	if task.Status() == domain.StatusInProgress {
-		return keyboards.Inline(
-			content.Text(description),
-			buttons.Matrix(
-				buttons.Row(buttons.CallbackButton("Submit for review", protocol.ToMemberTaskMenu(taskID))),
-				buttons.Row(buttons.CallbackButton("My tasks", protocol.ToMemberTasksMenu(team.ID()))),
-			),
-		), nil
+	description, err := t.description(ctx, task)
+	if err != nil {
+		return nil, fmt.Errorf("getting description for task %d: %w", taskID, err)
 	}
+	btns := buttons.Matrix[buttons.InlineButton]()
+	if task.Status() == domain.StatusInProgress {
+		btns = btns.WithRow(buttons.Row(
+			buttons.CallbackButton("📤 Отправить на проверку", protocol.ToMemberTaskMenu(taskID)),
+		))
+	}
+	btns = btns.WithRow(buttons.Row(
+		buttons.CallbackButton("🔙 К задачам команды", protocol.ToMemberTasksMenu(team.ID())),
+	))
 	return keyboards.Inline(
-		content.Text(description),
-		buttons.Matrix(
-			buttons.Row(buttons.CallbackButton("My tasks", protocol.ToMemberTasksMenu(team.ID()))),
-		),
+		formatting.Formatted(content.Text(description), formatting.ParseModeHTML),
+		btns,
 	), nil
 }
 
@@ -66,16 +65,42 @@ func (t memberTaskMenuView) description(ctx context.Context, task domain.Task) (
 	}
 	points, exists := task.Points()
 	if !exists {
-		return "", fmt.Errorf("getting points for task %d: points not set", task.ID())
+		points = 0
 	}
-	return fmt.Sprintf(
-		"Task %q\nCreated in team %q\nAt %s\nDescription:\n%s\n\nPoints: %d | Status: %s\n",
+	creator, err := task.CreatedBy(ctx)
+	username := "unknown"
+	if err == nil {
+		username = creator.Username()
+	}
+	statusStr := ""
+	switch task.Status() {
+	case domain.StatusInProgress:
+		statusStr = "🔨 В работе"
+	case domain.StatusInReview:
+		statusStr = "👀 На проверке"
+	case domain.StatusDone:
+		statusStr = "✅ Выполнено"
+	default:
+		statusStr = string(task.Status())
+	}
+	return fmt.Sprintf(`📄 <b>Задача: %s</b>
+
+<b>Команда:</b> %s
+<b>Автор:</b> @%s
+<b>Создана:</b> %s
+
+<b>Статус:</b> %s
+<b>Стоимость:</b> +%d баллов
+
+<b>Описание:</b>
+<i>%s</i>`,
 		task.Title(),
 		team.Name(),
+		username,
 		task.CreatedAt().Format("02.01.2006 15:04"),
-		task.Description(),
+		statusStr,
 		points,
-		task.Status(),
+		task.Description(),
 	), nil
 }
 
