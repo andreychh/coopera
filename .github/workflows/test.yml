@@ -17,7 +17,6 @@ jobs:
       - uses: actions/setup-go@v6
         with:
           go-version-file: go.mod
-          cache: true
       - uses: go-task/setup-task@v1
         with:
           version: 3.46.4
