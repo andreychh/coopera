@@ -20,6 +20,7 @@ go.work.sum
 
 # IDE settings
 .idea/
+.vscode/
 
 # GoReleaser distribution folder
 dist/

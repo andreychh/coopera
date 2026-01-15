@@ -1,6 +1,6 @@
 # SPDX-FileCopyrightText: 2025-2026 Andrey Chernykh
 # SPDX-License-Identifier: MIT
-name: sonarqube
+name: test
 'on':
   push:
     branches:
@@ -9,13 +9,17 @@ name: sonarqube
     branches:
       - main
 jobs:
-  sonarqube:
+  test:
     timeout-minutes: 15
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v6
+      - uses: actions/setup-go@v6
         with:
-          fetch-depth: 0
-      - uses: SonarSource/sonarqube-scan-action@v6
-        env:
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          go-version-file: go.mod
+          cache: true
+      - uses: go-task/setup-task@v1
+        with:
+          version: 3.46.4
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+      - run: task test
