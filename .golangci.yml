@@ -1,1 +1,21 @@
+# SPDX-FileCopyrightText: 2025-2026 Andrey Chernykh
+# SPDX-License-Identifier: MIT
+# yaml-language-server: $schema=https://golangci-lint.run/jsonschema/golangci.jsonschema.json
 version: '2'
+linters:
+  default: all
+  disable:
+    - revive
+    - depguard
+    - wsl
+  settings:
+    wsl_v5:
+      allow-first-in-block: true
+      allow-whole-block: false
+      branch-max-lines: 2
+formatters:
+  enable:
+    - gofumpt
+  settings:
+    gofumpt:
+      extra-rules: true

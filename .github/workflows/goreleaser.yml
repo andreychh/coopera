@@ -1,23 +1,28 @@
 # SPDX-FileCopyrightText: 2025-2026 Andrey Chernykh
 # SPDX-License-Identifier: MIT
-name: golangci-lint
+name: goreleaser
 'on':
   push:
-    branches:
-      - main
-  pull_request:
-    branches:
-      - main
+    tags:
+      - "v*.*.*"
+permissions:
+  contents: write
+  packages: write
 jobs:
-  golangci-lint:
+  goreleaser:
     timeout-minutes: 15
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
       - uses: actions/setup-go@v6
         with:
           go-version-file: go.mod
           cache: true
-      - uses: golangci/golangci-lint-action@v9
+      - uses: goreleaser/goreleaser-action@v6
         with:
-          version: v2.8.0
+          version: v2.13.3
+          args: release --clean
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

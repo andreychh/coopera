@@ -1,25 +1,8 @@
+<!--
+SPDX-FileCopyrightText: 2025-2026 Andrey Chernykh
+SPDX-License-Identifier: MIT
+-->
+
 # Coopera
 
-## Настройка локальной среды
-
-### 1\. Подготовка конфигурации
-
-Для запуска необходимо создать рабочий файл конфигурации из шаблона.
-
-Скопируйте шаблоны.
-
-```bash
-cp .env.example .env
-```
-
-Отредактируйте `.env`, заменив все фиктивные значения на реальные.
-
-### 2\. Запуск и очистка
-
-Используйте Docker Compose для сборки, запуска и управления сервисами.
-
-| Команда                        | Действие                                                 |
-|:-------------------------------|:---------------------------------------------------------|
-| `docker-compose up -d --build` | Собрать образы и запустить сервисы в **фоновом режиме**. |
-| `docker-compose down`          | Остановить и удалить все контейнеры и сети.              |
-| `docker-compose down -v`       | Остановить, удалить контейнеры и **очистить тома БД**.   |
+[![REUSE status](https://api.reuse.software/badge/github.com/andreychh/coopera)](https://api.reuse.software/info/github.com/andreychh/coopera)

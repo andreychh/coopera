@@ -1,6 +1,6 @@
 # SPDX-FileCopyrightText: 2025-2026 Andrey Chernykh
 # SPDX-License-Identifier: MIT
-name: markdownlint
+name: typos
 'on':
   push:
     branches:
@@ -9,11 +9,9 @@ name: markdownlint
     branches:
       - main
 jobs:
-  markdownlint:
+  typos:
     timeout-minutes: 15
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v6
-      - uses: DavidAnson/markdownlint-cli2-action@v22
-        with:
-          globs: '**/*.md'
+      - uses: crate-ci/typos@v1

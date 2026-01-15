@@ -20,3 +20,6 @@ go.work.sum
 
 # IDE settings
 .idea/
+
+# GoReleaser distribution folder
+dist/
