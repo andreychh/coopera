@@ -31,6 +31,8 @@ jobs:
           languages: go
           build-mode: manual
       - run: task build
+        env:
+          GOFLAGS: -a
       - uses: github/codeql-action/analyze@v4
         with:
           category: /language:go
