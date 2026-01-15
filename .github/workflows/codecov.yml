@@ -1,6 +1,6 @@
 # SPDX-FileCopyrightText: 2025-2026 Andrey Chernykh
 # SPDX-License-Identifier: MIT
-name: test
+name: codecov
 'on':
   push:
     branches:
@@ -9,16 +9,18 @@ name: test
     branches:
       - main
 jobs:
-  test:
+  codecov:
     timeout-minutes: 15
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v6
+        with:
+          fetch-depth: 2
       - uses: actions/setup-go@v6
         with:
           go-version-file: go.mod
-      - uses: go-task/setup-task@v1
+      - run: go mod download
+      - run: go test -v -race -coverprofile=coverage.txt ./...
+      - uses: codecov/codecov-action@v5
         with:
-          version: 3.46.4
-          repo-token: ${{ secrets.GITHUB_TOKEN }}
-      - run: task test
+          token: ${{ secrets.CODECOV_TOKEN }}
