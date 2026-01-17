@@ -1,6 +1,6 @@
 # SPDX-FileCopyrightText: 2025-2026 Andrey Chernykh
 # SPDX-License-Identifier: MIT
-name: golangci-lint
+name: reuse
 'on':
   push:
     branches:
@@ -9,14 +9,11 @@ name: golangci-lint
     branches:
       - main
 jobs:
-  golangci-lint:
+  reuse:
     timeout-minutes: 15
     runs-on: ubuntu-24.04
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@v6
-      - uses: actions/setup-go@v6
-        with:
-          go-version-file: go.mod
-      - uses: golangci/golangci-lint-action@v9
-        with:
-          version: v2.8.0
+      - uses: fsfe/reuse-action@v6

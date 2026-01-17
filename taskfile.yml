@@ -1,0 +1,44 @@
+# SPDX-FileCopyrightText: 2025-2026 Andrey Chernykh
+# SPDX-License-Identifier: MIT
+# yaml-language-server: $schema=https://taskfile.dev/schema.json
+# yamllint disable rule:empty-lines
+version: '3'
+
+output: prefixed
+
+tasks:
+  lint:
+    deps:
+      - lint:go
+      - lint:yml
+      - lint:md
+      - lint:vuln
+      - lint:reuse
+      - lint:typos
+
+  lint:go:
+    cmd: golangci-lint run ./...
+
+  lint:yml:
+    cmd: yamllint .
+
+  lint:md:
+    cmd: markdownlint-cli2 **/*.md
+
+  lint:vuln:
+    cmd: govulncheck ./...
+
+  lint:reuse:
+    cmd: reuse lint
+
+  lint:typos:
+    cmd: typos
+
+  test:
+    cmd: go test -v -race -cover ./...
+
+  build:
+    cmd: go build main.go
+
+  run:
+    cmd: go run main.go
