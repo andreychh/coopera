@@ -4,9 +4,6 @@
     "config:recommended",
     ":pinGitHubActionDigests"
   ],
-  "helpers": {
-    "pinDigests": true
-  },
   "customManagers": [
     {
       "customType": "regex",
