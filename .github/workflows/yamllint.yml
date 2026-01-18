@@ -13,5 +13,5 @@ jobs:
     timeout-minutes: 15
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v6
-      - uses: ibiqlik/action-yamllint@v3
+      - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6
+      - uses: ibiqlik/action-yamllint@2576378a8e339169678f9939646ee3ee325e845c # v3

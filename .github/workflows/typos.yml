@@ -15,5 +15,5 @@ jobs:
     permissions:
       contents: read
     steps:
-      - uses: actions/checkout@v6
-      - uses: crate-ci/typos@v1
+      - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6
+      - uses: crate-ci/typos@bb4666ad77b539a6b4ce4eda7ebb6de553704021 # v1
