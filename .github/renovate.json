@@ -15,8 +15,8 @@
   "customManagers": [
     {
       "customType": "regex",
-      "fileMatch": [
-        "^\\.github/workflows/.*\\.yml$"
+      "managerFilePatterns": [
+        "/^\\.github/workflows/.*\\.yml$/"
       ],
       "matchStrings": [
         "uses: golangci/golangci-lint-action@.*\\n\\s+with:\\n\\s+version: (?<currentValue>.*)"
@@ -26,8 +26,8 @@
     },
     {
       "customType": "regex",
-      "fileMatch": [
-        "^\\.github/workflows/.*\\.yml$"
+      "managerFilePatterns": [
+        "/^\\.github/workflows/.*\\.yml$/"
       ],
       "matchStrings": [
         "uses: goreleaser/goreleaser-action@.*\\n\\s+with:\\n\\s+version: (?<currentValue>.*)"
@@ -37,8 +37,8 @@
     },
     {
       "customType": "regex",
-      "fileMatch": [
-        "^\\.github/workflows/.*\\.yml$"
+      "managerFilePatterns": [
+        "/^\\.github/workflows/.*\\.yml$/"
       ],
       "matchStrings": [
         "uses: go-task/setup-task@.*\\n\\s+with:\\n\\s+version: (?<currentValue>.*)"
