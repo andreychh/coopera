@@ -20,7 +20,7 @@ tasks:
     cmd: golangci-lint run ./...
 
   lint:yml:
-    cmd: yamllint .
+    cmd: yamllint --strict .
 
   lint:md:
     cmd: markdownlint-cli2 **/*.md
