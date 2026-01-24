@@ -6,7 +6,8 @@ path = [
     "**/*.json",
     "**/*.md",
     "**/.gitignore",
-    "go.sum"
+    "go.sum",
+    ".env.example",
 ]
 SPDX-FileCopyrightText = "2025-2026 Andrey Chernykh"
 SPDX-License-Identifier = "MIT"

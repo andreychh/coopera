@@ -1,10 +1,10 @@
 // SPDX-FileCopyrightText: 2025-2026 Andrey Chernykh
 // SPDX-License-Identifier: MIT
 
-package main
+package app
 
-import "fmt"
+import "context"
 
-func main() {
-	fmt.Println("Coopera") //nolint:forbidigo
+type App interface {
+	Run(ctx context.Context) error
 }
