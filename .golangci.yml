@@ -3,16 +3,56 @@
 # yaml-language-server: $schema=https://golangci-lint.run/jsonschema/golangci.jsonschema.json
 version: '2'
 linters:
-  default: all
-  disable:
-    - revive
-    - depguard
-    - wsl
+  default: none
+  enable:
+    # all
+    - asciicheck
+    - bidichk
+    - dogsled
+    - dupl
+    - dupword
+    - durationcheck
+    - embeddedstructfieldcheck
+    - err113
+    - errcheck
+    - errname
+    - errorlint
+    - exhaustive
+    - exhaustruct
+    - exptostd
+    - forbidigo
+    - forcetypeassert
+    - funcorder
+    - funlen
+    - gocheckcompilerdirectives
+    - gochecknoglobals
+    - gochecknoinits
+    - gocognit
+    - gocritic  # todo: setup
+    - gocyclo
+    - godoclint  # todo: setup
+    - godot
+    - gomoddirectives  # todo: setup
+    - goprintffuncname
+    - gosec
+    - govet  # todo: setup
+    # net/http
+    - bodyclose
+    - canonicalheader
+    # context
+    - containedctx
+    - contextcheck
+    # encoding/json
+    - errchkjson
+    # i18n/l10n
+    - gosmopolitan
   settings:
-    wsl_v5:
-      allow-first-in-block: true
-      allow-whole-block: false
-      branch-max-lines: 2
+    embeddedstructfieldcheck:
+      forbid-mutex: true
+    gocognit:
+      min-complexity: 15
+    gocyclo:
+      min-complexity: 15
 formatters:
   enable:
     - gofumpt
