@@ -46,6 +46,16 @@
       "depNameTemplate": "go-task/task",
       "datasourceTemplate": "github-releases",
       "versioningTemplate": "semver"
+    },
+    {
+      "customType": "regex",
+      "managerFilePatterns": [
+        "/^\\.github/workflows/.*\\.yml$/"
+      ],
+      "matchStrings": [
+        "go install (?<depName>[^@]+?)@(?<currentValue>[0-9.-a-zA-Z]+)"
+      ],
+      "datasourceTemplate": "go"
     }
   ]
 }
