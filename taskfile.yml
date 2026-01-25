@@ -38,7 +38,7 @@ tasks:
     cmd: go test -v -race -cover ./...
 
   build:
-    cmd: go build main.go
+    cmd: go build -o coopera cmd/coopera/main.go
 
   run:
-    cmd: go run main.go
+    cmd: go run cmd/coopera/main.go
