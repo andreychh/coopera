@@ -11,7 +11,7 @@ import (
 )
 
 type TelegramClient interface {
-	SendRequest(ctx context.Context, method api.Method, requestBody, responseBody any) error
+	SendRequest(ctx context.Context, method api.Method, reqBody, respBody any) error
 }
 
 type HTTPClient interface {

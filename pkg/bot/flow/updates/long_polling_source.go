@@ -7,18 +7,24 @@ import (
 	"context"
 
 	"github.com/andreychh/coopera/pkg/bot/api"
-	"github.com/andreychh/coopera/pkg/bot/endpoints"
-	"github.com/andreychh/coopera/pkg/utils"
+	"github.com/andreychh/coopera/pkg/ptr"
 )
 
-type endpoint = endpoints.Endpoint[api.GetUpdatesRequest, api.GetUpdatesResponse]
+type endpoint = Endpoint[api.GetUpdatesRequest, api.GetUpdatesResponse]
 
-type longPollingSource struct {
+type LongPollingSource struct {
 	endpoint endpoint
 	buffer   int
 }
 
-func (s longPollingSource) Updates(ctx context.Context) <-chan api.Update {
+func NewLongPollingSource(endpoint endpoint) LongPollingSource {
+	return LongPollingSource{
+		endpoint: endpoint,
+		buffer:   10,
+	}
+}
+
+func (s LongPollingSource) Updates(ctx context.Context) <-chan api.Update {
 	channel := make(chan api.Update, s.buffer)
 	go func() {
 		defer close(channel)
@@ -32,8 +38,10 @@ func (s longPollingSource) Updates(ctx context.Context) <-chan api.Update {
 			updates, err := s.endpoint.Call(
 				ctx,
 				api.GetUpdatesRequest{
-					Offset:  utils.Ptr(offset),
-					Timeout: utils.Ptr[int32](30),
+					Offset:         ptr.Ptr(offset),
+					Limit:          nil,
+					Timeout:        ptr.Ptr[int32](30),
+					AllowedUpdates: nil,
 				},
 			)
 			if err != nil {
@@ -50,10 +58,4 @@ func (s longPollingSource) Updates(ctx context.Context) <-chan api.Update {
 		}
 	}()
 	return channel
-}
-
-func LongPollingSource(endpoint endpoint) UpdateSource {
-	return longPollingSource{
-		endpoint: endpoint,
-	}
 }

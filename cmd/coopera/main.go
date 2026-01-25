@@ -23,15 +23,15 @@ func main() {
 	}
 	logger := Logger()
 	client := transport.NewLoggingClient(TelegramClient(token), logger)
-	action := actions.LoggingAction(logger)
-	application := app.SingleWorkerApp(updates.LongPollingSource(endpoints.GetUpdates(client)), action)
+	action := actions.NewLoggingAction(logger)
+	application := app.NewSingleWorkerApp(updates.NewLongPollingSource(endpoints.GetUpdates(client)), action)
 	err := application.Run(context.Background())
 	if err != nil {
 		panic(err)
 	}
 }
 
-func TelegramClient(token string) transport.TelegramClient {
+func TelegramClient(token string) transport.Client {
 	return transport.NewClient(token, HTTPClient())
 }
 

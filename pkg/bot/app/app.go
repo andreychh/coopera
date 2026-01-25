@@ -3,8 +3,16 @@
 
 package app
 
-import "context"
+import (
+	"context"
 
-type App interface {
-	Run(ctx context.Context) error
+	"github.com/andreychh/coopera/pkg/bot/api"
+)
+
+type UpdateSource interface {
+	Updates(ctx context.Context) <-chan api.Update
+}
+
+type Action interface {
+	Execute(ctx context.Context, update api.Update) error
 }

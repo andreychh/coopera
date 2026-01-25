@@ -36,9 +36,32 @@ linters:
     - goprintffuncname
     - gosec
     - govet  # todo: setup
+    - iface
+    - inamedparam
+    - iotamixing
+    - ireturn
+    - maintidx
+    - makezero
+    - mirror
+    - modernize
+    - musttag
+    - nilerr
+    - nilnesserr
+    - nilnil
+    - noctx
+    - nolintlint
+    - perfsprint
+    - recvcheck
+    - staticcheck
+    - testpackage
+    - unconvert
+    - unparam
+    - unused
+    - usestdlibvars
     # net/http
     - bodyclose
     - canonicalheader
+    - nosprintfhostport
     # context
     - containedctx
     - contextcheck
@@ -53,6 +76,12 @@ linters:
       min-complexity: 15
     gocyclo:
       min-complexity: 15
+    govet:
+      enable-all: true
+    nolintlint:
+      require-specific: true
+    perfsprint:
+      strconcat: false
 formatters:
   enable:
     - gofumpt

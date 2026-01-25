@@ -5,10 +5,8 @@ package updates
 
 import (
 	"context"
-
-	"github.com/andreychh/coopera/pkg/bot/api"
 )
 
-type UpdateSource interface {
-	Updates(ctx context.Context) <-chan api.Update
+type Endpoint[Req, Resp any] interface {
+	Call(ctx context.Context, req Req) (Resp, error)
 }

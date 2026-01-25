@@ -14,13 +14,20 @@ import (
 	"github.com/andreychh/coopera/pkg/bot/api"
 )
 
-type telegramClient struct {
-	token  string
+type Client struct {
 	client HTTPClient
+	token  string
 }
 
-func (c telegramClient) SendRequest(ctx context.Context, method api.Method, requestBody, responseBody any) (err error) {
-	marshaled, err := json.Marshal(requestBody)
+func NewClient(token string, client HTTPClient) Client {
+	return Client{
+		token:  token,
+		client: client,
+	}
+}
+
+func (c Client) SendRequest(ctx context.Context, method api.Method, reqBody, respBody any) error {
+	marshaled, err := json.Marshal(reqBody)
 	if err != nil {
 		return fmt.Errorf("marshaling request body: %w", err)
 	}
@@ -30,11 +37,11 @@ func (c telegramClient) SendRequest(ctx context.Context, method api.Method, requ
 	}
 	response, err := c.client.Do(request)
 	if err != nil {
-		return MappedError(fmt.Errorf("sending request: %w", err), c.token, "REDACTED_TOKEN")
+		return NewMappedError(fmt.Errorf("sending request: %w", err), c.token, "REDACTED_TOKEN")
 	}
-	defer func(body io.ReadCloser) {
-		_ = body.Close()
-	}(response.Body)
+	defer func() {
+		_ = response.Body.Close()
+	}()
 	var envelope api.Envelope
 	err = json.NewDecoder(response.Body).Decode(&envelope)
 	if err != nil {
@@ -43,14 +50,14 @@ func (c telegramClient) SendRequest(ctx context.Context, method api.Method, requ
 	if !envelope.Ok {
 		return api.NewError(envelope)
 	}
-	err = json.Unmarshal(envelope.Result, responseBody)
+	err = json.Unmarshal(envelope.Result, respBody)
 	if err != nil {
 		return fmt.Errorf("unmarshaling result: %w", err)
 	}
 	return nil
 }
 
-func (c telegramClient) createRequest(ctx context.Context, url string, body io.Reader) (*http.Request, error) {
+func (c Client) createRequest(ctx context.Context, url string, body io.Reader) (*http.Request, error) {
 	request, err := http.NewRequestWithContext(ctx, http.MethodPost, url, body)
 	if err != nil {
 		return nil, fmt.Errorf("creating request: %w", err)
@@ -59,13 +66,6 @@ func (c telegramClient) createRequest(ctx context.Context, url string, body io.R
 	return request, nil
 }
 
-func (c telegramClient) url(method api.Method) string {
+func (c Client) url(method api.Method) string {
 	return fmt.Sprintf("https://api.telegram.org/bot%s/%s", c.token, method)
-}
-
-func NewClient(token string, client HTTPClient) TelegramClient {
-	return telegramClient{
-		token:  token,
-		client: client,
-	}
 }

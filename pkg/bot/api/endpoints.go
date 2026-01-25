@@ -8,11 +8,11 @@ import (
 )
 
 type Envelope struct {
-	Ok          bool                `json:"ok"`
-	Result      json.RawMessage     `json:"result,omitempty"`
 	ErrorCode   *int32              `json:"error_code,omitempty"`
 	Description *string             `json:"description,omitempty"`
 	Parameters  *ResponseParameters `json:"parameters,omitempty"`
+	Result      json.RawMessage     `json:"result,omitempty"`
+	Ok          bool                `json:"ok"`
 }
 
 type ResponseParameters struct {

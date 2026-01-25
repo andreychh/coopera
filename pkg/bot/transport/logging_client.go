@@ -12,16 +12,24 @@ import (
 	"github.com/andreychh/coopera/pkg/bot/api"
 )
 
-type loggingClient struct {
+type LoggingClient struct {
 	origin TelegramClient
 	logger *slog.Logger
 }
 
-func (c loggingClient) SendRequest(ctx context.Context, method api.Method, requestBody, responseBody any) error {
+func NewLoggingClient(origin TelegramClient, logger *slog.Logger) LoggingClient {
+	return LoggingClient{
+		origin: origin,
+		logger: logger,
+	}
+}
+
+func (c LoggingClient) SendRequest(ctx context.Context, method api.Method, requestBody, responseBody any) error {
 	start := time.Now()
 	err := c.origin.SendRequest(ctx, method, requestBody, responseBody)
 	duration := time.Since(start)
-	if apiErr := api.AsError(err); apiErr != nil {
+	apiErr := api.AsError(err)
+	if apiErr != nil {
 		c.logger.ErrorContext(ctx, "request failed",
 			slog.String("method", string(method)),
 			slog.Duration("duration", duration),
@@ -46,11 +54,4 @@ func (c loggingClient) SendRequest(ctx context.Context, method api.Method, reque
 		slog.String("response.type", fmt.Sprintf("%T", responseBody)),
 	)
 	return nil
-}
-
-func NewLoggingClient(origin TelegramClient, logger *slog.Logger) TelegramClient {
-	return loggingClient{
-		origin: origin,
-		logger: logger,
-	}
 }

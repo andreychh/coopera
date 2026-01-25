@@ -10,19 +10,19 @@ import (
 	"github.com/andreychh/coopera/pkg/bot/api"
 )
 
-type loggingAction struct {
+type LoggingAction struct {
 	logger *slog.Logger
 }
 
-func (a loggingAction) Execute(ctx context.Context, update api.Update) error {
+func NewLoggingAction(logger *slog.Logger) LoggingAction {
+	return LoggingAction{
+		logger: logger,
+	}
+}
+
+func (a LoggingAction) Execute(ctx context.Context, update api.Update) error {
 	a.logger.InfoContext(ctx, "update received",
 		slog.Int("update.id", int(update.UpdateID)),
 	)
 	return nil
-}
-
-func LoggingAction(logger *slog.Logger) Action {
-	return loggingAction{
-		logger: logger,
-	}
 }

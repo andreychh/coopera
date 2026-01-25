@@ -4,8 +4,8 @@
 package api
 
 type Update struct {
-	UpdateID int32    `json:"update_id"`
 	Message  *Message `json:"message"`
+	UpdateID int32    `json:"update_id"`
 }
 
 type Message struct {
@@ -14,8 +14,8 @@ type Message struct {
 }
 
 type User struct {
+	Username  *string `json:"username,omitempty"`
+	FirstName string  `json:"first_name"`
 	ID        int64   `json:"id"`
 	IsBot     bool    `json:"is_bot"`
-	FirstName string  `json:"first_name"`
-	Username  *string `json:"username,omitempty"`
 }

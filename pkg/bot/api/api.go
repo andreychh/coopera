@@ -7,14 +7,9 @@ import (
 	"errors"
 )
 
-type Error interface {
-	error
-	Envelope() Envelope
-}
-
-func AsError(err error) Error {
-	var e Error
-	if errors.As(err, &e) {
+func AsError(err error) *Error {
+	var e *Error
+	if errors.As(err, e) {
 		return e
 	}
 	return nil

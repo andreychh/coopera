@@ -7,23 +7,23 @@ import (
 	"strings"
 )
 
-type mappedError struct {
+type MappedError struct {
 	origin   error
 	old, new string
 }
 
-func (e mappedError) Error() string {
-	return strings.ReplaceAll(e.origin.Error(), e.old, e.new)
-}
-
-func (e mappedError) Unwrap() error {
-	return e.origin
-}
-
-func MappedError(origin error, old, new string) error {
-	return &mappedError{
+func NewMappedError(origin error, old, new string) *MappedError {
+	return &MappedError{
 		origin: origin,
 		old:    old,
 		new:    new,
 	}
+}
+
+func (e MappedError) Error() string {
+	return strings.ReplaceAll(e.origin.Error(), e.old, e.new)
+}
+
+func (e MappedError) Unwrap() error {
+	return e.origin
 }
