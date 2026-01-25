@@ -5,6 +5,7 @@ package transport
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 	"time"
@@ -28,8 +29,8 @@ func (c LoggingClient) SendRequest(ctx context.Context, method api.Method, reque
 	start := time.Now()
 	err := c.origin.SendRequest(ctx, method, requestBody, responseBody)
 	duration := time.Since(start)
-	apiErr := api.AsError(err)
-	if apiErr != nil {
+	var apiErr *api.Error
+	if errors.As(err, &apiErr) {
 		c.logger.ErrorContext(ctx, "request failed",
 			slog.String("method", string(method)),
 			slog.Duration("duration", duration),

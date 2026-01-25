@@ -19,7 +19,7 @@ func NewError(envelope Envelope) *Error {
 	}
 }
 
-func (e Error) Error() string {
+func (e *Error) Error() string {
 	return fmt.Sprintf(
 		"telegram bot api error (code %d): %s",
 		ptr.ValueOrDefault(e.envelope.ErrorCode, -1),
@@ -27,6 +27,6 @@ func (e Error) Error() string {
 	)
 }
 
-func (e Error) Envelope() Envelope {
+func (e *Error) Envelope() Envelope {
 	return e.envelope
 }
