@@ -4,13 +4,14 @@
 package api
 
 type Update struct {
-	Message  *Message `json:"message"`
-	UpdateID int32    `json:"update_id"`
+	Message  *Message `json:"message,omitempty"`
+	UpdateID int64    `json:"update_id"`
 }
 
 type Message struct {
-	MessageID int32 `json:"message_id"`
-	Date      int32 `json:"date"`
+	From      *User `json:"from,omitempty"`
+	MessageID int64 `json:"message_id"`
+	Date      int64 `json:"date"`
 }
 
 type User struct {

@@ -14,7 +14,7 @@ import (
 
 func TestError_Is(t *testing.T) {
 	apiErr := api.NewError(api.Envelope{
-		ErrorCode:   ptr.Ptr[int32](404),
+		ErrorCode:   ptr.Ptr(404),
 		Description: ptr.Ptr("Not Found"),
 		Parameters:  nil,
 		Result:      nil,
@@ -27,21 +27,19 @@ func TestError_Is(t *testing.T) {
 }
 
 func TestError_As(t *testing.T) {
-	const expectedCode int32 = 404
 	apiErr := api.NewError(api.Envelope{
-		ErrorCode:   ptr.Ptr(expectedCode),
+		ErrorCode:   ptr.Ptr(404),
 		Description: ptr.Ptr("Not Found"),
 		Parameters:  nil,
 		Result:      nil,
 		Ok:          false,
 	})
 	wrappedErr := fmt.Errorf("outer wrap: %w", apiErr)
-
 	var target *api.Error
 	if !errors.As(wrappedErr, &target) {
 		t.Fatalf("expected errors.As to successfully extract *api.Error from the chain")
 	}
-	if *target.Envelope().ErrorCode != expectedCode {
-		t.Errorf("expected error code %d, got %d", expectedCode, *target.Envelope().ErrorCode)
+	if *target.Envelope().ErrorCode != 404 {
+		t.Errorf("expected error code 404, got %d", *target.Envelope().ErrorCode)
 	}
 }

@@ -28,7 +28,7 @@ func (s LongPollingSource) Updates(ctx context.Context) <-chan api.Update {
 	channel := make(chan api.Update, s.buffer)
 	go func() {
 		defer close(channel)
-		var offset int32
+		var offset int64
 		for {
 			select {
 			case <-ctx.Done():
@@ -40,7 +40,7 @@ func (s LongPollingSource) Updates(ctx context.Context) <-chan api.Update {
 				api.GetUpdatesRequest{
 					Offset:         ptr.Ptr(offset),
 					Limit:          nil,
-					Timeout:        ptr.Ptr[int32](30),
+					Timeout:        ptr.Ptr(30),
 					AllowedUpdates: nil,
 				},
 			)
