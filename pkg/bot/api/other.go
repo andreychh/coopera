@@ -12,7 +12,7 @@ import (
 var ErrInvalidChatID = errors.New("ChatID must have either ChatID or ChannelUsername set")
 
 type ChatID struct {
-	ChatID          *int
+	ChatID          *int64
 	ChannelUsername *string
 }
 

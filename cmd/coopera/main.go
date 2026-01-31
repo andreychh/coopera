@@ -9,9 +9,9 @@ import (
 	"net/http"
 	"os"
 
+	"github.com/andreychh/coopera/internal/actions"
 	"github.com/andreychh/coopera/pkg/bot/app"
 	"github.com/andreychh/coopera/pkg/bot/endpoints"
-	"github.com/andreychh/coopera/pkg/bot/flow/actions"
 	"github.com/andreychh/coopera/pkg/bot/flow/updates"
 	"github.com/andreychh/coopera/pkg/bot/transport"
 )
@@ -23,7 +23,7 @@ func main() {
 	}
 	logger := Logger()
 	client := transport.NewLoggingClient(TelegramClient(token), logger)
-	action := actions.NewLoggingAction(logger)
+	action := actions.DisplayBuildInfo(client)
 	application := app.NewSingleWorkerApp(updates.NewLongPollingSource(endpoints.GetUpdates(client)), action)
 	err := application.Run(context.Background())
 	if err != nil {

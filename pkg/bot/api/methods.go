@@ -17,8 +17,9 @@ type GetUpdatesRequest struct {
 type GetUpdatesResponse []Update
 
 type SendMessageRequest struct {
-	ChatID ChatID `json:"chat_id"`
-	Text   string `json:"text"`
+	ChatID    ChatID    `json:"chat_id"`
+	Text      string    `json:"text"`
+	ParseMode ParseMode `json:"parse_mode,omitempty"`
 	// todo: add missing fields.
 }
 
