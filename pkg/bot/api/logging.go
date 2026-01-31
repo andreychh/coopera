@@ -12,7 +12,7 @@ import (
 func LogEnvelope(e Envelope) slog.Value {
 	return slog.GroupValue(
 		slog.Bool("ok", e.Ok),
-		slog.Int("error_code", int(ptr.ValueOrDefault(e.ErrorCode, -1))),
+		slog.Int("error_code", ptr.ValueOrDefault(e.ErrorCode, -1)),
 		slog.String("description", ptr.ValueOrDefault(e.Description, "unknown")),
 	)
 }

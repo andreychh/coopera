@@ -38,3 +38,10 @@ func GetUpdates(client TelegramClient) Endpoint[api.GetUpdatesRequest, api.GetUp
 		method: api.MethodGetUpdates,
 	}
 }
+
+func SendMessage(client TelegramClient) Endpoint[api.SendMessageRequest, api.SendMessageResponse] {
+	return Endpoint[api.SendMessageRequest, api.SendMessageResponse]{
+		client: client,
+		method: api.MethodSendMessage,
+	}
+}
