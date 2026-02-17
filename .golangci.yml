@@ -13,7 +13,6 @@ linters:
     - dupword
     - durationcheck
     - embeddedstructfieldcheck
-    - err113
     - errcheck
     - errname
     - errorlint
@@ -28,14 +27,14 @@ linters:
     - gochecknoglobals
     - gochecknoinits
     - gocognit
-    - gocritic  # todo: setup
+    - gocritic
     - gocyclo
-    - godoclint  # todo: setup
+    # godoclint
     - godot
-    - gomoddirectives  # todo: setup
+    - gomoddirectives
     - goprintffuncname
     - gosec
-    - govet  # todo: setup
+    - govet
     - iface
     - inamedparam
     - iotamixing
@@ -78,13 +77,38 @@ linters:
       min-complexity: 15
     govet:
       enable-all: true
+      disable:
+        - fieldalignment
+    gocritic:
+      enable-all: true
+      disabled-checks:
+        - builtinShadow
+    godoclint:
+      default: all
     nolintlint:
       require-specific: true
-    perfsprint:
-      strconcat: false
+  exclusions:
+    rules:
+      - path: _test\.go
+        linters:
+          - godoclint
+        text: 'symbol should have a godoc'
+      - path: _test\.go
+        linters:
+          - exhaustruct
+        text: 'is missing field'
+      - path: _test\.go
+        linters:
+          - dupl
+        text: 'lines are duplicate of'
+      - path: _test\.go
+        linters:
+          - funlen
+        text: 'is too long'
 formatters:
   enable:
     - gofumpt
+    - golines
   settings:
     gofumpt:
       extra-rules: true

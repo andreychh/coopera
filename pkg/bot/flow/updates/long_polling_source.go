@@ -7,7 +7,6 @@ import (
 	"context"
 
 	"github.com/andreychh/coopera/pkg/bot/api"
-	"github.com/andreychh/coopera/pkg/ptr"
 )
 
 type endpoint = Endpoint[api.GetUpdatesRequest, api.GetUpdatesResponse]
@@ -38,9 +37,9 @@ func (s LongPollingSource) Updates(ctx context.Context) <-chan api.Update {
 			updates, err := s.endpoint.Call(
 				ctx,
 				api.GetUpdatesRequest{
-					Offset:         ptr.Ptr(offset),
+					Offset:         new(offset),
 					Limit:          nil,
-					Timeout:        ptr.Ptr(30),
+					Timeout:        new(30),
 					AllowedUpdates: nil,
 				},
 			)

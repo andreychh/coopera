@@ -3,12 +3,6 @@
 
 package ptr
 
-// Ptr returns a pointer to the passed value. Enables creating pointers from
-// literal values (e.g., Ptr(10)).
-func Ptr[T any](value T) *T {
-	return &value
-}
-
 // Zero returns the zero value of type T. Facilitates initializing generic types
 // within functions.
 //

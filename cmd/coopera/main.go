@@ -24,7 +24,10 @@ func main() {
 	logger := Logger()
 	client := transport.NewLoggingClient(TelegramClient(token), logger)
 	action := actions.DisplayBuildInfo(client)
-	application := app.NewSingleWorkerApp(updates.NewLongPollingSource(endpoints.GetUpdates(client)), action)
+	application := app.NewSingleWorkerApp(
+		updates.NewLongPollingSource(endpoints.GetUpdates(client)),
+		action,
+	)
 	err := application.Run(context.Background())
 	if err != nil {
 		panic(err)

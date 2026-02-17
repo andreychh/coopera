@@ -10,7 +10,6 @@ import (
 	"github.com/andreychh/coopera/internal/buildinfo"
 	"github.com/andreychh/coopera/pkg/bot/api"
 	"github.com/andreychh/coopera/pkg/bot/endpoints"
-	"github.com/andreychh/coopera/pkg/ptr"
 )
 
 type RequestSender interface {
@@ -29,7 +28,7 @@ func (a DisplayBuildInfoAction) Execute(ctx context.Context, update api.Update) 
 		ctx,
 		api.SendMessageRequest{
 			ChatID: api.ChatID{
-				ChatID:          ptr.Ptr(update.Message.Chat.ID),
+				ChatID:          new(update.Message.Chat.ID),
 				ChannelUsername: nil,
 			},
 			Text:      a.text(buildinfo.Read()),

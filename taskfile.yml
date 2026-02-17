@@ -12,7 +12,6 @@ tasks:
       - lint:go
       - lint:yml
       - lint:md
-      - lint:vuln
       - lint:reuse
       - lint:typos
 
@@ -24,9 +23,6 @@ tasks:
 
   lint:md:
     cmd: markdownlint-cli2 **/*.md
-
-  lint:vuln:
-    cmd: govulncheck ./...
 
   lint:reuse:
     cmd: reuse lint

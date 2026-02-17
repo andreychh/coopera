@@ -39,9 +39,7 @@ func (c Client) SendRequest(ctx context.Context, method api.Method, reqBody, res
 	if err != nil {
 		return NewMappedError(fmt.Errorf("sending request: %w", err), c.token, "REDACTED_TOKEN")
 	}
-	defer func() {
-		_ = response.Body.Close()
-	}()
+	defer func() { _ = response.Body.Close() }()
 	var envelope api.Envelope
 	err = json.NewDecoder(response.Body).Decode(&envelope)
 	if err != nil {
@@ -57,7 +55,11 @@ func (c Client) SendRequest(ctx context.Context, method api.Method, reqBody, res
 	return nil
 }
 
-func (c Client) createRequest(ctx context.Context, url string, body io.Reader) (*http.Request, error) {
+func (c Client) createRequest(
+	ctx context.Context,
+	url string,
+	body io.Reader,
+) (*http.Request, error) {
 	request, err := http.NewRequestWithContext(ctx, http.MethodPost, url, body)
 	if err != nil {
 		return nil, fmt.Errorf("creating request: %w", err)

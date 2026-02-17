@@ -9,13 +9,12 @@ import (
 	"testing"
 
 	"github.com/andreychh/coopera/pkg/bot/api"
-	"github.com/andreychh/coopera/pkg/ptr"
 )
 
 func TestError_Is(t *testing.T) {
 	apiErr := api.NewError(api.Envelope{
-		ErrorCode:   ptr.Ptr(404),
-		Description: ptr.Ptr("Not Found"),
+		ErrorCode:   new(404),
+		Description: new("Not Found"),
 		Parameters:  nil,
 		Result:      nil,
 		Ok:          false,
@@ -28,8 +27,8 @@ func TestError_Is(t *testing.T) {
 
 func TestError_As(t *testing.T) {
 	apiErr := api.NewError(api.Envelope{
-		ErrorCode:   ptr.Ptr(404),
-		Description: ptr.Ptr("Not Found"),
+		ErrorCode:   new(404),
+		Description: new("Not Found"),
 		Parameters:  nil,
 		Result:      nil,
 		Ok:          false,

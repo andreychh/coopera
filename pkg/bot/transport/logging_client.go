@@ -25,7 +25,11 @@ func NewLoggingClient(origin TelegramClient, logger *slog.Logger) LoggingClient 
 	}
 }
 
-func (c LoggingClient) SendRequest(ctx context.Context, method api.Method, requestBody, responseBody any) error {
+func (c LoggingClient) SendRequest(
+	ctx context.Context,
+	method api.Method,
+	requestBody, responseBody any,
+) error {
 	start := time.Now()
 	err := c.origin.SendRequest(ctx, method, requestBody, responseBody)
 	duration := time.Since(start)
