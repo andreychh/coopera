@@ -45,8 +45,8 @@ type BuildInfo struct {
 
 // Read gathers the build-time metadata and current runtime information into a
 // single BuildInfo structure.
-func Read() BuildInfo {
-	return BuildInfo{
+func Read() *BuildInfo {
+	return &BuildInfo{
 		Version:   version,
 		Commit:    commit,
 		Branch:    branch,

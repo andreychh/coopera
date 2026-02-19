@@ -41,7 +41,7 @@ func (a DisplayBuildInfoAction) Execute(ctx context.Context, update api.Update) 
 	return nil
 }
 
-func (a DisplayBuildInfoAction) text(info buildinfo.BuildInfo) string {
+func (a DisplayBuildInfoAction) text(info *buildinfo.BuildInfo) string {
 	return fmt.Sprintf(`<b>Build Information</b>
 <pre>
 Version:    %s
