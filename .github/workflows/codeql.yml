@@ -22,12 +22,12 @@ jobs:
       - uses: actions/setup-go@4b73464bb391d4059bd26b0524d20df3927bd417  # v6.3.0
         with:
           go-version-file: go.mod
-      - uses: github/codeql-action/init@89a39a4e59826350b863aa6b6252a07ad50cf83e  # v4.32.4
+      - uses: github/codeql-action/init@c793b717bc78562f491db7b0e93a3a178b099162  # v4.32.5
         with:
           languages: go
           build-mode: manual
       - run: go build ./...
-      - uses: github/codeql-action/analyze@89a39a4e59826350b863aa6b6252a07ad50cf83e  # v4.32.4
+      - uses: github/codeql-action/analyze@c793b717bc78562f491db7b0e93a3a178b099162  # v4.32.5
         with:
           category: /language:go
   codeql-actions:
@@ -37,10 +37,10 @@ jobs:
       security-events: write
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
-      - uses: github/codeql-action/init@89a39a4e59826350b863aa6b6252a07ad50cf83e  # v4.32.4
+      - uses: github/codeql-action/init@c793b717bc78562f491db7b0e93a3a178b099162  # v4.32.5
         with:
           languages: actions
           build-mode: none
-      - uses: github/codeql-action/analyze@89a39a4e59826350b863aa6b6252a07ad50cf83e  # v4.32.4
+      - uses: github/codeql-action/analyze@c793b717bc78562f491db7b0e93a3a178b099162  # v4.32.5
         with:
           category: /language:actions
