@@ -81,8 +81,7 @@ release:
     docker pull ghcr.io/andreychh/coopera:{{ .Tag }}
     ```
 
-    Available for `linux/amd64` and `linux/arm64` on [GHCR][ghcr] — this is the only artifact published
-    for this release, there are no binary downloads.
+    Available for `linux/amd64` and `linux/arm64` on [GHCR][ghcr] — this is the only artifact published for this release, there are no binary downloads.
 
     ---
 
