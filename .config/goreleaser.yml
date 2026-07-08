@@ -1,0 +1,81 @@
+# SPDX-FileCopyrightText: 2025-2026 Andrey Chernykh
+# SPDX-License-Identifier: MIT
+# yaml-language-server: $schema=https://goreleaser.com/static/schema.json
+# yamllint disable rule:empty-lines
+version: 2
+
+before:
+  hooks:
+    - go mod tidy
+
+gomod:
+  proxy: true
+
+report_sizes: true
+
+metadata:
+  mod_timestamp: '{{ .CommitTimestamp }}'
+
+builds:
+  - binary: coopera
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+    goarch:
+      - amd64
+      - arm64
+    flags:
+      - -trimpath
+    ldflags:
+      - -s -w
+
+dockers_v2:
+  - images:
+      - "ghcr.io/andreychh/coopera"
+    tags:
+      - "v{{ .Version }}"
+      - "{{ if .IsNightly }}nightly{{ end }}"
+      - "{{ if not .IsNightly }}latest{{ end }}"
+    annotations:
+      "org.opencontainers.image.description": "Coopera API"
+      "org.opencontainers.image.created": "{{.Date}}"
+      "org.opencontainers.image.name": "{{.ProjectName}}"
+      "org.opencontainers.image.revision": "{{.FullCommit}}"
+      "org.opencontainers.image.version": "{{.Version}}"
+      "org.opencontainers.image.source": "{{.GitURL}}"
+      "org.opencontainers.image.base.name": "{{.BaseImage}}"
+      "org.opencontainers.image.base.digest": "{{.BaseImageDigest}}"
+    sbom: "{{ not .IsNightly }}"
+
+changelog:
+  use: github
+  format: '{{ .SHA }}: {{ .Message }}{{ if .Logins }} ({{ .Logins | englishJoin }}){{ end }}'
+  filters:
+    exclude:
+      - '^test'
+      - '^chore'
+      - '^refactor'
+      - '^ci'
+      - '^Merge'
+      - '^Revert'
+  groups:
+    - title: New Features
+      regexp: '^feat'
+      order: 100
+    - title: Bug fixes
+      regexp: '^fix'
+      order: 200
+    - title: Documentation updates
+      regexp: '^docs'
+      order: 400
+    - title: Other work
+      order: 9999
+
+release:
+  prerelease: auto
+  footer: >-
+
+    ---
+
+    Released by [GoReleaser](https://github.com/goreleaser/goreleaser).

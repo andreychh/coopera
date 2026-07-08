@@ -1,0 +1,182 @@
+# SPDX-FileCopyrightText: 2025-2026 Andrey Chernykh
+# SPDX-License-Identifier: MIT
+# yaml-language-server: $schema=https://taskfile.dev/schema.json
+# yamllint disable rule:empty-lines
+version: '3'
+
+output: prefixed
+
+vars:
+  BINARY: coopera
+
+tasks:
+  default:
+    deps:
+      - check
+
+  check:
+    desc: Run all checks (lint, test)
+    deps:
+      - lint
+      - test
+
+  clean:
+    desc: Remove build artifacts and cache
+    cmds:
+      - rm -rf dist/ .task/ {{.BINARY}} coverage.txt govulncheck.sarif
+
+  # --- Lint ---
+
+  lint:
+    desc: Run all linters
+    deps:
+      - lint:go
+      - lint:md
+      - lint:yml
+      - lint:toml
+      - lint:gha
+      - lint:renovate
+      - lint:reuse
+      - lint:typos
+
+  lint:go:
+    desc: Check Go code quality
+    sources:
+      - '**/*.go'
+    cmds:
+      - golangci-lint run --config=.config/golangci.yml --color=always
+
+  lint:md:
+    desc: Check Markdown formatting
+    sources:
+      - '**/*.md'
+    cmds:
+      - markdownlint-cli2 --config .config/.markdownlint.yml $(git ls-files "*.md")
+
+  lint:yml:
+    desc: Validate YAML syntax
+    sources:
+      - '**/*.yml'
+    cmds:
+      - yamllint --config-file=.config/yamllint.yml --strict $(git ls-files "*.yml")
+
+  lint:toml:
+    desc: Validate TOML syntax
+    sources:
+      - '**/*.toml'
+    cmds:
+      - taplo lint
+
+  lint:gha:
+    desc: Check GHA workflows
+    sources:
+      - '.github/workflows/*.yml'
+    cmds:
+      - actionlint
+
+  lint:renovate:
+    desc: Validate Renovate config
+    sources:
+      - '.github/renovate.json'
+    cmds:
+      - renovate-config-validator --strict .github/renovate.json
+
+  lint:reuse:
+    desc: Verify license compliance
+    cmds:
+      - reuse lint
+
+  lint:typos:
+    desc: Check for common misspellings
+    cmds:
+      - typos
+
+  vuln:
+    desc: Check for known vulnerabilities
+    cmds:
+      - govulncheck ./...
+
+  vuln:sarif:
+    desc: Check for known vulnerabilities (SARIF)
+    cmds:
+      - |
+        govulncheck -format sarif ./... | jq '
+          (.runs[].tool.driver.rules[]?
+            | select(.properties? and .properties.tags?)
+          ).properties.tags |= unique
+        ' > govulncheck.sarif
+
+  # --- Test ---
+
+  test:
+    desc: Run unit tests with race detector
+    sources:
+      - '**/*.go'
+    cmds:
+      - go test -race ./...
+
+  test:coverage:
+    desc: Run tests with coverage report
+    cmds:
+      - go test -race -coverprofile=coverage.txt ./...
+
+  # --- Build ---
+
+  build:
+    desc: Compile the {{.BINARY}} binary
+    sources:
+      - '**/*.go'
+    generates:
+      - '{{.BINARY}}'
+    cmds:
+      - go build -o {{.BINARY}} .
+
+  run:
+    desc: Run {{.BINARY}} locally
+    cmds:
+      - go run .
+
+  # --- Release ---
+
+  release:patch:
+    desc: Release a new patch version (x.x.+1)
+    cmds:
+      - task: release
+        vars: { NEXT: { sh: svu patch } }
+
+  release:minor:
+    desc: Release a new minor version (x.+1.0)
+    cmds:
+      - task: release
+        vars: { NEXT: { sh: svu minor } }
+
+  release:major:
+    desc: Release a new major version (+1.0.0)
+    cmds:
+      - task: release
+        vars: { NEXT: { sh: svu major } }
+
+  release:check:
+    desc: Dry-run GoReleaser to verify configuration
+    cmds:
+      - goreleaser check
+      - goreleaser release --snapshot --clean
+
+  release:
+    internal: true
+    preconditions:
+      - sh: '[ "$(git branch --show-current)" = "main" ]'
+        msg: Not on main branch
+      - sh: '[ -z "$(git status --porcelain)" ]'
+        msg: Git is dirty
+      - sh: 'git fetch --tags'
+        msg: Failed to fetch from origin
+      - sh: '[ "$(git rev-parse HEAD)" = "$(git rev-parse @{u})" ]'
+        msg: Not synced with origin
+    deps:
+      - test
+    prompt: This will release {{.NEXT}}. Continue?
+    cmds:
+      - git tag {{.NEXT}}
+      - git push origin {{.NEXT}}
+      - echo "Released {{.NEXT}}"

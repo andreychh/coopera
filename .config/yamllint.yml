@@ -9,6 +9,9 @@ rules:
     spaces: 2
     indent-sequences: consistent
     check-multi-line-strings: false
+  braces:
+    min-spaces-inside: 1
+    max-spaces-inside: 1
   brackets:
     min-spaces-inside: 1
     max-spaces-inside: 1
