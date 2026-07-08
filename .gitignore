@@ -9,10 +9,10 @@
 *.test
 
 # Output of the go coverage tool
-*.out
+coverage.txt
 
-# Go workspace file
-go.work.sum
+# Vulnerability report
+govulncheck.sarif
 
 # env files
 .env*
@@ -24,3 +24,6 @@ go.work.sum
 
 # GoReleaser distribution folder
 dist/
+
+# go-task checksum cache
+.task/
