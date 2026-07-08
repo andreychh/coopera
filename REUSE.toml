@@ -4,7 +4,6 @@ version = 1
 [[annotations]]
 path = [
     "**/*.json",
-    "**/*.md",
     "**/.gitignore",
     "go.sum",
     ".env.example",
