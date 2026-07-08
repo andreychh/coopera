@@ -136,6 +136,24 @@ tasks:
     cmds:
       - go run .
 
+  # --- Environment ---
+
+  up:
+    desc: Start local dependencies (Postgres) via Docker Compose
+    cmds:
+      - docker compose up -d
+
+  down:
+    desc: Stop local dependencies started via Docker Compose
+    cmds:
+      - docker compose down
+
+  dev:
+    desc: Start local dependencies and run {{.BINARY}}
+    cmds:
+      - task: up
+      - go run .
+
   # --- Release ---
 
   release:patch:
