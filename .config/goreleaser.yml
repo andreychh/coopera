@@ -32,21 +32,20 @@ builds:
 
 dockers_v2:
   - images:
-      - "ghcr.io/andreychh/coopera"
+      - 'ghcr.io/andreychh/coopera'
     tags:
-      - "v{{ .Version }}"
-      - "{{ if .IsNightly }}nightly{{ end }}"
-      - "{{ if not .IsNightly }}latest{{ end }}"
+      - 'v{{ .Version }}'
+      - '{{ if .IsNightly }}nightly{{ else }}latest{{ end }}'
     annotations:
-      "org.opencontainers.image.description": "Coopera API"
-      "org.opencontainers.image.created": "{{.Date}}"
-      "org.opencontainers.image.name": "{{.ProjectName}}"
-      "org.opencontainers.image.revision": "{{.FullCommit}}"
-      "org.opencontainers.image.version": "{{.Version}}"
-      "org.opencontainers.image.source": "{{.GitURL}}"
-      "org.opencontainers.image.base.name": "{{.BaseImage}}"
-      "org.opencontainers.image.base.digest": "{{.BaseImageDigest}}"
-    sbom: "{{ not .IsNightly }}"
+      'org.opencontainers.image.description': 'Coopera API'
+      'org.opencontainers.image.created': '{{.Date}}'
+      'org.opencontainers.image.name': '{{.ProjectName}}'
+      'org.opencontainers.image.revision': '{{.FullCommit}}'
+      'org.opencontainers.image.version': '{{.Version}}'
+      'org.opencontainers.image.source': '{{.GitURL}}'
+      'org.opencontainers.image.base.name': '{{.BaseImage}}'
+      'org.opencontainers.image.base.digest': '{{.BaseImageDigest}}'
+    sbom: '{{ not .IsNightly }}'
 
 changelog:
   use: github
@@ -75,18 +74,19 @@ changelog:
 release:
   prerelease: auto
   skip_upload: true
-  footer: >-
-
-    ---
-
+  footer: |-
     ## Container image
 
     ```bash
     docker pull ghcr.io/andreychh/coopera:{{ .Tag }}
     ```
 
-    Multi-arch (`linux/amd64`, `linux/arm64`), published to
-    [GHCR](https://github.com/andreychh/coopera/pkgs/container/coopera).
-    This is the only published artifact — no binary archives.
+    Available for `linux/amd64` and `linux/arm64` on [GHCR][ghcr] — this is the only artifact published
+    for this release, there are no binary downloads.
 
-    Released by [GoReleaser](https://github.com/goreleaser/goreleaser).
+    ---
+
+    Released by [GoReleaser][goreleaser].
+
+    [ghcr]: https://github.com/andreychh/coopera/pkgs/container/coopera
+    [goreleaser]: https://github.com/goreleaser/goreleaser
