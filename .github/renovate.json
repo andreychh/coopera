@@ -4,19 +4,48 @@
     "config:recommended",
     "helpers:pinGitHubActionDigests"
   ],
-  "minimumReleaseAge": "3 days",
+  "minimumReleaseAge": "7 days",
   "rebaseWhen": "behind-base-branch",
+  "semanticCommits": "enabled",
+  "postUpdateOptions": [
+    "gomodTidy"
+  ],
   "packageRules": [
     {
+      "description": "Batch every non-security update into a single weekly PR",
       "matchUpdateTypes": [
+        "major",
         "minor",
         "patch",
         "pin",
         "digest"
       ],
-      "automerge": true
+      "groupName": "all dependencies",
+      "schedule": [
+        "before 6am on monday"
+      ]
+    },
+    {
+      "description": "Bump the root go.mod go directive so the language version stays in sync with the mise toolchain",
+      "matchManagers": [
+        "gomod"
+      ],
+      "matchFileNames": [
+        "go.mod"
+      ],
+      "matchDepTypes": [
+        "golang"
+      ],
+      "matchDepNames": [
+        "go"
+      ],
+      "rangeStrategy": "bump"
     }
   ],
+  "vulnerabilityAlerts": {
+    "enabled": true
+  },
+  "osvVulnerabilityAlerts": true,
   "customManagers": [
     {
       "customType": "regex",
@@ -24,44 +53,10 @@
         "/^\\.github/workflows/.*\\.yml$/"
       ],
       "matchStrings": [
-        "uses: golangci/golangci-lint-action@.*\\n\\s+with:\\n\\s+version: (?<currentValue>.*)"
+        "uses: jdx/mise-action@.*\\n\\s+with:\\n\\s+version: (?<currentValue>.*)"
       ],
-      "depNameTemplate": "golangci/golangci-lint",
+      "depNameTemplate": "jdx/mise",
       "datasourceTemplate": "github-releases"
-    },
-    {
-      "customType": "regex",
-      "managerFilePatterns": [
-        "/^\\.github/workflows/.*\\.yml$/"
-      ],
-      "matchStrings": [
-        "uses: goreleaser/goreleaser-action@.*\\n\\s+with:\\n\\s+version: (?<currentValue>.*)"
-      ],
-      "depNameTemplate": "goreleaser/goreleaser",
-      "datasourceTemplate": "github-releases"
-    },
-    {
-      "customType": "regex",
-      "managerFilePatterns": [
-        "/^\\.github/workflows/.*\\.yml$/"
-      ],
-      "matchStrings": [
-        "uses: go-task/setup-task@.*\\n\\s+with:\\n\\s+version: (?<currentValue>.*)"
-      ],
-      "depNameTemplate": "go-task/task",
-      "datasourceTemplate": "github-releases",
-      "versioningTemplate": "semver"
-    },
-    {
-      "customType": "regex",
-      "managerFilePatterns": [
-        "/^\\.github/workflows/.*\\.yml$/"
-      ],
-      "matchStrings": [
-        "go install\\s+(?<depName>[^@\\s]+)@(?<currentValue>v?[0-9][^\\s]*)"
-      ],
-      "datasourceTemplate": "go",
-      "versioningTemplate": "semver"
     }
   ]
 }
