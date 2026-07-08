@@ -1,0 +1,29 @@
+# SPDX-FileCopyrightText: 2025-2026 Andrey Chernykh
+# SPDX-License-Identifier: MIT
+# yaml-language-server: $schema=https://mise.jdx.dev/schema/mise.json
+
+[settings]
+always_keep_download = false
+legacy_version_file = false
+
+[tools]
+"go" = "1.26.4"
+"aqua:caarlos0/svu" = "3.4.0"
+"aqua:crate-ci/typos" = "1.47.2"
+"aqua:golangci/golangci-lint" = "2.12.2"
+"aqua:goreleaser/goreleaser" = "2.16.0"
+"aqua:go-task/task" = "3.51.1"
+"aqua:rhysd/actionlint" = "1.7.12"
+"aqua:tamasfe/taplo" = "0.10.0"
+"go:golang.org/x/vuln/cmd/govulncheck" = "1.1.4"
+"npm:markdownlint-cli2" = "0.22.1"
+"npm:renovate" = "43.249.1"
+"pipx:reuse" = "6.2.0"
+"pipx:yamllint" = "1.38.0"
+
+# indirect
+"node" = "24.18.0"
+"aqua:koalaman/shellcheck" = "0.11.0"
+
+[env]
+_.file = ".env"
