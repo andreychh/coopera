@@ -154,6 +154,21 @@ tasks:
       - task: up
       - go run .
 
+  # --- Migrations ---
+
+  create:migration:*:
+    desc: "Create a new migration. Usage: task create:migration:name"
+    vars:
+      NAME: '{{index .MATCH 0}}'
+    cmds:
+      - migrate create -ext sql -dir migrations {{.NAME}}
+
+  apply:migrations:
+    desc: Apply pending database migrations
+    cmds:
+      - task: up
+      - migrate -path migrations -database "postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@localhost:${POSTGRES_PORT}/${POSTGRES_DB}?sslmode=disable" up
+
   # --- Release ---
 
   release:patch:
