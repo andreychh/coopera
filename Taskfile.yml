@@ -38,6 +38,8 @@ tasks:
       - lint:renovate
       - lint:reuse
       - lint:typos
+      - lint:sql
+      - lint:migrations
 
   lint:go:
     desc: Check Go code quality
@@ -90,6 +92,20 @@ tasks:
     desc: Check for common misspellings
     cmds:
       - typos
+
+  lint:sql:
+    desc: Check SQL style and formatting
+    sources:
+      - 'migrations/**/*.sql'
+    cmds:
+      - sqlfluff lint --config .config/sqlfluff.ini migrations/*.sql
+
+  lint:migrations:
+    desc: Check database migrations for unsafe changes
+    sources:
+      - 'migrations/**/*.sql'
+    cmds:
+      - squawk --config .config/squawk.toml --no-error-on-unmatched-pattern migrations/*.sql
 
   vuln:
     desc: Check for known vulnerabilities

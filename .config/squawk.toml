@@ -1,0 +1,4 @@
+pg_version = "18.4"
+assume_in_transaction = true
+# down.sql files are for local rollback only, never applied to a live database.
+excluded_paths = ["migrations/*.down.sql"]
