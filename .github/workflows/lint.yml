@@ -22,6 +22,8 @@ jobs:
           - renovate
           - reuse
           - typos
+          - sql
+          - migrations
     timeout-minutes: 15
     runs-on: ubuntu-24.04
     permissions:

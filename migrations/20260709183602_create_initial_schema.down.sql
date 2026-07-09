@@ -1,3 +1,5 @@
+-- SPDX-FileCopyrightText: 2025-2026 Andrey Chernykh
+-- SPDX-License-Identifier: MIT
 DROP TABLE IF EXISTS events;
 DROP FUNCTION IF EXISTS events_forbid_mutation();
 
