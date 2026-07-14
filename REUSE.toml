@@ -10,3 +10,21 @@ path = [
 ]
 SPDX-FileCopyrightText = "2025-2026 Andrey Chernykh"
 SPDX-License-Identifier = "MIT"
+
+# Generated code
+[[annotations]]
+path = [
+    "internal/db/*.go",
+    "internal/api/api.gen.go",
+]
+SPDX-FileCopyrightText = "2025-2026 Andrey Chernykh"
+SPDX-License-Identifier = "MIT"
+
+# sqlc pulls any leading file comment into the doc comment of the first generated
+# function, even across blank lines — so these can't carry an inline header.
+[[annotations]]
+path = [
+    "queries/*.sql",
+]
+SPDX-FileCopyrightText = "2025-2026 Andrey Chernykh"
+SPDX-License-Identifier = "MIT"

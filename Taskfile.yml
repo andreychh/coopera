@@ -96,16 +96,43 @@ tasks:
   lint:sql:
     desc: Check SQL style and formatting
     sources:
-      - 'migrations/**/*.sql'
+      - '**/*.sql'
     cmds:
-      - sqlfluff lint --config .config/sqlfluff.ini migrations/*.sql
+      - sqlfluff lint --config .config/sqlfluff.ini **/*.sql
 
   lint:migrations:
     desc: Check database migrations for unsafe changes
     sources:
-      - 'migrations/**/*.sql'
+      - 'migrations/*.sql'
     cmds:
-      - squawk --config .config/squawk.toml --no-error-on-unmatched-pattern migrations/*.sql
+      - squawk --config .config/squawk.toml migrations/*.sql
+
+  # --- Generate ---
+
+  generate:
+    desc: Run all code generators
+    deps:
+      - generate:sqlc
+      - generate:api
+
+  generate:sqlc:
+    desc: Generate database access code from SQL queries
+    sources:
+      - 'migrations/*.sql'
+      - 'queries/*.sql'
+    generates:
+      - 'internal/db/*.go'
+    cmds:
+      - sqlc generate -f .config/sqlc.yml
+
+  generate:api:
+    desc: Generate server code from the OpenAPI spec
+    sources:
+      - 'openapi.yml'
+    generates:
+      - 'internal/api/api.gen.go'
+    cmds:
+      - oapi-codegen -config .config/oapi-codegen.yml -o internal/api/api.gen.go openapi.yml
 
   vuln:
     desc: Check for known vulnerabilities

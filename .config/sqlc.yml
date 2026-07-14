@@ -1,0 +1,34 @@
+# SPDX-FileCopyrightText: 2025-2026 Andrey Chernykh
+# SPDX-License-Identifier: MIT
+# yaml-language-server: $schema=https://www.schemastore.org/sqlc-2.0.json
+version: "2"
+sql:
+  - schema: "../migrations"
+    queries: "../queries"
+    engine: "postgresql"
+    gen:
+      go:
+        package: "db"
+        out: "../internal/db"
+        sql_package: "pgx/v5"
+        emit_pointers_for_null_types: true
+        overrides:
+          - db_type: "uuid"
+            nullable: false
+            go_type:
+              import: "github.com/google/uuid"
+              type: "UUID"
+          - db_type: "uuid"
+            nullable: true
+            go_type:
+              import: "github.com/google/uuid"
+              type: "UUID"
+              pointer: true
+          - db_type: "timestamptz"
+            nullable: false
+            go_type: "time.Time"
+          - db_type: "timestamptz"
+            nullable: true
+            go_type:
+              type: "time.Time"
+              pointer: true
