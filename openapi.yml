@@ -1,0 +1,113 @@
+# SPDX-FileCopyrightText: 2025-2026 Andrey Chernykh
+# SPDX-License-Identifier: MIT
+# yamllint disable rule:empty-lines
+openapi: 3.0.3
+
+info:
+  title: Coopera API
+  version: 0.0.1
+  description: >
+    Coopera is a routine task tracker for teams. The system records events (who did what and
+    when) and does not resolve conflicts within a team.
+
+servers:
+  - url: http://localhost:8080/v1
+    description: Local development
+
+tags:
+  - name: teams
+    description: Teams
+
+paths:
+  /teams:
+    post:
+      operationId: createTeam
+      tags: [ teams ]
+      summary: Create a team
+      description: >
+        Creates a team and makes the caller its owner.
+      parameters:
+        - name: X-User-Id
+          in: header
+          required: true
+          description: >
+            Temporary placeholder until real authentication exists. Identifies the caller, who
+            becomes the team's owner.
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateTeamRequest'
+
+      responses:
+        '201':
+          description: Team created
+          headers:
+            Location:
+              description: URL of the created team
+              schema:
+                type: string
+                format: uri
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Team'
+
+        '400':
+          description: Invalid request
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+
+components:
+  schemas:
+    Team:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        name:
+          $ref: "#/components/schemas/TeamName"
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required: [ id, name, created_at ]
+
+    CreateTeamRequest:
+      type: object
+      properties:
+        name:
+          $ref: "#/components/schemas/TeamName"
+      required: [ name ]
+
+    TeamName:
+      type: string
+      minLength: 1
+      maxLength: 100
+
+    Problem:
+      description: >
+        RFC 9457 Problem Details for HTTP APIs.
+      type: object
+      properties:
+        type:
+          type: string
+          format: uri
+        title:
+          type: string
+        status:
+          type: integer
+        detail:
+          type: string
+        instance:
+          type: string
+          format: uri
+      required: [ title, status ]
