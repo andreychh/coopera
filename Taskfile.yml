@@ -98,7 +98,7 @@ tasks:
     sources:
       - '**/*.sql'
     cmds:
-      - sqlfluff lint --config .config/sqlfluff.ini *.sql
+      - sqlfluff lint --config .config/sqlfluff.ini **/*.sql
 
   lint:migrations:
     desc: Check database migrations for unsafe changes
