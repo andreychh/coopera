@@ -4,13 +4,33 @@
 package main
 
 import (
+	"context"
+	"fmt"
 	"log"
 	"net/http"
 	"os"
 	"time"
+
+	"github.com/andreychh/coopera/internal/api"
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 func main() {
+	err := run()
+	if err != nil {
+		log.Fatal(err)
+	}
+}
+
+func run() error {
+	ctx := context.Background()
+
+	pool, err := pgxpool.New(ctx, databaseURL())
+	if err != nil {
+		return fmt.Errorf("connect to database: %w", err)
+	}
+	defer pool.Close()
+
 	mux := http.NewServeMux()
 	mux.HandleFunc(
 		"GET /health",
@@ -19,6 +39,9 @@ func main() {
 		},
 	)
 
+	strict := api.NewStrictHandler(api.NewServer(pool), nil)
+	handler := api.HandlerFromMuxWithBaseURL(strict, mux, "/v1")
+
 	port, exists := os.LookupEnv("PORT")
 	if !exists {
 		port = "8080"
@@ -26,12 +49,19 @@ func main() {
 
 	server := &http.Server{
 		Addr:              ":" + port,
-		Handler:           mux,
+		Handler:           handler,
 		ReadHeaderTimeout: 5 * time.Second,
 	}
 
-	err := server.ListenAndServe()
-	if err != nil {
-		log.Fatal(err)
-	}
+	return server.ListenAndServe()
+}
+
+func databaseURL() string {
+	return fmt.Sprintf(
+		"postgres://%s:%s@localhost:%s/%s?sslmode=disable",
+		os.Getenv("POSTGRES_USER"),
+		os.Getenv("POSTGRES_PASSWORD"),
+		os.Getenv("POSTGRES_PORT"),
+		os.Getenv("POSTGRES_DB"),
+	)
 }
