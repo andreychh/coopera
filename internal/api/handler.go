@@ -5,45 +5,90 @@ package api
 
 import (
 	"context"
+	"errors"
 	"net/http"
 
 	"github.com/andreychh/coopera/internal/domain"
-	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 type Server struct {
-	pool *pgxpool.Pool
+	world domain.World
 }
 
-func NewServer(pool *pgxpool.Pool) Server {
-	return Server{pool: pool}
+func NewServer(world domain.World) Server {
+	return Server{world: world}
 }
 
-func (h Server) CreateTeam(
+func (s Server) CreateTeam(
 	ctx context.Context,
 	req CreateTeamRequestObject,
 ) (CreateTeamResponseObject, error) {
-	if len(req.Body.Name) < 1 || len(req.Body.Name) > 100 {
+	teamName, err := domain.ParseTeamName(req.Body.Name)
+	if err != nil {
+		//nolint:nilerr // err is translated into a typed 400 response, not propagated.
 		return CreateTeam400ApplicationProblemPlusJSONResponse{
 			Title:  http.StatusText(http.StatusBadRequest),
 			Status: http.StatusBadRequest,
-			Detail: new("name must be between 1 and 100 characters"),
+			Detail: new("Invalid team name: " + err.Error()),
+		}, nil
+	}
+	userID, err := domain.ParseID(req.Params.XUserId)
+	if err != nil {
+		//nolint:nilerr // err is translated into a typed 400 response, not propagated.
+		return CreateTeam400ApplicationProblemPlusJSONResponse{
+			Title:  http.StatusText(http.StatusBadRequest),
+			Status: http.StatusBadRequest,
+			Detail: new("Invalid X-User-Id (UUID): " + err.Error()),
 		}, nil
 	}
 
-	team, err := domain.NewSQLUser(h.pool, req.Params.XUserId).CreateTeam(ctx, req.Body.Name)
+	team, err := s.world.User(userID).CreateTeam(ctx, teamName)
 	if err != nil {
-		return nil, err
+		if _, ok := errors.AsType[domain.UserNotFoundError](err); ok {
+			return CreateTeam401ApplicationProblemPlusJSONResponse{
+				Title:  http.StatusText(http.StatusUnauthorized),
+				Status: http.StatusUnauthorized,
+			}, nil
+		}
+		return CreateTeam500ApplicationProblemPlusJSONResponse{
+			Title:  http.StatusText(http.StatusInternalServerError),
+			Status: http.StatusInternalServerError,
+		}, nil
+	}
+
+	info, err := team.Info(ctx)
+	if err != nil {
+		//nolint:nilerr // err is translated into a typed 500 response, not propagated.
+		return CreateTeam500ApplicationProblemPlusJSONResponse{
+			Title:  http.StatusText(http.StatusInternalServerError),
+			Status: http.StatusInternalServerError,
+		}, nil
 	}
 
 	return CreateTeam201JSONResponse{
 		Body: Team{
-			Id:        &team.ID,
-			Name:      team.Name,
-			CreatedAt: &team.CreatedAt,
+			Id:        new(info.ID.String()),
+			Name:      info.Name.String(),
+			CreatedAt: new(info.CreatedAt.String()),
 		},
 		Headers: CreateTeam201ResponseHeaders{
-			Location: new("/v1/teams/" + team.ID.String()),
+			Location: new("/v1/teams/" + info.ID.String()),
 		},
 	}, nil
+}
+
+func (s Server) GetTeam(
+	ctx context.Context,
+	req GetTeamRequestObject,
+) (GetTeamResponseObject, error) {
+	// TODO implement me
+	panic("implement me")
+}
+
+func (s Server) ListMyTeams(
+	ctx context.Context,
+	req ListMyTeamsRequestObject,
+) (ListMyTeamsResponseObject, error) {
+	// TODO implement me
+	panic("implement me")
 }

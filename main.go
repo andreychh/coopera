@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/andreychh/coopera/internal/api"
+	"github.com/andreychh/coopera/internal/domain"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -39,7 +40,7 @@ func run() error {
 		},
 	)
 
-	strict := api.NewStrictHandler(api.NewServer(pool), nil)
+	strict := api.NewStrictHandler(api.NewServer(domain.NewSQLWorld(pool)), nil)
 	handler := api.HandlerFromMuxWithBaseURL(strict, mux, "/v1")
 
 	port, exists := os.LookupEnv("PORT")
