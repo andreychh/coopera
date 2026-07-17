@@ -91,7 +91,7 @@ tasks:
   lint:typos:
     desc: Check for common misspellings
     cmds:
-      - typos
+      - typos --config .config/typos.toml
 
   lint:sql:
     desc: Check SQL style and formatting
