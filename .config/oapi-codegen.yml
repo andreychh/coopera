@@ -1,8 +1,18 @@
 # SPDX-FileCopyrightText: 2025-2026 Andrey Chernykh
 # SPDX-License-Identifier: MIT
+# yaml-language-server: $schema=https://raw.githubusercontent.com/oapi-codegen/oapi-codegen/v2.7.2/configuration-schema.json
 package: api
+output: internal/api/api.gen.go
 generate:
   std-http-server: true
   strict-server: true
   models: true
   embedded-spec: true
+output-options:
+  type-mapping:
+    string:
+      formats:
+        uuid:
+          type: string
+        date-time:
+          type: string

@@ -107,6 +107,15 @@ tasks:
     cmds:
       - squawk --config .config/squawk.toml migrations/*.sql
 
+  # --- Format ---
+
+  fmt:go:
+    desc: Format Go code
+    sources:
+      - '**/*.go'
+    cmds:
+      - golangci-lint run --fix --config=.config/golangci.yml --color=always
+
   # --- Generate ---
 
   generate:
@@ -132,7 +141,7 @@ tasks:
     generates:
       - 'internal/api/api.gen.go'
     cmds:
-      - oapi-codegen -config .config/oapi-codegen.yml -o internal/api/api.gen.go openapi.yml
+      - oapi-codegen -config .config/oapi-codegen.yml openapi.yml
 
   vuln:
     desc: Check for known vulnerabilities
