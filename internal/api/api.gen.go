@@ -16,11 +16,9 @@ import (
 	"net/url"
 	"path"
 	"strings"
-	"time"
 
 	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/oapi-codegen/runtime"
-	openapi_types "github.com/oapi-codegen/runtime/types"
 )
 
 // CreateTeamRequest defines model for CreateTeamRequest.
@@ -39,18 +37,33 @@ type Problem struct {
 
 // Team defines model for Team.
 type Team struct {
-	CreatedAt *time.Time          `json:"created_at,omitempty"`
-	Id        *openapi_types.UUID `json:"id,omitempty"`
-	Name      TeamName            `json:"name"`
+	CreatedAt *string  `json:"created_at,omitempty"`
+	Id        *string  `json:"id,omitempty"`
+	Name      TeamName `json:"name"`
 }
 
 // TeamName defines model for TeamName.
 type TeamName = string
 
+// XUserId defines model for XUserId.
+type XUserId = string
+
 // CreateTeamParams defines parameters for CreateTeam.
 type CreateTeamParams struct {
-	// XUserId Temporary placeholder until real authentication exists. Identifies the caller, who becomes the team's owner.
-	XUserId openapi_types.UUID `json:"X-User-Id"`
+	// XUserId Temporary placeholder until real authentication exists. Identifies the caller.
+	XUserId XUserId `json:"X-User-Id"`
+}
+
+// GetTeamParams defines parameters for GetTeam.
+type GetTeamParams struct {
+	// XUserId Temporary placeholder until real authentication exists. Identifies the caller.
+	XUserId XUserId `json:"X-User-Id"`
+}
+
+// ListMyTeamsParams defines parameters for ListMyTeams.
+type ListMyTeamsParams struct {
+	// XUserId Temporary placeholder until real authentication exists. Identifies the caller.
+	XUserId XUserId `json:"X-User-Id"`
 }
 
 // CreateTeamJSONRequestBody defines body for CreateTeam for application/json ContentType.
@@ -61,6 +74,12 @@ type ServerInterface interface {
 	// Create a team
 	// (POST /teams)
 	CreateTeam(w http.ResponseWriter, r *http.Request, params CreateTeamParams)
+	// Get a team
+	// (GET /teams/{id})
+	GetTeam(w http.ResponseWriter, r *http.Request, id string, params GetTeamParams)
+	// List the caller's teams
+	// (GET /users/me/teams)
+	ListMyTeams(w http.ResponseWriter, r *http.Request, params ListMyTeamsParams)
 }
 
 // ServerInterfaceWrapper converts contexts to parameters.
@@ -85,7 +104,7 @@ func (siw *ServerInterfaceWrapper) CreateTeam(w http.ResponseWriter, r *http.Req
 
 	// ------------- Required header parameter "X-User-Id" -------------
 	if valueList, found := headers[http.CanonicalHeaderKey("X-User-Id")]; found {
-		var XUserId openapi_types.UUID
+		var XUserId XUserId
 		n := len(valueList)
 		if n != 1 {
 			siw.ErrorHandlerFunc(w, r, &TooManyValuesForParamError{ParamName: "X-User-Id", Count: n})
@@ -108,6 +127,105 @@ func (siw *ServerInterfaceWrapper) CreateTeam(w http.ResponseWriter, r *http.Req
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.CreateTeam(w, r, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetTeam operation middleware
+func (siw *ServerInterfaceWrapper) GetTeam(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", r.PathValue("id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid"})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params GetTeamParams
+
+	headers := r.Header
+
+	// ------------- Required header parameter "X-User-Id" -------------
+	if valueList, found := headers[http.CanonicalHeaderKey("X-User-Id")]; found {
+		var XUserId XUserId
+		n := len(valueList)
+		if n != 1 {
+			siw.ErrorHandlerFunc(w, r, &TooManyValuesForParamError{ParamName: "X-User-Id", Count: n})
+			return
+		}
+
+		err = runtime.BindStyledParameterWithOptions("simple", "X-User-Id", valueList[0], &XUserId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: true, Type: "string", Format: "uuid"})
+		if err != nil {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "X-User-Id", Err: err})
+			return
+		}
+
+		params.XUserId = XUserId
+
+	} else {
+		err := fmt.Errorf("Header parameter X-User-Id is required, but not found")
+		siw.ErrorHandlerFunc(w, r, &RequiredHeaderError{ParamName: "X-User-Id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetTeam(w, r, id, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ListMyTeams operation middleware
+func (siw *ServerInterfaceWrapper) ListMyTeams(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ListMyTeamsParams
+
+	headers := r.Header
+
+	// ------------- Required header parameter "X-User-Id" -------------
+	if valueList, found := headers[http.CanonicalHeaderKey("X-User-Id")]; found {
+		var XUserId XUserId
+		n := len(valueList)
+		if n != 1 {
+			siw.ErrorHandlerFunc(w, r, &TooManyValuesForParamError{ParamName: "X-User-Id", Count: n})
+			return
+		}
+
+		err = runtime.BindStyledParameterWithOptions("simple", "X-User-Id", valueList[0], &XUserId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: true, Type: "string", Format: "uuid"})
+		if err != nil {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "X-User-Id", Err: err})
+			return
+		}
+
+		params.XUserId = XUserId
+
+	} else {
+		err := fmt.Errorf("Header parameter X-User-Id is required, but not found")
+		siw.ErrorHandlerFunc(w, r, &RequiredHeaderError{ParamName: "X-User-Id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListMyTeams(w, r, params)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -238,6 +356,8 @@ func HandlerWithOptions(si ServerInterface, options StdHTTPServerOptions) http.H
 	}
 
 	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/teams", wrapper.CreateTeam)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/teams/{id}", wrapper.GetTeam)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/users/me/teams", wrapper.ListMyTeams)
 
 	return m
 }
@@ -289,11 +409,174 @@ func (response CreateTeam400ApplicationProblemPlusJSONResponse) VisitCreateTeamR
 	return err
 }
 
+type CreateTeam401ApplicationProblemPlusJSONResponse Problem
+
+func (response CreateTeam401ApplicationProblemPlusJSONResponse) VisitCreateTeamResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateTeam500ApplicationProblemPlusJSONResponse Problem
+
+func (response CreateTeam500ApplicationProblemPlusJSONResponse) VisitCreateTeamResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(500)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetTeamRequestObject struct {
+	Id     string `json:"id"`
+	Params GetTeamParams
+}
+
+type GetTeamResponseObject interface {
+	VisitGetTeamResponse(w http.ResponseWriter) error
+}
+
+type GetTeam200JSONResponse Team
+
+func (response GetTeam200JSONResponse) VisitGetTeamResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetTeam401ApplicationProblemPlusJSONResponse Problem
+
+func (response GetTeam401ApplicationProblemPlusJSONResponse) VisitGetTeamResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetTeam404ApplicationProblemPlusJSONResponse Problem
+
+func (response GetTeam404ApplicationProblemPlusJSONResponse) VisitGetTeamResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetTeam500ApplicationProblemPlusJSONResponse Problem
+
+func (response GetTeam500ApplicationProblemPlusJSONResponse) VisitGetTeamResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(500)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListMyTeamsRequestObject struct {
+	Params ListMyTeamsParams
+}
+
+type ListMyTeamsResponseObject interface {
+	VisitListMyTeamsResponse(w http.ResponseWriter) error
+}
+
+type ListMyTeams200JSONResponse []Team
+
+func (response ListMyTeams200JSONResponse) VisitListMyTeamsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListMyTeams400ApplicationProblemPlusJSONResponse Problem
+
+func (response ListMyTeams400ApplicationProblemPlusJSONResponse) VisitListMyTeamsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListMyTeams401ApplicationProblemPlusJSONResponse Problem
+
+func (response ListMyTeams401ApplicationProblemPlusJSONResponse) VisitListMyTeamsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListMyTeams500ApplicationProblemPlusJSONResponse Problem
+
+func (response ListMyTeams500ApplicationProblemPlusJSONResponse) VisitListMyTeamsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(500)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
 // StrictServerInterface represents all server handlers.
 type StrictServerInterface interface {
 	// Create a team
 	// (POST /teams)
 	CreateTeam(ctx context.Context, request CreateTeamRequestObject) (CreateTeamResponseObject, error)
+	// Get a team
+	// (GET /teams/{id})
+	GetTeam(ctx context.Context, request GetTeamRequestObject) (GetTeamResponseObject, error)
+	// List the caller's teams
+	// (GET /users/me/teams)
+	ListMyTeams(ctx context.Context, request ListMyTeamsRequestObject) (ListMyTeamsResponseObject, error)
 }
 
 type StrictHandlerFunc func(ctx context.Context, w http.ResponseWriter, r *http.Request, request any) (any, error)
@@ -358,24 +641,81 @@ func (sh *strictHandler) CreateTeam(w http.ResponseWriter, r *http.Request, para
 	}
 }
 
+// GetTeam operation middleware
+func (sh *strictHandler) GetTeam(w http.ResponseWriter, r *http.Request, id string, params GetTeamParams) {
+	var request GetTeamRequestObject
+
+	request.Id = id
+	request.Params = params
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetTeam(ctx, request.(GetTeamRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetTeam")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetTeamResponseObject); ok {
+		if err := validResponse.VisitGetTeamResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// ListMyTeams operation middleware
+func (sh *strictHandler) ListMyTeams(w http.ResponseWriter, r *http.Request, params ListMyTeamsParams) {
+	var request ListMyTeamsRequestObject
+
+	request.Params = params
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ListMyTeams(ctx, request.(ListMyTeamsRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListMyTeams")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ListMyTeamsResponseObject); ok {
+		if err := validResponse.VisitListMyTeamsResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
 // Base64 encoded, compressed with deflate, json marshaled OpenAPI spec.
 // Stored as a slice of fixed-width chunks rather than one concatenated
 // const string: with thousands of chunks the chained `+` fold is several
 // times slower for the Go compiler than parsing a slice literal.
 var swaggerSpec = []string{
-	"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",
+	"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",
 }
 
 // decodeSpec returns the embedded OpenAPI spec as raw JSON bytes,

@@ -1,7 +1,7 @@
 # SPDX-FileCopyrightText: 2025-2026 Andrey Chernykh
 # SPDX-License-Identifier: MIT
 # yamllint disable rule:empty-lines
-openapi: 3.0.3
+openapi: 3.0.0
 
 info:
   title: Coopera API
@@ -27,15 +27,7 @@ paths:
       description: >
         Creates a team and makes the caller its owner.
       parameters:
-        - name: X-User-Id
-          in: header
-          required: true
-          description: >
-            Temporary placeholder until real authentication exists. Identifies the caller, who
-            becomes the team's owner.
-          schema:
-            type: string
-            format: uuid
+        - $ref: '#/components/parameters/XUserId'
       requestBody:
         required: true
         content:
@@ -64,7 +56,116 @@ paths:
               schema:
                 $ref: '#/components/schemas/Problem'
 
+        '401':
+          description: The caller could not be identified
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+
+        '500':
+          description: Internal server error
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+
+  /teams/{id}:
+    get:
+      operationId: getTeam
+      tags: [ teams ]
+      summary: Get a team
+      description: >
+        Returns a team by its id.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - $ref: '#/components/parameters/XUserId'
+      responses:
+        '200':
+          description: Team found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Team'
+
+        '401':
+          description: The caller could not be identified
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+
+        '404':
+          description: Team not found, or the caller is not a member
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+
+        '500':
+          description: Internal server error
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+
+  /users/me/teams:
+    get:
+      operationId: listMyTeams
+      tags: [ teams ]
+      summary: List the caller's teams
+      description: >
+        Returns teams where the caller has an active membership.
+      parameters:
+        - $ref: '#/components/parameters/XUserId'
+      responses:
+        '200':
+          description: Caller's teams
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Team'
+
+        '400':
+          description: Invalid request
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+
+        '401':
+          description: The caller could not be identified
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+
+        '500':
+          description: Internal server error
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+
 components:
+  parameters:
+    XUserId:
+      name: X-User-Id
+      in: header
+      required: true
+      description: >
+        Temporary placeholder until real authentication exists. Identifies the caller.
+      schema:
+        type: string
+        format: uuid
+
   schemas:
     Team:
       type: object
