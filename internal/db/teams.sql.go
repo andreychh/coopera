@@ -7,7 +7,25 @@ package db
 
 import (
 	"context"
+
+	"github.com/google/uuid"
 )
+
+const getTeam = `-- name: GetTeam :one
+SELECT
+    id,
+    name,
+    created_at
+FROM teams
+WHERE id = $1
+`
+
+func (q *Queries) GetTeam(ctx context.Context, id uuid.UUID) (Team, error) {
+	row := q.db.QueryRow(ctx, getTeam, id)
+	var i Team
+	err := row.Scan(&i.ID, &i.Name, &i.CreatedAt)
+	return i, err
+}
 
 const insertTeam = `-- name: InsertTeam :one
 INSERT INTO teams (name)
