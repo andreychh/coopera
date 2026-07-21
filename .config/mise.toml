@@ -8,7 +8,7 @@ always_keep_download = false
 legacy_version_file = false
 
 [tools]
-"go" = "1.26.4"
+"go" = "1.26.5"
 "aqua:caarlos0/svu" = "3.4.1"
 "aqua:crate-ci/typos" = "1.48.0"
 "aqua:golangci/golangci-lint" = "2.12.2"
@@ -21,7 +21,7 @@ legacy_version_file = false
 "go:golang.org/x/vuln/cmd/govulncheck" = "1.1.4"
 "go:github.com/oapi-codegen/oapi-codegen/v2/cmd/oapi-codegen" = "2.7.2"
 "npm:markdownlint-cli2" = "0.23.0"
-"npm:renovate" = "43.252.1"
+"npm:renovate" = "43.263.0"
 "npm:squawk-cli" = "2.59.0"
 "pipx:reuse" = "6.2.0"
 "pipx:yamllint" = "1.38.0"

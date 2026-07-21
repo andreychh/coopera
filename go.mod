@@ -3,7 +3,7 @@
 
 module github.com/andreychh/coopera
 
-go 1.26.4
+go 1.26.5
 
 require (
 	github.com/getkin/kin-openapi v0.142.0
