@@ -28,6 +28,17 @@ type Event struct {
 	CreatedAt time.Time
 }
 
+type InviteLink struct {
+	ID                uuid.UUID
+	TeamID            uuid.UUID
+	Code              string
+	CreatedByMemberID uuid.UUID
+	UseCount          int64
+	ExpiresAt         *time.Time
+	RevokedAt         *time.Time
+	CreatedAt         time.Time
+}
+
 type Job struct {
 	ID                uuid.UUID
 	DutyID            uuid.UUID
