@@ -11,7 +11,9 @@ import (
 	"context"
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"io"
 	"net/http"
 	"net/url"
 	"path"
@@ -21,9 +23,111 @@ import (
 	"github.com/oapi-codegen/runtime"
 )
 
+// Defines values for ActiveInviteLinkStateStatus.
+const (
+	ActiveInviteLinkStateStatusActive ActiveInviteLinkStateStatus = "active"
+)
+
+// Valid indicates whether the value is a known member of the ActiveInviteLinkStateStatus enum.
+func (e ActiveInviteLinkStateStatus) Valid() bool {
+	switch e {
+	case ActiveInviteLinkStateStatusActive:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ExpiredInviteLinkStateStatus.
+const (
+	Expired ExpiredInviteLinkStateStatus = "expired"
+)
+
+// Valid indicates whether the value is a known member of the ExpiredInviteLinkStateStatus enum.
+func (e ExpiredInviteLinkStateStatus) Valid() bool {
+	switch e {
+	case Expired:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for RevokedInviteLinkStateStatus.
+const (
+	Revoked RevokedInviteLinkStateStatus = "revoked"
+)
+
+// Valid indicates whether the value is a known member of the RevokedInviteLinkStateStatus enum.
+func (e RevokedInviteLinkStateStatus) Valid() bool {
+	switch e {
+	case Revoked:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ListInviteLinksParamsStatus.
+const (
+	ListInviteLinksParamsStatusActive  ListInviteLinksParamsStatus = "active"
+	ListInviteLinksParamsStatusExpired ListInviteLinksParamsStatus = "expired"
+	ListInviteLinksParamsStatusRevoked ListInviteLinksParamsStatus = "revoked"
+)
+
+// Valid indicates whether the value is a known member of the ListInviteLinksParamsStatus enum.
+func (e ListInviteLinksParamsStatus) Valid() bool {
+	switch e {
+	case ListInviteLinksParamsStatusActive:
+		return true
+	case ListInviteLinksParamsStatusExpired:
+		return true
+	case ListInviteLinksParamsStatusRevoked:
+		return true
+	default:
+		return false
+	}
+}
+
+// ActiveInviteLinkState defines model for ActiveInviteLinkState.
+type ActiveInviteLinkState struct {
+	ExpiresAt *string                     `json:"expires_at"`
+	Status    ActiveInviteLinkStateStatus `json:"status"`
+}
+
+// ActiveInviteLinkStateStatus defines model for ActiveInviteLinkState.Status.
+type ActiveInviteLinkStateStatus string
+
+// CreateInviteLinkRequest Omitting expires_at creates a link that never expires.
+type CreateInviteLinkRequest struct {
+	ExpiresAt *string `json:"expires_at,omitempty"`
+}
+
 // CreateTeamRequest defines model for CreateTeamRequest.
 type CreateTeamRequest struct {
 	Name TeamName `json:"name"`
+}
+
+// ExpiredInviteLinkState defines model for ExpiredInviteLinkState.
+type ExpiredInviteLinkState struct {
+	ExpiredAt string                       `json:"expired_at"`
+	Status    ExpiredInviteLinkStateStatus `json:"status"`
+}
+
+// ExpiredInviteLinkStateStatus defines model for ExpiredInviteLinkState.Status.
+type ExpiredInviteLinkStateStatus string
+
+// InviteLink defines model for InviteLink.
+type InviteLink struct {
+	Code      string          `json:"code"`
+	CreatedAt string          `json:"created_at"`
+	State     InviteLinkState `json:"state"`
+	UseCount  int             `json:"use_count"`
+}
+
+// InviteLinkState defines model for InviteLinkState.
+type InviteLinkState struct {
+	union json.RawMessage
 }
 
 // Problem RFC 9457 Problem Details for HTTP APIs.
@@ -35,10 +139,19 @@ type Problem struct {
 	Type     *string `json:"type,omitempty"`
 }
 
+// RevokedInviteLinkState defines model for RevokedInviteLinkState.
+type RevokedInviteLinkState struct {
+	RevokedAt string                       `json:"revoked_at"`
+	Status    RevokedInviteLinkStateStatus `json:"status"`
+}
+
+// RevokedInviteLinkStateStatus defines model for RevokedInviteLinkState.Status.
+type RevokedInviteLinkStateStatus string
+
 // Team defines model for Team.
 type Team struct {
-	CreatedAt *string  `json:"created_at,omitempty"`
-	Id        *string  `json:"id,omitempty"`
+	CreatedAt string   `json:"created_at"`
+	Id        string   `json:"id"`
 	Name      TeamName `json:"name"`
 }
 
@@ -47,6 +160,18 @@ type TeamName = string
 
 // XUserId defines model for XUserId.
 type XUserId = string
+
+// RevokeInviteLinkParams defines parameters for RevokeInviteLink.
+type RevokeInviteLinkParams struct {
+	// XUserId Temporary placeholder until real authentication exists. Identifies the caller.
+	XUserId XUserId `json:"X-User-Id"`
+}
+
+// AcceptInviteLinkParams defines parameters for AcceptInviteLink.
+type AcceptInviteLinkParams struct {
+	// XUserId Temporary placeholder until real authentication exists. Identifies the caller.
+	XUserId XUserId `json:"X-User-Id"`
+}
 
 // CreateTeamParams defines parameters for CreateTeam.
 type CreateTeamParams struct {
@@ -60,6 +185,23 @@ type GetTeamParams struct {
 	XUserId XUserId `json:"X-User-Id"`
 }
 
+// ListInviteLinksParams defines parameters for ListInviteLinks.
+type ListInviteLinksParams struct {
+	Status *ListInviteLinksParamsStatus `form:"status,omitempty" json:"status,omitempty"`
+
+	// XUserId Temporary placeholder until real authentication exists. Identifies the caller.
+	XUserId XUserId `json:"X-User-Id"`
+}
+
+// ListInviteLinksParamsStatus defines parameters for ListInviteLinks.
+type ListInviteLinksParamsStatus string
+
+// CreateInviteLinkParams defines parameters for CreateInviteLink.
+type CreateInviteLinkParams struct {
+	// XUserId Temporary placeholder until real authentication exists. Identifies the caller.
+	XUserId XUserId `json:"X-User-Id"`
+}
+
 // ListMyTeamsParams defines parameters for ListMyTeams.
 type ListMyTeamsParams struct {
 	// XUserId Temporary placeholder until real authentication exists. Identifies the caller.
@@ -69,14 +211,148 @@ type ListMyTeamsParams struct {
 // CreateTeamJSONRequestBody defines body for CreateTeam for application/json ContentType.
 type CreateTeamJSONRequestBody = CreateTeamRequest
 
+// CreateInviteLinkJSONRequestBody defines body for CreateInviteLink for application/json ContentType.
+type CreateInviteLinkJSONRequestBody = CreateInviteLinkRequest
+
+// AsActiveInviteLinkState returns the union data inside the InviteLinkState as a ActiveInviteLinkState
+func (t InviteLinkState) AsActiveInviteLinkState() (ActiveInviteLinkState, error) {
+	var body ActiveInviteLinkState
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromActiveInviteLinkState overwrites any union data inside the InviteLinkState as the provided ActiveInviteLinkState
+func (t *InviteLinkState) FromActiveInviteLinkState(v ActiveInviteLinkState) error {
+	v.Status = "active"
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeActiveInviteLinkState performs a merge with any union data inside the InviteLinkState, using the provided ActiveInviteLinkState
+func (t *InviteLinkState) MergeActiveInviteLinkState(v ActiveInviteLinkState) error {
+	v.Status = "active"
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsExpiredInviteLinkState returns the union data inside the InviteLinkState as a ExpiredInviteLinkState
+func (t InviteLinkState) AsExpiredInviteLinkState() (ExpiredInviteLinkState, error) {
+	var body ExpiredInviteLinkState
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromExpiredInviteLinkState overwrites any union data inside the InviteLinkState as the provided ExpiredInviteLinkState
+func (t *InviteLinkState) FromExpiredInviteLinkState(v ExpiredInviteLinkState) error {
+	v.Status = "expired"
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeExpiredInviteLinkState performs a merge with any union data inside the InviteLinkState, using the provided ExpiredInviteLinkState
+func (t *InviteLinkState) MergeExpiredInviteLinkState(v ExpiredInviteLinkState) error {
+	v.Status = "expired"
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsRevokedInviteLinkState returns the union data inside the InviteLinkState as a RevokedInviteLinkState
+func (t InviteLinkState) AsRevokedInviteLinkState() (RevokedInviteLinkState, error) {
+	var body RevokedInviteLinkState
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromRevokedInviteLinkState overwrites any union data inside the InviteLinkState as the provided RevokedInviteLinkState
+func (t *InviteLinkState) FromRevokedInviteLinkState(v RevokedInviteLinkState) error {
+	v.Status = "revoked"
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeRevokedInviteLinkState performs a merge with any union data inside the InviteLinkState, using the provided RevokedInviteLinkState
+func (t *InviteLinkState) MergeRevokedInviteLinkState(v RevokedInviteLinkState) error {
+	v.Status = "revoked"
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+func (t InviteLinkState) Discriminator() (string, error) {
+	var discriminator struct {
+		Discriminator string `json:"status"`
+	}
+	err := json.Unmarshal(t.union, &discriminator)
+	return discriminator.Discriminator, err
+}
+
+func (t InviteLinkState) ValueByDiscriminator() (interface{}, error) {
+	discriminator, err := t.Discriminator()
+	if err != nil {
+		return nil, err
+	}
+	switch discriminator {
+	case "active":
+		return t.AsActiveInviteLinkState()
+	case "expired":
+		return t.AsExpiredInviteLinkState()
+	case "revoked":
+		return t.AsRevokedInviteLinkState()
+	default:
+		return nil, errors.New("unknown discriminator value: " + discriminator)
+	}
+}
+
+func (t InviteLinkState) MarshalJSON() ([]byte, error) {
+	b, err := t.union.MarshalJSON()
+	return b, err
+}
+
+func (t *InviteLinkState) UnmarshalJSON(b []byte) error {
+	err := t.union.UnmarshalJSON(b)
+	return err
+}
+
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
+	// Revoke an invite link
+	// (DELETE /invite-links/{code})
+	RevokeInviteLink(w http.ResponseWriter, r *http.Request, code string, params RevokeInviteLinkParams)
+	// Join a team via an invite link
+	// (POST /invite-links/{code}/accept)
+	AcceptInviteLink(w http.ResponseWriter, r *http.Request, code string, params AcceptInviteLinkParams)
 	// Create a team
 	// (POST /teams)
 	CreateTeam(w http.ResponseWriter, r *http.Request, params CreateTeamParams)
 	// Get a team
 	// (GET /teams/{id})
 	GetTeam(w http.ResponseWriter, r *http.Request, id string, params GetTeamParams)
+	// List the team's invite links
+	// (GET /teams/{team_id}/invite-links)
+	ListInviteLinks(w http.ResponseWriter, r *http.Request, teamId string, params ListInviteLinksParams)
+	// Create an invite link
+	// (POST /teams/{team_id}/invite-links)
+	CreateInviteLink(w http.ResponseWriter, r *http.Request, teamId string, params CreateInviteLinkParams)
 	// List the caller's teams
 	// (GET /users/me/teams)
 	ListMyTeams(w http.ResponseWriter, r *http.Request, params ListMyTeamsParams)
@@ -90,6 +366,114 @@ type ServerInterfaceWrapper struct {
 }
 
 type MiddlewareFunc func(http.Handler) http.Handler
+
+// RevokeInviteLink operation middleware
+func (siw *ServerInterfaceWrapper) RevokeInviteLink(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "code" -------------
+	var code string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "code", r.PathValue("code"), &code, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "code", Err: err})
+		return
+	}
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params RevokeInviteLinkParams
+
+	headers := r.Header
+
+	// ------------- Required header parameter "X-User-Id" -------------
+	if valueList, found := headers[http.CanonicalHeaderKey("X-User-Id")]; found {
+		var XUserId XUserId
+		n := len(valueList)
+		if n != 1 {
+			siw.ErrorHandlerFunc(w, r, &TooManyValuesForParamError{ParamName: "X-User-Id", Count: n})
+			return
+		}
+
+		err = runtime.BindStyledParameterWithOptions("simple", "X-User-Id", valueList[0], &XUserId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: true, Type: "string", Format: "uuid"})
+		if err != nil {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "X-User-Id", Err: err})
+			return
+		}
+
+		params.XUserId = XUserId
+
+	} else {
+		err := fmt.Errorf("Header parameter X-User-Id is required, but not found")
+		siw.ErrorHandlerFunc(w, r, &RequiredHeaderError{ParamName: "X-User-Id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.RevokeInviteLink(w, r, code, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// AcceptInviteLink operation middleware
+func (siw *ServerInterfaceWrapper) AcceptInviteLink(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "code" -------------
+	var code string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "code", r.PathValue("code"), &code, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "code", Err: err})
+		return
+	}
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params AcceptInviteLinkParams
+
+	headers := r.Header
+
+	// ------------- Required header parameter "X-User-Id" -------------
+	if valueList, found := headers[http.CanonicalHeaderKey("X-User-Id")]; found {
+		var XUserId XUserId
+		n := len(valueList)
+		if n != 1 {
+			siw.ErrorHandlerFunc(w, r, &TooManyValuesForParamError{ParamName: "X-User-Id", Count: n})
+			return
+		}
+
+		err = runtime.BindStyledParameterWithOptions("simple", "X-User-Id", valueList[0], &XUserId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: true, Type: "string", Format: "uuid"})
+		if err != nil {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "X-User-Id", Err: err})
+			return
+		}
+
+		params.XUserId = XUserId
+
+	} else {
+		err := fmt.Errorf("Header parameter X-User-Id is required, but not found")
+		siw.ErrorHandlerFunc(w, r, &RequiredHeaderError{ParamName: "X-User-Id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.AcceptInviteLink(w, r, code, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
 
 // CreateTeam operation middleware
 func (siw *ServerInterfaceWrapper) CreateTeam(w http.ResponseWriter, r *http.Request) {
@@ -181,6 +565,127 @@ func (siw *ServerInterfaceWrapper) GetTeam(w http.ResponseWriter, r *http.Reques
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.GetTeam(w, r, id, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ListInviteLinks operation middleware
+func (siw *ServerInterfaceWrapper) ListInviteLinks(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "team_id" -------------
+	var teamId string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "team_id", r.PathValue("team_id"), &teamId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid"})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "team_id", Err: err})
+		return
+	}
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ListInviteLinksParams
+
+	// ------------- Optional query parameter "status" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "status", r.URL.Query(), &params.Status, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "status"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "status", Err: err})
+		}
+		return
+	}
+
+	headers := r.Header
+
+	// ------------- Required header parameter "X-User-Id" -------------
+	if valueList, found := headers[http.CanonicalHeaderKey("X-User-Id")]; found {
+		var XUserId XUserId
+		n := len(valueList)
+		if n != 1 {
+			siw.ErrorHandlerFunc(w, r, &TooManyValuesForParamError{ParamName: "X-User-Id", Count: n})
+			return
+		}
+
+		err = runtime.BindStyledParameterWithOptions("simple", "X-User-Id", valueList[0], &XUserId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: true, Type: "string", Format: "uuid"})
+		if err != nil {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "X-User-Id", Err: err})
+			return
+		}
+
+		params.XUserId = XUserId
+
+	} else {
+		err := fmt.Errorf("Header parameter X-User-Id is required, but not found")
+		siw.ErrorHandlerFunc(w, r, &RequiredHeaderError{ParamName: "X-User-Id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListInviteLinks(w, r, teamId, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// CreateInviteLink operation middleware
+func (siw *ServerInterfaceWrapper) CreateInviteLink(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "team_id" -------------
+	var teamId string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "team_id", r.PathValue("team_id"), &teamId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid"})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "team_id", Err: err})
+		return
+	}
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params CreateInviteLinkParams
+
+	headers := r.Header
+
+	// ------------- Required header parameter "X-User-Id" -------------
+	if valueList, found := headers[http.CanonicalHeaderKey("X-User-Id")]; found {
+		var XUserId XUserId
+		n := len(valueList)
+		if n != 1 {
+			siw.ErrorHandlerFunc(w, r, &TooManyValuesForParamError{ParamName: "X-User-Id", Count: n})
+			return
+		}
+
+		err = runtime.BindStyledParameterWithOptions("simple", "X-User-Id", valueList[0], &XUserId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: true, Type: "string", Format: "uuid"})
+		if err != nil {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "X-User-Id", Err: err})
+			return
+		}
+
+		params.XUserId = XUserId
+
+	} else {
+		err := fmt.Errorf("Header parameter X-User-Id is required, but not found")
+		siw.ErrorHandlerFunc(w, r, &RequiredHeaderError{ParamName: "X-User-Id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.CreateInviteLink(w, r, teamId, params)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -355,11 +860,167 @@ func HandlerWithOptions(si ServerInterface, options StdHTTPServerOptions) http.H
 		ErrorHandlerFunc:   options.ErrorHandlerFunc,
 	}
 
+	m.HandleFunc(http.MethodDelete+" "+options.BaseURL+"/invite-links/{code}", wrapper.RevokeInviteLink)
+	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/invite-links/{code}/accept", wrapper.AcceptInviteLink)
 	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/teams", wrapper.CreateTeam)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/teams/{id}", wrapper.GetTeam)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/teams/{team_id}/invite-links", wrapper.ListInviteLinks)
+	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/teams/{team_id}/invite-links", wrapper.CreateInviteLink)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/users/me/teams", wrapper.ListMyTeams)
 
 	return m
+}
+
+type RevokeInviteLinkRequestObject struct {
+	Code   string `json:"code"`
+	Params RevokeInviteLinkParams
+}
+
+type RevokeInviteLinkResponseObject interface {
+	VisitRevokeInviteLinkResponse(w http.ResponseWriter) error
+}
+
+type RevokeInviteLink204Response struct {
+}
+
+func (response RevokeInviteLink204Response) VisitRevokeInviteLinkResponse(w http.ResponseWriter) error {
+	w.WriteHeader(204)
+	return nil
+}
+
+type RevokeInviteLink401ApplicationProblemPlusJSONResponse Problem
+
+func (response RevokeInviteLink401ApplicationProblemPlusJSONResponse) VisitRevokeInviteLinkResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type RevokeInviteLink403ApplicationProblemPlusJSONResponse Problem
+
+func (response RevokeInviteLink403ApplicationProblemPlusJSONResponse) VisitRevokeInviteLinkResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type RevokeInviteLink404ApplicationProblemPlusJSONResponse Problem
+
+func (response RevokeInviteLink404ApplicationProblemPlusJSONResponse) VisitRevokeInviteLinkResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type RevokeInviteLink500ApplicationProblemPlusJSONResponse Problem
+
+func (response RevokeInviteLink500ApplicationProblemPlusJSONResponse) VisitRevokeInviteLinkResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(500)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type AcceptInviteLinkRequestObject struct {
+	Code   string `json:"code"`
+	Params AcceptInviteLinkParams
+}
+
+type AcceptInviteLinkResponseObject interface {
+	VisitAcceptInviteLinkResponse(w http.ResponseWriter) error
+}
+
+type AcceptInviteLink201JSONResponse Team
+
+func (response AcceptInviteLink201JSONResponse) VisitAcceptInviteLinkResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(201)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type AcceptInviteLink401ApplicationProblemPlusJSONResponse Problem
+
+func (response AcceptInviteLink401ApplicationProblemPlusJSONResponse) VisitAcceptInviteLinkResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type AcceptInviteLink404ApplicationProblemPlusJSONResponse Problem
+
+func (response AcceptInviteLink404ApplicationProblemPlusJSONResponse) VisitAcceptInviteLinkResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type AcceptInviteLink410ApplicationProblemPlusJSONResponse Problem
+
+func (response AcceptInviteLink410ApplicationProblemPlusJSONResponse) VisitAcceptInviteLinkResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(410)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type AcceptInviteLink500ApplicationProblemPlusJSONResponse Problem
+
+func (response AcceptInviteLink500ApplicationProblemPlusJSONResponse) VisitAcceptInviteLinkResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(500)
+	_, err := buf.WriteTo(w)
+	return err
 }
 
 type CreateTeamRequestObject struct {
@@ -502,6 +1163,179 @@ func (response GetTeam500ApplicationProblemPlusJSONResponse) VisitGetTeamRespons
 	return err
 }
 
+type ListInviteLinksRequestObject struct {
+	TeamId string `json:"team_id"`
+	Params ListInviteLinksParams
+}
+
+type ListInviteLinksResponseObject interface {
+	VisitListInviteLinksResponse(w http.ResponseWriter) error
+}
+
+type ListInviteLinks200JSONResponse []InviteLink
+
+func (response ListInviteLinks200JSONResponse) VisitListInviteLinksResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListInviteLinks401ApplicationProblemPlusJSONResponse Problem
+
+func (response ListInviteLinks401ApplicationProblemPlusJSONResponse) VisitListInviteLinksResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListInviteLinks403ApplicationProblemPlusJSONResponse Problem
+
+func (response ListInviteLinks403ApplicationProblemPlusJSONResponse) VisitListInviteLinksResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListInviteLinks404ApplicationProblemPlusJSONResponse Problem
+
+func (response ListInviteLinks404ApplicationProblemPlusJSONResponse) VisitListInviteLinksResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListInviteLinks500ApplicationProblemPlusJSONResponse Problem
+
+func (response ListInviteLinks500ApplicationProblemPlusJSONResponse) VisitListInviteLinksResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(500)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateInviteLinkRequestObject struct {
+	TeamId string `json:"team_id"`
+	Params CreateInviteLinkParams
+	Body   *CreateInviteLinkJSONRequestBody
+}
+
+type CreateInviteLinkResponseObject interface {
+	VisitCreateInviteLinkResponse(w http.ResponseWriter) error
+}
+
+type CreateInviteLink201JSONResponse InviteLink
+
+func (response CreateInviteLink201JSONResponse) VisitCreateInviteLinkResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(201)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateInviteLink400ApplicationProblemPlusJSONResponse Problem
+
+func (response CreateInviteLink400ApplicationProblemPlusJSONResponse) VisitCreateInviteLinkResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateInviteLink401ApplicationProblemPlusJSONResponse Problem
+
+func (response CreateInviteLink401ApplicationProblemPlusJSONResponse) VisitCreateInviteLinkResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateInviteLink403ApplicationProblemPlusJSONResponse Problem
+
+func (response CreateInviteLink403ApplicationProblemPlusJSONResponse) VisitCreateInviteLinkResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateInviteLink404ApplicationProblemPlusJSONResponse Problem
+
+func (response CreateInviteLink404ApplicationProblemPlusJSONResponse) VisitCreateInviteLinkResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateInviteLink500ApplicationProblemPlusJSONResponse Problem
+
+func (response CreateInviteLink500ApplicationProblemPlusJSONResponse) VisitCreateInviteLinkResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(500)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
 type ListMyTeamsRequestObject struct {
 	Params ListMyTeamsParams
 }
@@ -568,12 +1402,24 @@ func (response ListMyTeams500ApplicationProblemPlusJSONResponse) VisitListMyTeam
 
 // StrictServerInterface represents all server handlers.
 type StrictServerInterface interface {
+	// Revoke an invite link
+	// (DELETE /invite-links/{code})
+	RevokeInviteLink(ctx context.Context, request RevokeInviteLinkRequestObject) (RevokeInviteLinkResponseObject, error)
+	// Join a team via an invite link
+	// (POST /invite-links/{code}/accept)
+	AcceptInviteLink(ctx context.Context, request AcceptInviteLinkRequestObject) (AcceptInviteLinkResponseObject, error)
 	// Create a team
 	// (POST /teams)
 	CreateTeam(ctx context.Context, request CreateTeamRequestObject) (CreateTeamResponseObject, error)
 	// Get a team
 	// (GET /teams/{id})
 	GetTeam(ctx context.Context, request GetTeamRequestObject) (GetTeamResponseObject, error)
+	// List the team's invite links
+	// (GET /teams/{team_id}/invite-links)
+	ListInviteLinks(ctx context.Context, request ListInviteLinksRequestObject) (ListInviteLinksResponseObject, error)
+	// Create an invite link
+	// (POST /teams/{team_id}/invite-links)
+	CreateInviteLink(ctx context.Context, request CreateInviteLinkRequestObject) (CreateInviteLinkResponseObject, error)
 	// List the caller's teams
 	// (GET /users/me/teams)
 	ListMyTeams(ctx context.Context, request ListMyTeamsRequestObject) (ListMyTeamsResponseObject, error)
@@ -606,6 +1452,60 @@ type strictHandler struct {
 	ssi         StrictServerInterface
 	middlewares []StrictMiddlewareFunc
 	options     StrictHTTPServerOptions
+}
+
+// RevokeInviteLink operation middleware
+func (sh *strictHandler) RevokeInviteLink(w http.ResponseWriter, r *http.Request, code string, params RevokeInviteLinkParams) {
+	var request RevokeInviteLinkRequestObject
+
+	request.Code = code
+	request.Params = params
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.RevokeInviteLink(ctx, request.(RevokeInviteLinkRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "RevokeInviteLink")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(RevokeInviteLinkResponseObject); ok {
+		if err := validResponse.VisitRevokeInviteLinkResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// AcceptInviteLink operation middleware
+func (sh *strictHandler) AcceptInviteLink(w http.ResponseWriter, r *http.Request, code string, params AcceptInviteLinkParams) {
+	var request AcceptInviteLinkRequestObject
+
+	request.Code = code
+	request.Params = params
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.AcceptInviteLink(ctx, request.(AcceptInviteLinkRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "AcceptInviteLink")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(AcceptInviteLinkResponseObject); ok {
+		if err := validResponse.VisitAcceptInviteLinkResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
 }
 
 // CreateTeam operation middleware
@@ -668,6 +1568,70 @@ func (sh *strictHandler) GetTeam(w http.ResponseWriter, r *http.Request, id stri
 	}
 }
 
+// ListInviteLinks operation middleware
+func (sh *strictHandler) ListInviteLinks(w http.ResponseWriter, r *http.Request, teamId string, params ListInviteLinksParams) {
+	var request ListInviteLinksRequestObject
+
+	request.TeamId = teamId
+	request.Params = params
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ListInviteLinks(ctx, request.(ListInviteLinksRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListInviteLinks")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ListInviteLinksResponseObject); ok {
+		if err := validResponse.VisitListInviteLinksResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// CreateInviteLink operation middleware
+func (sh *strictHandler) CreateInviteLink(w http.ResponseWriter, r *http.Request, teamId string, params CreateInviteLinkParams) {
+	var request CreateInviteLinkRequestObject
+
+	request.TeamId = teamId
+	request.Params = params
+
+	var body CreateInviteLinkJSONRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		if !errors.Is(err, io.EOF) {
+			sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+			return
+		}
+	} else {
+		request.Body = &body
+	}
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.CreateInviteLink(ctx, request.(CreateInviteLinkRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "CreateInviteLink")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(CreateInviteLinkResponseObject); ok {
+		if err := validResponse.VisitCreateInviteLinkResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
 // ListMyTeams operation middleware
 func (sh *strictHandler) ListMyTeams(w http.ResponseWriter, r *http.Request, params ListMyTeamsParams) {
 	var request ListMyTeamsRequestObject
@@ -699,23 +1663,34 @@ func (sh *strictHandler) ListMyTeams(w http.ResponseWriter, r *http.Request, par
 // const string: with thousands of chunks the chained `+` fold is several
 // times slower for the Go compiler than parsing a slice literal.
 var swaggerSpec = []string{
-	"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",
+	"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",
 }
 
 // decodeSpec returns the embedded OpenAPI spec as raw JSON bytes,

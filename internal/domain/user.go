@@ -5,6 +5,8 @@ package domain
 
 import (
 	"context"
+	"crypto/rand"
+	"encoding/base64"
 	"errors"
 	"fmt"
 	"strings"
@@ -22,6 +24,11 @@ import (
 // foreignKeyViolation is the Postgres SQLSTATE code for a foreign key
 // constraint violation (https://www.postgresql.org/docs/current/errcodes-appendix.html).
 const foreignKeyViolation = "23503"
+
+// membersUserIDForeignKey is the name Postgres generates for the
+// unnamed "user_id UUID NOT NULL REFERENCES users (id)" constraint on
+// members, following its default <table>_<column>_fkey convention.
+const membersUserIDForeignKey = "members_user_id_fkey"
 
 type ID uuid.UUID
 
@@ -58,6 +65,45 @@ func (n TeamName) String() string {
 
 type DateTime time.Time
 
+func ParseDateTime(s string) (DateTime, error) {
+	t, err := time.Parse(time.RFC3339Nano, s)
+	if err != nil {
+		return DateTime{}, fmt.Errorf("invalid format: %w", err)
+	}
+	return DateTime(t), nil
+}
+
+type InviteLinkExpiry DateTime
+
+func ParseInviteLinkExpiry(s string) (InviteLinkExpiry, error) {
+	dt, err := ParseDateTime(s)
+	if err != nil {
+		return InviteLinkExpiry{}, err
+	}
+	if !time.Time(dt).After(time.Now()) {
+		return InviteLinkExpiry{}, errors.New("must be in the future")
+	}
+	return InviteLinkExpiry(dt), nil
+}
+
+// Code is a high-entropy invite link credential: knowing it is what grants
+// access, not just a lookup key, so it's generated with crypto/rand rather
+// than a predictable id.
+type Code string
+
+func NewCode() (Code, error) {
+	b := make([]byte, 16)
+	_, err := rand.Read(b)
+	if err != nil {
+		return "", fmt.Errorf("read random bytes: %w", err)
+	}
+	return Code(base64.RawURLEncoding.EncodeToString(b)), nil
+}
+
+func (c Code) String() string {
+	return string(c)
+}
+
 func (d DateTime) String() string {
 	return time.Time(d).UTC().Format(time.RFC3339Nano)
 }
@@ -78,6 +124,14 @@ func (e TeamNotFoundError) Error() string {
 	return fmt.Sprintf("team %s not found", e.ID)
 }
 
+type NotTeamOwnerError struct {
+	ID ID
+}
+
+func (e NotTeamOwnerError) Error() string {
+	return fmt.Sprintf("caller is not owner of team %s", e.ID)
+}
+
 type UserInfo struct {
 	ID        ID
 	CreatedAt DateTime
@@ -86,6 +140,13 @@ type UserInfo struct {
 type TeamInfo struct {
 	ID        ID
 	Name      TeamName
+	CreatedAt DateTime
+}
+
+type InviteLinkInfo struct {
+	Code      Code
+	UseCount  int64
+	ExpiresAt *DateTime
 	CreatedAt DateTime
 }
 
@@ -102,6 +163,11 @@ type User interface {
 // Info is called.
 type Team interface {
 	Info(ctx context.Context) (TeamInfo, error)
+	CreateInviteLink(
+		ctx context.Context,
+		actor ID,
+		expiresAt *InviteLinkExpiry,
+	) (InviteLinkInfo, error)
 }
 
 // World is the entry point into the domain: it hands out references to
@@ -162,7 +228,8 @@ func (u SQLUser) CreateTeam(ctx context.Context, name TeamName) (Team, error) {
 	})
 	if err != nil {
 		pgErr, ok := errors.AsType[*pgconn.PgError](err)
-		if ok && pgErr.Code == foreignKeyViolation {
+		if ok && pgErr.Code == foreignKeyViolation &&
+			pgErr.ConstraintName == membersUserIDForeignKey {
 			return nil, UserNotFoundError{ID: u.id}
 		}
 		return nil, fmt.Errorf("insert owner member: %w", err)
@@ -206,6 +273,63 @@ func (t SQLTeam) Info(ctx context.Context) (TeamInfo, error) {
 	return TeamInfo{
 		ID:        ID(row.ID),
 		Name:      TeamName(row.Name),
+		CreatedAt: DateTime(row.CreatedAt),
+	}, nil
+}
+
+func (t SQLTeam) CreateInviteLink(
+	ctx context.Context,
+	actor ID,
+	expiresAt *InviteLinkExpiry,
+) (InviteLinkInfo, error) {
+	_, err := t.Info(ctx)
+	if err != nil {
+		return InviteLinkInfo{}, err
+	}
+
+	member, err := db.New(t.pool).GetMember(ctx, db.GetMemberParams{
+		TeamID: uuid.UUID(t.id),
+		UserID: uuid.UUID(actor),
+	})
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return InviteLinkInfo{}, NotTeamOwnerError{ID: t.id}
+		}
+		return InviteLinkInfo{}, fmt.Errorf("get member: %w", err)
+	}
+	if member.Role != "owner" {
+		return InviteLinkInfo{}, NotTeamOwnerError{ID: t.id}
+	}
+
+	code, err := NewCode()
+	if err != nil {
+		return InviteLinkInfo{}, fmt.Errorf("generate code: %w", err)
+	}
+
+	var expiresAtParam *time.Time
+	if expiresAt != nil {
+		expiresAtParam = new(time.Time(*expiresAt))
+	}
+
+	row, err := db.New(t.pool).InsertInviteLink(ctx, db.InsertInviteLinkParams{
+		TeamID:            uuid.UUID(t.id),
+		Code:              string(code),
+		CreatedByMemberID: member.ID,
+		ExpiresAt:         expiresAtParam,
+	})
+	if err != nil {
+		return InviteLinkInfo{}, fmt.Errorf("insert invite link: %w", err)
+	}
+
+	var rowExpiresAt *DateTime
+	if row.ExpiresAt != nil {
+		rowExpiresAt = new(DateTime(*row.ExpiresAt))
+	}
+
+	return InviteLinkInfo{
+		Code:      Code(row.Code),
+		UseCount:  row.UseCount,
+		ExpiresAt: rowExpiresAt,
 		CreatedAt: DateTime(row.CreatedAt),
 	}, nil
 }
