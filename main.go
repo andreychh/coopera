@@ -40,7 +40,14 @@ func run() error {
 		},
 	)
 
-	strict := api.NewStrictHandler(api.NewServer(domain.NewSQLWorld(pool)), nil)
+	strict := api.NewStrictHandlerWithOptions(
+		api.NewServer(domain.NewSQLWorld(pool)),
+		nil,
+		api.StrictHTTPServerOptions{
+			RequestErrorHandlerFunc:  api.RequestError,
+			ResponseErrorHandlerFunc: api.ResponseError,
+		},
+	)
 	handler := api.HandlerFromMuxWithBaseURL(strict, mux, "/v1")
 
 	port, exists := os.LookupEnv("PORT")
