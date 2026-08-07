@@ -95,8 +95,8 @@ paths:
               schema:
                 $ref: '#/components/schemas/Team'
 
-        '401':
-          description: The caller could not be identified
+        '400':
+          description: Invalid request
           content:
             application/problem+json:
               schema:
@@ -122,7 +122,9 @@ paths:
       tags: [ teams ]
       summary: List the caller's teams
       description: >
-        Returns teams where the caller has an active membership.
+        Returns teams where the caller has an active membership, whatever their role in it, most
+        recently joined first. A team left is a team gone from this list. Having no teams is not a
+        failure but an ordinary state, and answers with an empty list.
       parameters:
         - $ref: '#/components/parameters/XUserId'
       responses:
@@ -137,13 +139,6 @@ paths:
 
         '400':
           description: Invalid request
-          content:
-            application/problem+json:
-              schema:
-                $ref: '#/components/schemas/Problem'
-
-        '401':
-          description: The caller could not be identified
           content:
             application/problem+json:
               schema:
@@ -192,22 +187,12 @@ paths:
               schema:
                 $ref: '#/components/schemas/Problem'
 
-        '401':
-          description: The caller could not be identified
-          content:
-            application/problem+json:
-              schema:
-                $ref: '#/components/schemas/Problem'
-
         '403':
-          description: The caller is not the team's owner
-          content:
-            application/problem+json:
-              schema:
-                $ref: '#/components/schemas/Problem'
-
-        '404':
-          description: Team not found
+          description: >
+            The caller may not create invite links for this team. Whether the team does not exist,
+            the caller does not belong to it, or belongs to it without owning it is deliberately
+            not distinguished, so that someone outside a team cannot learn that it exists. Do not
+            read this answer as proof that the team is real.
           content:
             application/problem+json:
               schema:
@@ -251,22 +236,20 @@ paths:
                 items:
                   $ref: '#/components/schemas/InviteLink'
 
-        '401':
-          description: The caller could not be identified
+        '400':
+          description: Invalid request
           content:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/Problem'
 
         '403':
-          description: The caller is not the team's owner
-          content:
-            application/problem+json:
-              schema:
-                $ref: '#/components/schemas/Problem'
-
-        '404':
-          description: Team not found
+          description: >
+            The caller may not see this team's invite links. Whether the team does not exist, the
+            caller does not belong to it, or belongs to it without owning it is deliberately not
+            distinguished, so that someone outside a team cannot learn that it exists. Do not read
+            this answer as proof that the team is real. An owner whose team has no invite links
+            gets an empty list, not this.
           content:
             application/problem+json:
               schema:
@@ -297,8 +280,8 @@ paths:
         '204':
           description: Invite link revoked
 
-        '401':
-          description: The caller could not be identified
+        '400':
+          description: Invalid request
           content:
             application/problem+json:
               schema:
@@ -318,6 +301,13 @@ paths:
               schema:
                 $ref: '#/components/schemas/Problem'
 
+        '409':
+          description: The invite link is already revoked
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+
         '500':
           description: Internal server error
           content:
@@ -331,7 +321,9 @@ paths:
       tags: [ invite-links ]
       summary: Join a team via an invite link
       description: >
-        Adds the caller as a member of the team the invite link belongs to.
+        Adds the caller as a member of the team the invite link belongs to. Accepting is
+        idempotent: someone who is already a member is asking for something that already holds,
+        so the call succeeds and changes nothing.
       parameters:
         - name: code
           in: path
@@ -340,12 +332,28 @@ paths:
             type: string
         - $ref: '#/components/parameters/XUserId'
       responses:
+        '200':
+          description: >
+            Already a member of the team, so nothing changed. The link's use count was not
+            raised, because it counts people who joined rather than times it was opened.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Team'
+
         '201':
           description: Joined the team
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Team'
+
+        '400':
+          description: Invalid request
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
 
         '401':
           description: The caller could not be identified
@@ -362,7 +370,10 @@ paths:
                 $ref: '#/components/schemas/Problem'
 
         '410':
-          description: The invite link has expired or been revoked
+          description: >
+            The invite link no longer works. Whether it was revoked or simply expired is not
+            distinguished: either way a fresh invitation is needed, and which of the two it was
+            is the team owner's to explain, not this API's.
           content:
             application/problem+json:
               schema:

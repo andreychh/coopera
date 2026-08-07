@@ -12,36 +12,164 @@ import (
 	"github.com/google/uuid"
 )
 
-const insertInviteLink = `-- name: InsertInviteLink :one
-INSERT INTO invite_links (team_id, code, created_by_member_id, expires_at)
-VALUES ($1, $2, $3, $4)
-RETURNING id, team_id, code, created_by_member_id, use_count, expires_at, revoked_at, created_at
+const getInviteLinkByCode = `-- name: GetInviteLinkByCode :one
+SELECT
+    id,
+    team_id,
+    expires_at,
+    revoked_at
+FROM invite_links
+WHERE code = $1
+FOR UPDATE
 `
 
-type InsertInviteLinkParams struct {
-	TeamID            uuid.UUID
-	Code              string
-	CreatedByMemberID uuid.UUID
-	ExpiresAt         *time.Time
+type GetInviteLinkByCodeRow struct {
+	ID        uuid.UUID
+	TeamID    uuid.UUID
+	ExpiresAt *time.Time
+	RevokedAt *time.Time
 }
 
-func (q *Queries) InsertInviteLink(ctx context.Context, arg InsertInviteLinkParams) (InviteLink, error) {
-	row := q.db.QueryRow(ctx, insertInviteLink,
-		arg.TeamID,
-		arg.Code,
-		arg.CreatedByMemberID,
-		arg.ExpiresAt,
-	)
-	var i InviteLink
+// Locks the row so a concurrent accept/revoke can't commit between this
+// check and the write it gates: whichever caller acquires the lock
+// first is what the other one sees once its own transaction proceeds.
+func (q *Queries) GetInviteLinkByCode(ctx context.Context, code string) (GetInviteLinkByCodeRow, error) {
+	row := q.db.QueryRow(ctx, getInviteLinkByCode, code)
+	var i GetInviteLinkByCodeRow
 	err := row.Scan(
 		&i.ID,
 		&i.TeamID,
+		&i.ExpiresAt,
+		&i.RevokedAt,
+	)
+	return i, err
+}
+
+const incrementInviteLinkUseCount = `-- name: IncrementInviteLinkUseCount :exec
+UPDATE invite_links
+SET use_count = use_count + 1
+WHERE id = $1
+`
+
+func (q *Queries) IncrementInviteLinkUseCount(ctx context.Context, id uuid.UUID) error {
+	_, err := q.db.Exec(ctx, incrementInviteLinkUseCount, id)
+	return err
+}
+
+const insertInviteLinkAsOwner = `-- name: InsertInviteLinkAsOwner :one
+INSERT INTO invite_links (team_id, code, created_by_member_id, expires_at)
+SELECT
+    m.team_id,
+    $2 AS code,
+    m.id,
+    $3 AS expires_at
+FROM members AS m
+WHERE
+    m.team_id = $1
+    AND m.user_id = $4
+    AND m.role = 'owner'
+    AND m.left_at IS NULL
+RETURNING code, use_count, expires_at, revoked_at, created_at
+`
+
+type InsertInviteLinkAsOwnerParams struct {
+	TeamID    uuid.UUID
+	Code      string
+	ExpiresAt *time.Time
+	UserID    uuid.UUID
+}
+
+type InsertInviteLinkAsOwnerRow struct {
+	Code      string
+	UseCount  int64
+	ExpiresAt *time.Time
+	RevokedAt *time.Time
+	CreatedAt time.Time
+}
+
+// Authorization is part of the write rather than a check before it: the
+// inserted row is selected from members, so a caller who doesn't own the
+// team yields no source row and inserts nothing. Check and write cannot
+// observe different states, so an owner removed mid-request can't leave a
+// link behind.
+//
+// No rows means one of "no such team", "not a member", "left the team" or
+// "not the owner", and the caller cannot tell which -- that indistinctness
+// is required: an outsider must not learn whether a team exists.
+func (q *Queries) InsertInviteLinkAsOwner(ctx context.Context, arg InsertInviteLinkAsOwnerParams) (InsertInviteLinkAsOwnerRow, error) {
+	row := q.db.QueryRow(ctx, insertInviteLinkAsOwner,
+		arg.TeamID,
+		arg.Code,
+		arg.ExpiresAt,
+		arg.UserID,
+	)
+	var i InsertInviteLinkAsOwnerRow
+	err := row.Scan(
 		&i.Code,
-		&i.CreatedByMemberID,
 		&i.UseCount,
 		&i.ExpiresAt,
 		&i.RevokedAt,
 		&i.CreatedAt,
 	)
 	return i, err
+}
+
+const listInviteLinksByTeam = `-- name: ListInviteLinksByTeam :many
+SELECT
+    code,
+    use_count,
+    expires_at,
+    revoked_at,
+    created_at
+FROM invite_links
+WHERE team_id = $1
+ORDER BY created_at
+`
+
+type ListInviteLinksByTeamRow struct {
+	Code      string
+	UseCount  int64
+	ExpiresAt *time.Time
+	RevokedAt *time.Time
+	CreatedAt time.Time
+}
+
+// Returns the facts, not a verdict: what state each link is in follows
+// from expires_at, revoked_at and the current time, and that derivation
+// lives in the domain (NewLinkState) so there is one of it.
+func (q *Queries) ListInviteLinksByTeam(ctx context.Context, teamID uuid.UUID) ([]ListInviteLinksByTeamRow, error) {
+	rows, err := q.db.Query(ctx, listInviteLinksByTeam, teamID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListInviteLinksByTeamRow
+	for rows.Next() {
+		var i ListInviteLinksByTeamRow
+		if err := rows.Scan(
+			&i.Code,
+			&i.UseCount,
+			&i.ExpiresAt,
+			&i.RevokedAt,
+			&i.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const revokeInviteLink = `-- name: RevokeInviteLink :exec
+UPDATE invite_links
+SET revoked_at = NOW()
+WHERE id = $1
+`
+
+func (q *Queries) RevokeInviteLink(ctx context.Context, id uuid.UUID) error {
+	_, err := q.db.Exec(ctx, revokeInviteLink, id)
+	return err
 }

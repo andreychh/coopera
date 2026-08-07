@@ -11,62 +11,64 @@ import (
 	"github.com/google/uuid"
 )
 
-const getMember = `-- name: GetMember :one
-SELECT
-    id,
-    team_id,
-    user_id,
-    role,
-    points,
-    left_at,
-    created_at
-FROM members
-WHERE team_id = $1 AND user_id = $2 AND left_at IS NULL
+const isTeamOwner = `-- name: IsTeamOwner :one
+SELECT EXISTS(
+    SELECT 1
+    FROM members
+    WHERE
+        team_id = $1
+        AND user_id = $2
+        AND role = 'owner'
+        AND left_at IS NULL
+)
 `
 
-type GetMemberParams struct {
+type IsTeamOwnerParams struct {
 	TeamID uuid.UUID
 	UserID uuid.UUID
 }
 
-func (q *Queries) GetMember(ctx context.Context, arg GetMemberParams) (Member, error) {
-	row := q.db.QueryRow(ctx, getMember, arg.TeamID, arg.UserID)
-	var i Member
-	err := row.Scan(
-		&i.ID,
-		&i.TeamID,
-		&i.UserID,
-		&i.Role,
-		&i.Points,
-		&i.LeftAt,
-		&i.CreatedAt,
-	)
-	return i, err
+// Answers only whether the actor may act as owner of this team, and
+// deliberately cannot say why not: a team that does not exist has no
+// members, so it is indistinguishable from one the actor does not own.
+// Nobody outside a team can learn that it exists by asking this.
+func (q *Queries) IsTeamOwner(ctx context.Context, arg IsTeamOwnerParams) (bool, error) {
+	row := q.db.QueryRow(ctx, isTeamOwner, arg.TeamID, arg.UserID)
+	var exists bool
+	err := row.Scan(&exists)
+	return exists, err
 }
 
-const insertMember = `-- name: InsertMember :one
+const joinTeam = `-- name: JoinTeam :one
 INSERT INTO members (team_id, user_id, role)
-VALUES ($1, $2, $3)
-RETURNING id, team_id, user_id, role, points, left_at, created_at
+VALUES ($1, $2, 'member')
+ON CONFLICT (team_id, user_id) DO UPDATE
+    SET
+        left_at = NULL,
+        role = 'member'
+    WHERE members.left_at IS NOT NULL
+RETURNING id
 `
 
-type InsertMemberParams struct {
+type JoinTeamParams struct {
 	TeamID uuid.UUID
 	UserID uuid.UUID
-	Role   string
 }
 
-func (q *Queries) InsertMember(ctx context.Context, arg InsertMemberParams) (Member, error) {
-	row := q.db.QueryRow(ctx, insertMember, arg.TeamID, arg.UserID, arg.Role)
-	var i Member
-	err := row.Scan(
-		&i.ID,
-		&i.TeamID,
-		&i.UserID,
-		&i.Role,
-		&i.Points,
-		&i.LeftAt,
-		&i.CreatedAt,
-	)
-	return i, err
+// Joining is one statement, so it cannot half-happen: a newcomer is
+// inserted, someone who had left is reinstated, and an active member is
+// left alone.
+//
+// No row comes back for an active member, because DO UPDATE skips them.
+// That absence is the answer rather than a failure: they asked to be in
+// the team and already are. A returned row means somebody actually
+// joined, which is exactly what the use count counts.
+//
+// Reinstating resets the role. Leaving a team gives up ownership, and an
+// invitation brings a person back as a member, never as an owner.
+func (q *Queries) JoinTeam(ctx context.Context, arg JoinTeamParams) (uuid.UUID, error) {
+	row := q.db.QueryRow(ctx, joinTeam, arg.TeamID, arg.UserID)
+	var id uuid.UUID
+	err := row.Scan(&id)
+	return id, err
 }

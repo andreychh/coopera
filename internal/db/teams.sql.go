@@ -7,6 +7,7 @@ package db
 
 import (
 	"context"
+	"time"
 
 	"github.com/google/uuid"
 )
@@ -27,15 +28,112 @@ func (q *Queries) GetTeam(ctx context.Context, id uuid.UUID) (Team, error) {
 	return i, err
 }
 
-const insertTeam = `-- name: InsertTeam :one
-INSERT INTO teams (name)
-VALUES ($1)
-RETURNING id, name, created_at
+const getTeamForMember = `-- name: GetTeamForMember :one
+SELECT
+    t.id,
+    t.name,
+    t.created_at
+FROM teams AS t
+INNER JOIN members AS m ON t.id = m.team_id
+WHERE t.id = $1 AND m.user_id = $2 AND m.left_at IS NULL
 `
 
-func (q *Queries) InsertTeam(ctx context.Context, name string) (Team, error) {
-	row := q.db.QueryRow(ctx, insertTeam, name)
+type GetTeamForMemberParams struct {
+	ID     uuid.UUID
+	UserID uuid.UUID
+}
+
+func (q *Queries) GetTeamForMember(ctx context.Context, arg GetTeamForMemberParams) (Team, error) {
+	row := q.db.QueryRow(ctx, getTeamForMember, arg.ID, arg.UserID)
 	var i Team
 	err := row.Scan(&i.ID, &i.Name, &i.CreatedAt)
 	return i, err
+}
+
+const insertTeamWithOwner = `-- name: InsertTeamWithOwner :one
+WITH created AS (
+    INSERT INTO teams (name)
+    VALUES ($1)
+    RETURNING id, name, created_at
+),
+
+owner AS (
+    INSERT INTO members (team_id, user_id, role)
+    SELECT
+        created.id,
+        $2 AS user_id,
+        'owner' AS role
+    FROM created
+)
+
+SELECT
+    id,
+    name,
+    created_at
+FROM created
+`
+
+type InsertTeamWithOwnerParams struct {
+	Name   string
+	UserID uuid.UUID
+}
+
+type InsertTeamWithOwnerRow struct {
+	ID        uuid.UUID
+	Name      string
+	CreatedAt time.Time
+}
+
+// A team and its owner come into being together, in one statement, so a
+// team without an owner is not a state anyone can reach: it does not
+// depend on the caller remembering to open a transaction.
+//
+// The owner CTE is not referenced by the final SELECT, and does not need
+// to be. Postgres runs every data-modifying CTE exactly once whether or
+// not anything reads from it.
+func (q *Queries) InsertTeamWithOwner(ctx context.Context, arg InsertTeamWithOwnerParams) (InsertTeamWithOwnerRow, error) {
+	row := q.db.QueryRow(ctx, insertTeamWithOwner, arg.Name, arg.UserID)
+	var i InsertTeamWithOwnerRow
+	err := row.Scan(&i.ID, &i.Name, &i.CreatedAt)
+	return i, err
+}
+
+const listTeamsForMember = `-- name: ListTeamsForMember :many
+SELECT
+    t.id,
+    t.name,
+    t.created_at
+FROM teams AS t
+INNER JOIN members AS m ON t.id = m.team_id
+WHERE m.user_id = $1 AND m.left_at IS NULL
+ORDER BY m.created_at DESC, t.id ASC
+`
+
+// The same membership test as GetTeamForMember, on purpose: a team in
+// this list must be one the person can open, and a team missing from it
+// must be one they cannot. Change the condition here and change it
+// there.
+//
+// Ordered by when the person joined rather than when the team was made:
+// this is a list about their own history. The team id breaks ties, so
+// two memberships made in the same instant still come back in a stable
+// order.
+func (q *Queries) ListTeamsForMember(ctx context.Context, userID uuid.UUID) ([]Team, error) {
+	rows, err := q.db.Query(ctx, listTeamsForMember, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Team
+	for rows.Next() {
+		var i Team
+		if err := rows.Scan(&i.ID, &i.Name, &i.CreatedAt); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }

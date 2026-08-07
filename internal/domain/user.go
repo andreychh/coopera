@@ -4,7 +4,6 @@
 package domain
 
 import (
-	"context"
 	"crypto/rand"
 	"encoding/base64"
 	"errors"
@@ -14,21 +13,25 @@ import (
 	"unicode"
 	"unicode/utf8"
 
-	"github.com/andreychh/coopera/internal/db"
 	"github.com/google/uuid"
-	"github.com/jackc/pgx/v5"
-	"github.com/jackc/pgx/v5/pgconn"
-	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-// foreignKeyViolation is the Postgres SQLSTATE code for a foreign key
-// constraint violation (https://www.postgresql.org/docs/current/errcodes-appendix.html).
-const foreignKeyViolation = "23503"
-
-// membersUserIDForeignKey is the name Postgres generates for the
-// unnamed "user_id UUID NOT NULL REFERENCES users (id)" constraint on
-// members, following its default <table>_<column>_fkey convention.
-const membersUserIDForeignKey = "members_user_id_fkey"
+// ForeignKeyViolation is the Postgres SQLSTATE code for a violated
+// foreign key (https://www.postgresql.org/docs/current/errcodes-appendix.html),
+// and MembersUserIDForeignKey is the name Postgres generates for
+// members' unnamed "user_id UUID NOT NULL REFERENCES users (id)"
+// constraint, following its default <table>_<column>_fkey convention.
+//
+// This is the last place where the domain speaks Postgres, and it is a
+// brittle one: renaming the constraint in a migration would break the
+// match here without a word from the compiler. It survives only because
+// nothing but the database can tell that an actor does not exist. Every
+// other such translation has been replaced by a query whose result
+// carries the answer.
+const (
+	ForeignKeyViolation     = "23503"
+	MembersUserIDForeignKey = "members_user_id_fkey"
+)
 
 type ID uuid.UUID
 
@@ -73,19 +76,6 @@ func ParseDateTime(s string) (DateTime, error) {
 	return DateTime(t), nil
 }
 
-type InviteLinkExpiry DateTime
-
-func ParseInviteLinkExpiry(s string) (InviteLinkExpiry, error) {
-	dt, err := ParseDateTime(s)
-	if err != nil {
-		return InviteLinkExpiry{}, err
-	}
-	if !time.Time(dt).After(time.Now()) {
-		return InviteLinkExpiry{}, errors.New("must be in the future")
-	}
-	return InviteLinkExpiry(dt), nil
-}
-
 // Code is a high-entropy invite link credential: knowing it is what grants
 // access, not just a lookup key, so it's generated with crypto/rand rather
 // than a predictable id.
@@ -125,211 +115,50 @@ func (e TeamNotFoundError) Error() string {
 }
 
 type NotTeamOwnerError struct {
-	ID ID
+	TeamID ID
 }
 
 func (e NotTeamOwnerError) Error() string {
-	return fmt.Sprintf("caller is not owner of team %s", e.ID)
+	return fmt.Sprintf("caller is not owner of team %s", e.TeamID)
 }
 
-type UserInfo struct {
-	ID        ID
-	CreatedAt DateTime
+type InviteLinkNotFoundError struct {
+	Code Code
 }
 
-type TeamInfo struct {
+func (e InviteLinkNotFoundError) Error() string {
+	return fmt.Sprintf("invite link %s not found", e.Code)
+}
+
+type InviteLinkNotUsableError struct {
+	Code Code
+}
+
+func (e InviteLinkNotUsableError) Error() string {
+	return fmt.Sprintf("invite link %s is expired or revoked", e.Code)
+}
+
+type InviteLinkAlreadyRevokedError struct {
+	Code Code
+}
+
+func (e InviteLinkAlreadyRevokedError) Error() string {
+	return fmt.Sprintf("invite link %s is already revoked", e.Code)
+}
+
+type Team struct {
 	ID        ID
 	Name      TeamName
 	CreatedAt DateTime
 }
 
-type InviteLinkInfo struct {
+// InviteLink is a link as it is reported to whoever asked for it. Its
+// deadline and its revocation live inside [LinkState] rather than beside
+// it, so a revoked link always carries the moment it was revoked and an
+// expired one always carries its deadline.
+type InviteLink struct {
 	Code      Code
 	UseCount  int64
-	ExpiresAt *DateTime
+	State     LinkState
 	CreatedAt DateTime
-}
-
-// User is a reference to a user by id. Constructing it does no I/O and
-// cannot fail; whether the id refers to a real user is only known once
-// Info or an action method is called.
-type User interface {
-	Info(ctx context.Context) (UserInfo, error)
-	CreateTeam(ctx context.Context, name TeamName) (Team, error)
-}
-
-// Team is a reference to a team by id. Constructing it does no I/O and
-// cannot fail; whether the id refers to a real team is only known once
-// Info is called.
-type Team interface {
-	Info(ctx context.Context) (TeamInfo, error)
-	CreateInviteLink(
-		ctx context.Context,
-		actor ID,
-		expiresAt *InviteLinkExpiry,
-	) (InviteLinkInfo, error)
-}
-
-// World is the entry point into the domain: it hands out references to
-// aggregates by id, without touching the database.
-type World interface {
-	User(id ID) User
-	Team(id ID) Team
-}
-
-type SQLWorld struct {
-	pool *pgxpool.Pool
-}
-
-func NewSQLWorld(pool *pgxpool.Pool) SQLWorld {
-	return SQLWorld{pool: pool}
-}
-
-func (w SQLWorld) User(id ID) User {
-	return SQLUser{pool: w.pool, id: id}
-}
-
-func (w SQLWorld) Team(id ID) Team {
-	return SQLTeam{pool: w.pool, id: id}
-}
-
-type SQLUser struct {
-	pool *pgxpool.Pool
-	id   ID
-}
-
-func (u SQLUser) Info(ctx context.Context) (UserInfo, error) {
-	row, err := db.New(u.pool).GetUser(ctx, uuid.UUID(u.id))
-	if err != nil {
-		if errors.Is(err, pgx.ErrNoRows) {
-			return UserInfo{}, UserNotFoundError{ID: u.id}
-		}
-		return UserInfo{}, fmt.Errorf("get user: %w", err)
-	}
-	return UserInfo{ID: ID(row.ID), CreatedAt: DateTime(row.CreatedAt)}, nil
-}
-
-func (u SQLUser) CreateTeam(ctx context.Context, name TeamName) (Team, error) {
-	tx, err := u.pool.Begin(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("begin transaction: %w", err)
-	}
-	defer func() { _ = tx.Rollback(ctx) }()
-
-	team, err := db.New(tx).InsertTeam(ctx, string(name))
-	if err != nil {
-		return nil, fmt.Errorf("insert team: %w", err)
-	}
-
-	_, err = db.New(tx).InsertMember(ctx, db.InsertMemberParams{
-		TeamID: team.ID,
-		UserID: uuid.UUID(u.id),
-		Role:   "owner",
-	})
-	if err != nil {
-		pgErr, ok := errors.AsType[*pgconn.PgError](err)
-		if ok && pgErr.Code == foreignKeyViolation &&
-			pgErr.ConstraintName == membersUserIDForeignKey {
-			return nil, UserNotFoundError{ID: u.id}
-		}
-		return nil, fmt.Errorf("insert owner member: %w", err)
-	}
-
-	err = tx.Commit(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("commit: %w", err)
-	}
-
-	return SQLTeam{
-		pool: u.pool,
-		id:   ID(team.ID),
-		info: &TeamInfo{
-			ID:        ID(team.ID),
-			Name:      TeamName(team.Name),
-			CreatedAt: DateTime(team.CreatedAt),
-		},
-	}, nil
-}
-
-type SQLTeam struct {
-	pool *pgxpool.Pool
-	id   ID
-	// info caches data already known at construction time (e.g. right
-	// after an insert), so Info doesn't re-fetch what was just written.
-	info *TeamInfo
-}
-
-func (t SQLTeam) Info(ctx context.Context) (TeamInfo, error) {
-	if t.info != nil {
-		return *t.info, nil
-	}
-	row, err := db.New(t.pool).GetTeam(ctx, uuid.UUID(t.id))
-	if err != nil {
-		if errors.Is(err, pgx.ErrNoRows) {
-			return TeamInfo{}, TeamNotFoundError{ID: t.id}
-		}
-		return TeamInfo{}, fmt.Errorf("get team: %w", err)
-	}
-	return TeamInfo{
-		ID:        ID(row.ID),
-		Name:      TeamName(row.Name),
-		CreatedAt: DateTime(row.CreatedAt),
-	}, nil
-}
-
-func (t SQLTeam) CreateInviteLink(
-	ctx context.Context,
-	actor ID,
-	expiresAt *InviteLinkExpiry,
-) (InviteLinkInfo, error) {
-	_, err := t.Info(ctx)
-	if err != nil {
-		return InviteLinkInfo{}, err
-	}
-
-	member, err := db.New(t.pool).GetMember(ctx, db.GetMemberParams{
-		TeamID: uuid.UUID(t.id),
-		UserID: uuid.UUID(actor),
-	})
-	if err != nil {
-		if errors.Is(err, pgx.ErrNoRows) {
-			return InviteLinkInfo{}, NotTeamOwnerError{ID: t.id}
-		}
-		return InviteLinkInfo{}, fmt.Errorf("get member: %w", err)
-	}
-	if member.Role != "owner" {
-		return InviteLinkInfo{}, NotTeamOwnerError{ID: t.id}
-	}
-
-	code, err := NewCode()
-	if err != nil {
-		return InviteLinkInfo{}, fmt.Errorf("generate code: %w", err)
-	}
-
-	var expiresAtParam *time.Time
-	if expiresAt != nil {
-		expiresAtParam = new(time.Time(*expiresAt))
-	}
-
-	row, err := db.New(t.pool).InsertInviteLink(ctx, db.InsertInviteLinkParams{
-		TeamID:            uuid.UUID(t.id),
-		Code:              string(code),
-		CreatedByMemberID: member.ID,
-		ExpiresAt:         expiresAtParam,
-	})
-	if err != nil {
-		return InviteLinkInfo{}, fmt.Errorf("insert invite link: %w", err)
-	}
-
-	var rowExpiresAt *DateTime
-	if row.ExpiresAt != nil {
-		rowExpiresAt = new(DateTime(*row.ExpiresAt))
-	}
-
-	return InviteLinkInfo{
-		Code:      Code(row.Code),
-		UseCount:  row.UseCount,
-		ExpiresAt: rowExpiresAt,
-		CreatedAt: DateTime(row.CreatedAt),
-	}, nil
 }

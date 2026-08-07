@@ -5,18 +5,19 @@ package api
 
 import (
 	"context"
-	"errors"
 	"net/http"
 
 	"github.com/andreychh/coopera/internal/domain"
+	v2 "github.com/andreychh/coopera/internal/domain/v2"
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 type Server struct {
-	world domain.World
+	pool *pgxpool.Pool
 }
 
-func NewServer(world domain.World) Server {
-	return Server{world: world}
+func NewServer(pool *pgxpool.Pool) Server {
+	return Server{pool: pool}
 }
 
 func (s Server) CreateTeam(
@@ -38,76 +39,291 @@ func (s Server) CreateTeam(
 		), nil
 	}
 
-	team, err := s.world.User(userID).CreateTeam(ctx, teamName)
-	if err != nil {
-		if _, ok := errors.AsType[domain.UserNotFoundError](err); ok {
-			return CreateTeam401ApplicationProblemPlusJSONResponse(
-				NewProblem(http.StatusUnauthorized),
-			), nil
-		}
-		return CreateTeam500ApplicationProblemPlusJSONResponse(
-			NewProblem(http.StatusInternalServerError),
-		), nil
-	}
-
-	info, err := team.Info(ctx)
-	if err != nil {
-		//nolint:nilerr // outcome is encoded in the response, not the error return
-		return CreateTeam500ApplicationProblemPlusJSONResponse(
-			NewProblem(http.StatusInternalServerError),
-		), nil
+	// Kept in its own variable: assigning into the err above would widen
+	// it back to error and the sum would stop being checked.
+	info, createErr := v2.NewCreateTeamUsecase(s.pool, userID, teamName).Exec(ctx)
+	if createErr != nil {
+		return createTeamError(createErr), nil
 	}
 
 	return CreateTeam201JSONResponse{
-		Body: Team{
-			Id:        info.ID.String(),
-			Name:      info.Name.String(),
-			CreatedAt: info.CreatedAt.String(),
-		},
+		Body: newTeam(info),
 		Headers: CreateTeam201ResponseHeaders{
 			Location: new("/v1/teams/" + info.ID.String()),
 		},
 	}, nil
 }
 
+// createTeamError is a type switch rather than a chain of checks so that
+// gochecksumtype verifies it: a failure added to [domain.CreateTeamError]
+// breaks the build here instead of quietly becoming a 500.
+func createTeamError(err domain.CreateTeamError) CreateTeamResponseObject {
+	switch err.(type) {
+	case domain.UserNotFoundError:
+		return CreateTeam401ApplicationProblemPlusJSONResponse(
+			NewProblem(http.StatusUnauthorized),
+		)
+	case domain.UnexpectedError:
+		return CreateTeam500ApplicationProblemPlusJSONResponse(
+			NewProblem(http.StatusInternalServerError),
+		)
+	}
+	return CreateTeam500ApplicationProblemPlusJSONResponse(
+		NewProblem(http.StatusInternalServerError),
+	)
+}
+
 func (s Server) GetTeam(
 	ctx context.Context,
 	req GetTeamRequestObject,
 ) (GetTeamResponseObject, error) {
-	// TODO implement me
-	panic("implement me")
+	teamID, err := domain.ParseID(req.Id)
+	if err != nil {
+		//nolint:nilerr // outcome is encoded in the response, not the error return
+		return GetTeam400ApplicationProblemPlusJSONResponse(
+			NewDetailedProblem(http.StatusBadRequest, "Invalid id"),
+		), nil
+	}
+	userID, err := domain.ParseID(req.Params.XUserId)
+	if err != nil {
+		//nolint:nilerr // outcome is encoded in the response, not the error return
+		return GetTeam400ApplicationProblemPlusJSONResponse(
+			NewDetailedProblem(http.StatusBadRequest, "Invalid X-User-Id"),
+		), nil
+	}
+
+	// Kept in its own variable: assigning into the err above would widen
+	// it back to error and the sum would stop being checked.
+	info, getErr := v2.NewGetTeamUsecase(s.pool, userID, teamID).Exec(ctx)
+	if getErr != nil {
+		return getTeamError(getErr), nil
+	}
+
+	return GetTeam200JSONResponse(newTeam(info)), nil
+}
+
+// getTeamError is a type switch rather than a chain of checks so that
+// gochecksumtype verifies it: a failure added to [domain.GetTeamError]
+// breaks the build here instead of quietly becoming a 500.
+func getTeamError(err domain.GetTeamError) GetTeamResponseObject {
+	switch err.(type) {
+	case domain.TeamNotFoundError:
+		return GetTeam404ApplicationProblemPlusJSONResponse(
+			NewProblem(http.StatusNotFound),
+		)
+	case domain.UnexpectedError:
+		return GetTeam500ApplicationProblemPlusJSONResponse(
+			NewProblem(http.StatusInternalServerError),
+		)
+	}
+	return GetTeam500ApplicationProblemPlusJSONResponse(
+		NewProblem(http.StatusInternalServerError),
+	)
 }
 
 func (s Server) ListMyTeams(
 	ctx context.Context,
 	req ListMyTeamsRequestObject,
 ) (ListMyTeamsResponseObject, error) {
-	// TODO implement me
-	panic("implement me")
+	userID, err := domain.ParseID(req.Params.XUserId)
+	if err != nil {
+		//nolint:nilerr // outcome is encoded in the response, not the error return
+		return ListMyTeams400ApplicationProblemPlusJSONResponse(
+			NewDetailedProblem(http.StatusBadRequest, "Invalid X-User-Id"),
+		), nil
+	}
+
+	// Kept in its own variable: assigning into the err above would widen
+	// it back to error and the sum would stop being checked.
+	teams, listErr := v2.NewListMyTeamsUsecase(s.pool, userID).Exec(ctx)
+	if listErr != nil {
+		return listMyTeamsError(listErr), nil
+	}
+
+	return ListMyTeams200JSONResponse(newTeams(teams)), nil
+}
+
+// listMyTeamsError is a type switch rather than a chain of checks so
+// that gochecksumtype verifies it: a failure added to
+// [domain.ListMyTeamsError] breaks the build here instead of quietly
+// becoming a 500.
+func listMyTeamsError(err domain.ListMyTeamsError) ListMyTeamsResponseObject {
+	//nolint:gocritic // an if would not be checked by gochecksumtype, which is the whole point
+	switch err.(type) {
+	case domain.UnexpectedError:
+		return ListMyTeams500ApplicationProblemPlusJSONResponse(
+			NewProblem(http.StatusInternalServerError),
+		)
+	}
+	return ListMyTeams500ApplicationProblemPlusJSONResponse(
+		NewProblem(http.StatusInternalServerError),
+	)
 }
 
 func (s Server) RevokeInviteLink(
 	ctx context.Context,
 	req RevokeInviteLinkRequestObject,
 ) (RevokeInviteLinkResponseObject, error) {
-	// TODO implement me
-	panic("implement me")
+	userID, err := domain.ParseID(req.Params.XUserId)
+	if err != nil {
+		//nolint:nilerr // outcome is encoded in the response, not the error return
+		return RevokeInviteLink400ApplicationProblemPlusJSONResponse(
+			NewDetailedProblem(http.StatusBadRequest, "Invalid X-User-Id"),
+		), nil
+	}
+
+	revokeErr := v2.NewRevokeInviteLinkUsecase(s.pool, userID, domain.Code(req.Code)).Exec(ctx)
+	if revokeErr != nil {
+		return revokeInviteLinkError(revokeErr), nil
+	}
+
+	return RevokeInviteLink204Response{}, nil
+}
+
+// revokeInviteLinkError is a type switch rather than a chain of checks
+// so that gochecksumtype verifies it: a failure added to
+// [domain.RevokeInviteLinkError] breaks the build here instead of
+// quietly becoming a 500.
+func revokeInviteLinkError(err domain.RevokeInviteLinkError) RevokeInviteLinkResponseObject {
+	switch err.(type) {
+	case domain.InviteLinkNotFoundError:
+		return RevokeInviteLink404ApplicationProblemPlusJSONResponse(
+			NewProblem(http.StatusNotFound),
+		)
+	case domain.NotTeamOwnerError:
+		return RevokeInviteLink403ApplicationProblemPlusJSONResponse(
+			NewProblem(http.StatusForbidden),
+		)
+	case domain.InviteLinkAlreadyRevokedError:
+		return RevokeInviteLink409ApplicationProblemPlusJSONResponse(
+			NewProblem(http.StatusConflict),
+		)
+	case domain.UnexpectedError:
+		return RevokeInviteLink500ApplicationProblemPlusJSONResponse(
+			NewProblem(http.StatusInternalServerError),
+		)
+	}
+	return RevokeInviteLink500ApplicationProblemPlusJSONResponse(
+		NewProblem(http.StatusInternalServerError),
+	)
 }
 
 func (s Server) AcceptInviteLink(
 	ctx context.Context,
 	req AcceptInviteLinkRequestObject,
 ) (AcceptInviteLinkResponseObject, error) {
-	// TODO implement me
-	panic("implement me")
+	userID, err := domain.ParseID(req.Params.XUserId)
+	if err != nil {
+		//nolint:nilerr // outcome is encoded in the response, not the error return
+		return AcceptInviteLink400ApplicationProblemPlusJSONResponse(
+			NewDetailedProblem(http.StatusBadRequest, "Invalid X-User-Id"),
+		), nil
+	}
+
+	// Kept in its own variable: assigning into the err above would widen
+	// it back to error and the sum would stop being checked.
+	team, joined, acceptErr := v2.NewAcceptInviteLinkUsecase(
+		s.pool, userID, domain.Code(req.Code),
+	).Exec(ctx)
+	if acceptErr != nil {
+		return acceptInviteLinkError(acceptErr), nil
+	}
+
+	// 201 says a membership came into being; someone who was already in
+	// the team gets 200, because nothing did.
+	if !joined {
+		return AcceptInviteLink200JSONResponse(newTeam(team)), nil
+	}
+	return AcceptInviteLink201JSONResponse(newTeam(team)), nil
+}
+
+// acceptInviteLinkError is a type switch rather than a chain of checks
+// so that gochecksumtype verifies it: a failure added to
+// [domain.AcceptInviteLinkError] breaks the build here instead of
+// quietly becoming a 500.
+func acceptInviteLinkError(err domain.AcceptInviteLinkError) AcceptInviteLinkResponseObject {
+	switch err.(type) {
+	case domain.UserNotFoundError:
+		return AcceptInviteLink401ApplicationProblemPlusJSONResponse(
+			NewProblem(http.StatusUnauthorized),
+		)
+	case domain.InviteLinkNotFoundError:
+		return AcceptInviteLink404ApplicationProblemPlusJSONResponse(
+			NewProblem(http.StatusNotFound),
+		)
+	case domain.InviteLinkNotUsableError:
+		return AcceptInviteLink410ApplicationProblemPlusJSONResponse(
+			NewProblem(http.StatusGone),
+		)
+	case domain.UnexpectedError:
+		return AcceptInviteLink500ApplicationProblemPlusJSONResponse(
+			NewProblem(http.StatusInternalServerError),
+		)
+	}
+	return AcceptInviteLink500ApplicationProblemPlusJSONResponse(
+		NewProblem(http.StatusInternalServerError),
+	)
 }
 
 func (s Server) ListInviteLinks(
 	ctx context.Context,
 	req ListInviteLinksRequestObject,
 ) (ListInviteLinksResponseObject, error) {
-	// TODO implement me
-	panic("implement me")
+	teamID, err := domain.ParseID(req.TeamId)
+	if err != nil {
+		//nolint:nilerr // outcome is encoded in the response, not the error return
+		return ListInviteLinks400ApplicationProblemPlusJSONResponse(
+			NewDetailedProblem(http.StatusBadRequest, "Invalid team_id"),
+		), nil
+	}
+	userID, err := domain.ParseID(req.Params.XUserId)
+	if err != nil {
+		//nolint:nilerr // outcome is encoded in the response, not the error return
+		return ListInviteLinks400ApplicationProblemPlusJSONResponse(
+			NewDetailedProblem(http.StatusBadRequest, "Invalid X-User-Id"),
+		), nil
+	}
+	var status *domain.LinkStatus
+	if req.Params.Status != nil {
+		status = new(domain.LinkStatus(*req.Params.Status))
+	}
+
+	// Kept in its own variable: assigning into the err above would widen
+	// it back to error and the sum would stop being checked.
+	links, listErr := v2.NewListInviteLinksUsecase(s.pool, userID, teamID, status).Exec(ctx)
+	if listErr != nil {
+		return listInviteLinksError(listErr), nil
+	}
+
+	body, err := newInviteLinks(links)
+	if err != nil {
+		//nolint:nilerr // outcome is encoded in the response, not the error return
+		return ListInviteLinks500ApplicationProblemPlusJSONResponse(
+			NewProblem(http.StatusInternalServerError),
+		), nil
+	}
+
+	return ListInviteLinks200JSONResponse(body), nil
+}
+
+// listInviteLinksError is a type switch rather than a chain of checks so
+// that gochecksumtype verifies it: a failure added to
+// [domain.ListInviteLinksError] breaks the build here instead of quietly
+// becoming a 500.
+func listInviteLinksError(err domain.ListInviteLinksError) ListInviteLinksResponseObject {
+	switch err.(type) {
+	case domain.NotTeamOwnerError:
+		return ListInviteLinks403ApplicationProblemPlusJSONResponse(
+			NewProblem(http.StatusForbidden),
+		)
+	case domain.UnexpectedError:
+		return ListInviteLinks500ApplicationProblemPlusJSONResponse(
+			NewProblem(http.StatusInternalServerError),
+		)
+	}
+	return ListInviteLinks500ApplicationProblemPlusJSONResponse(
+		NewProblem(http.StatusInternalServerError),
+	)
 }
 
 func (s Server) CreateInviteLink(
@@ -129,30 +345,28 @@ func (s Server) CreateInviteLink(
 		), nil
 	}
 
-	var expiresAt *domain.InviteLinkExpiry
+	// An omitted expires_at means the link never expires. That reading of
+	// the request belongs here, not in the domain: the domain is told a
+	// Validity, it doesn't infer one from a field that wasn't sent.
+	var validity domain.Validity = domain.Forever{}
 	if req.Body != nil && req.Body.ExpiresAt != nil {
-		var expiry domain.InviteLinkExpiry
-		expiry, err = domain.ParseInviteLinkExpiry(*req.Body.ExpiresAt)
+		validity, err = domain.ParseValidity(*req.Body.ExpiresAt)
 		if err != nil {
 			//nolint:nilerr // outcome is encoded in the response, not the error return
 			return CreateInviteLink400ApplicationProblemPlusJSONResponse(
 				NewDetailedProblem(http.StatusBadRequest, "Invalid expires_at"),
 			), nil
 		}
-		expiresAt = &expiry
 	}
 
-	_, err = s.world.User(userID).Info(ctx)
-	if err != nil {
-		return createInviteLinkIdentityError(err), nil
+	// Kept in its own variable: assigning into the err above would widen
+	// it back to error and the sum would stop being checked.
+	link, createErr := v2.NewCreateInviteLinkUsecase(s.pool, userID, teamID, validity).Exec(ctx)
+	if createErr != nil {
+		return createInviteLinkActionError(createErr), nil
 	}
 
-	link, err := s.world.Team(teamID).CreateInviteLink(ctx, userID, expiresAt)
-	if err != nil {
-		return createInviteLinkActionError(err), nil
-	}
-
-	linkState, err := newActiveInviteLinkState(link)
+	item, err := newInviteLink(link)
 	if err != nil {
 		//nolint:nilerr // outcome is encoded in the response, not the error return
 		return CreateInviteLink500ApplicationProblemPlusJSONResponse(
@@ -160,52 +374,25 @@ func (s Server) CreateInviteLink(
 		), nil
 	}
 
-	return CreateInviteLink201JSONResponse{
-		Code:      link.Code.String(),
-		CreatedAt: link.CreatedAt.String(),
-		State:     linkState,
-		UseCount:  int(link.UseCount),
-	}, nil
+	return CreateInviteLink201JSONResponse(item), nil
 }
 
-func createInviteLinkIdentityError(err error) CreateInviteLinkResponseObject {
-	if _, ok := errors.AsType[domain.UserNotFoundError](err); ok {
-		return CreateInviteLink401ApplicationProblemPlusJSONResponse(
-			NewProblem(http.StatusUnauthorized),
-		)
-	}
-	return CreateInviteLink500ApplicationProblemPlusJSONResponse(
-		NewProblem(http.StatusInternalServerError),
-	)
-}
-
-func createInviteLinkActionError(err error) CreateInviteLinkResponseObject {
-	if _, ok := errors.AsType[domain.TeamNotFoundError](err); ok {
-		return CreateInviteLink404ApplicationProblemPlusJSONResponse(
-			NewProblem(http.StatusNotFound),
-		)
-	}
-	if _, ok := errors.AsType[domain.NotTeamOwnerError](err); ok {
+// createInviteLinkActionError is a type switch rather than a chain of
+// checks so that gochecksumtype verifies it: a failure added to
+// [domain.CreateInviteLinkError] breaks the build here instead of
+// quietly becoming a 500.
+func createInviteLinkActionError(err domain.CreateInviteLinkError) CreateInviteLinkResponseObject {
+	switch err.(type) {
+	case domain.NotTeamOwnerError:
 		return CreateInviteLink403ApplicationProblemPlusJSONResponse(
 			NewProblem(http.StatusForbidden),
 		)
+	case domain.UnexpectedError:
+		return CreateInviteLink500ApplicationProblemPlusJSONResponse(
+			NewProblem(http.StatusInternalServerError),
+		)
 	}
 	return CreateInviteLink500ApplicationProblemPlusJSONResponse(
 		NewProblem(http.StatusInternalServerError),
 	)
-}
-
-// newActiveInviteLinkState builds the state of an invite link that was
-// just created: it can't already be revoked, and ParseInviteLinkExpiry
-// already rejected any expiry that isn't in the future, so it's always
-// active.
-func newActiveInviteLinkState(link domain.InviteLinkInfo) (InviteLinkState, error) {
-	active := ActiveInviteLinkState{Status: ActiveInviteLinkStateStatusActive}
-	if link.ExpiresAt != nil {
-		active.ExpiresAt = new(link.ExpiresAt.String())
-	}
-
-	var state InviteLinkState
-	err := state.FromActiveInviteLinkState(active)
-	return state, err
 }
