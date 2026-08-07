@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2025-2026 Andrey Chernykh
 // SPDX-License-Identifier: MIT
 
-package v2
+package usecase
 
 import (
 	"context"
@@ -12,23 +12,23 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-// ListMyTeamsUsecase lists the teams actor belongs to, whatever their
+// ListMyTeams lists the teams actor belongs to, whatever their
 // role in each. A team actor has left is not among them: this list and
-// GetTeamUsecase answer the same question, so a team here is one actor
+// GetTeam answer the same question, so a team here is one actor
 // can open, and a team missing here is one they cannot.
-type ListMyTeamsUsecase struct {
+type ListMyTeams struct {
 	pool *pgxpool.Pool
 
 	actorID domain.ID
 }
 
-func NewListMyTeamsUsecase(pool *pgxpool.Pool, actorID domain.ID) ListMyTeamsUsecase {
-	return ListMyTeamsUsecase{pool: pool, actorID: actorID}
+func NewListMyTeams(pool *pgxpool.Pool, actorID domain.ID) ListMyTeams {
+	return ListMyTeams{pool: pool, actorID: actorID}
 }
 
 // Exec returns an empty slice rather than nil when actor belongs to no
 // team: having no teams is an ordinary state, not an absence of answer.
-func (u ListMyTeamsUsecase) Exec(
+func (u ListMyTeams) Exec(
 	ctx context.Context,
 ) ([]domain.Team, domain.ListMyTeamsError) {
 	rows, err := db.New(u.pool).ListTeamsForMember(ctx, uuid.UUID(u.actorID))

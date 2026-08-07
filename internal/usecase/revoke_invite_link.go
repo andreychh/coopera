@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2025-2026 Andrey Chernykh
 // SPDX-License-Identifier: MIT
 
-package v2
+package usecase
 
 import (
 	"context"
@@ -15,27 +15,27 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-// RevokeInviteLinkUsecase revokes an invite link. Only the owner of the
+// RevokeInviteLink revokes an invite link. Only the owner of the
 // team it belongs to may revoke it.
-type RevokeInviteLinkUsecase struct {
+type RevokeInviteLink struct {
 	pool *pgxpool.Pool
 
 	actorID domain.ID
 	code    domain.Code
 }
 
-func NewRevokeInviteLinkUsecase(
+func NewRevokeInviteLink(
 	pool *pgxpool.Pool,
 	actorID domain.ID,
 	code domain.Code,
-) RevokeInviteLinkUsecase {
-	return RevokeInviteLinkUsecase{pool: pool, actorID: actorID, code: code}
+) RevokeInviteLink {
+	return RevokeInviteLink{pool: pool, actorID: actorID, code: code}
 }
 
 // Exec reads the link, judges it and only then writes, which is why the
 // read locks the row: nothing else may revoke it in between and leave
 // this call reporting success over someone else's work.
-func (u RevokeInviteLinkUsecase) Exec(ctx context.Context) domain.RevokeInviteLinkError {
+func (u RevokeInviteLink) Exec(ctx context.Context) domain.RevokeInviteLinkError {
 	tx, err := u.pool.Begin(ctx)
 	if err != nil {
 		return unexpected("begin transaction", err)

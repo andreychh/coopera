@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2025-2026 Andrey Chernykh
 // SPDX-License-Identifier: MIT
 
-package v2
+package usecase
 
 import (
 	"context"
@@ -14,9 +14,9 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-// ListInviteLinksUsecase lists a team's invite links, optionally filtered
+// ListInviteLinks lists a team's invite links, optionally filtered
 // by status. Only the team's owner may list them.
-type ListInviteLinksUsecase struct {
+type ListInviteLinks struct {
 	pool *pgxpool.Pool
 
 	actorID domain.ID
@@ -24,14 +24,14 @@ type ListInviteLinksUsecase struct {
 	status  *domain.LinkStatus
 }
 
-func NewListInviteLinksUsecase(
+func NewListInviteLinks(
 	pool *pgxpool.Pool,
 
 	actorID domain.ID,
 	teamID domain.ID,
 	status *domain.LinkStatus,
-) ListInviteLinksUsecase {
-	return ListInviteLinksUsecase{
+) ListInviteLinks {
+	return ListInviteLinks{
 		pool:    pool,
 		actorID: actorID,
 		teamID:  teamID,
@@ -46,7 +46,7 @@ func NewListInviteLinksUsecase(
 // The two reads are not in a transaction. Losing ownership between them
 // would only mean showing links the actor was entitled to a moment
 // earlier, which is what any read races with anyway.
-func (u ListInviteLinksUsecase) Exec(
+func (u ListInviteLinks) Exec(
 	ctx context.Context,
 ) ([]domain.InviteLink, domain.ListInviteLinksError) {
 	owner, err := db.New(u.pool).IsTeamOwner(ctx, db.IsTeamOwnerParams{

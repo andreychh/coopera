@@ -1,0 +1,73 @@
+// SPDX-FileCopyrightText: 2025-2026 Andrey Chernykh
+// SPDX-License-Identifier: MIT
+
+package api
+
+import (
+	"context"
+	"net/http"
+
+	"github.com/andreychh/coopera/internal/domain"
+	"github.com/andreychh/coopera/internal/usecase"
+)
+
+func (s Server) ListInviteLinks(
+	ctx context.Context,
+	req ListInviteLinksRequestObject,
+) (ListInviteLinksResponseObject, error) {
+	teamID, err := domain.ParseID(req.TeamId)
+	if err != nil {
+		//nolint:nilerr // outcome is encoded in the response, not the error return
+		return ListInviteLinks400ApplicationProblemPlusJSONResponse(
+			NewDetailedProblem(http.StatusBadRequest, "Invalid team_id"),
+		), nil
+	}
+	userID, err := domain.ParseID(req.Params.XUserId)
+	if err != nil {
+		//nolint:nilerr // outcome is encoded in the response, not the error return
+		return ListInviteLinks400ApplicationProblemPlusJSONResponse(
+			NewDetailedProblem(http.StatusBadRequest, "Invalid X-User-Id"),
+		), nil
+	}
+	var status *domain.LinkStatus
+	if req.Params.Status != nil {
+		status = new(domain.LinkStatus(*req.Params.Status))
+	}
+
+	// Kept in its own variable: assigning into the err above would widen
+	// it back to error and the sum would stop being checked.
+	links, listErr := usecase.NewListInviteLinks(s.pool, userID, teamID, status).Exec(ctx)
+	if listErr != nil {
+		return listInviteLinksError(listErr), nil
+	}
+
+	body, err := newInviteLinks(links)
+	if err != nil {
+		//nolint:nilerr // outcome is encoded in the response, not the error return
+		return ListInviteLinks500ApplicationProblemPlusJSONResponse(
+			NewProblem(http.StatusInternalServerError),
+		), nil
+	}
+
+	return ListInviteLinks200JSONResponse(body), nil
+}
+
+// listInviteLinksError is a type switch rather than a chain of checks so
+// that gochecksumtype verifies it: a failure added to
+// [domain.ListInviteLinksError] breaks the build here instead of quietly
+// becoming a 500.
+func listInviteLinksError(err domain.ListInviteLinksError) ListInviteLinksResponseObject {
+	switch err.(type) {
+	case domain.NotTeamOwnerError:
+		return ListInviteLinks403ApplicationProblemPlusJSONResponse(
+			NewProblem(http.StatusForbidden),
+		)
+	case domain.UnexpectedError:
+		return ListInviteLinks500ApplicationProblemPlusJSONResponse(
+			NewProblem(http.StatusInternalServerError),
+		)
+	}
+	return ListInviteLinks500ApplicationProblemPlusJSONResponse(
+		NewProblem(http.StatusInternalServerError),
+	)
+}

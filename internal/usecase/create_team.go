@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2025-2026 Andrey Chernykh
 // SPDX-License-Identifier: MIT
 
-package v2
+package usecase
 
 import (
 	"context"
@@ -14,26 +14,26 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-// CreateTeamUsecase creates a team and makes actor its owner.
-type CreateTeamUsecase struct {
+// CreateTeam creates a team and makes actor its owner.
+type CreateTeam struct {
 	pool *pgxpool.Pool
 
 	actorID domain.ID
 	name    domain.TeamName
 }
 
-func NewCreateTeamUsecase(
+func NewCreateTeam(
 	pool *pgxpool.Pool,
 	actorID domain.ID,
 	name domain.TeamName,
-) CreateTeamUsecase {
-	return CreateTeamUsecase{pool: pool, actorID: actorID, name: name}
+) CreateTeam {
+	return CreateTeam{pool: pool, actorID: actorID, name: name}
 }
 
 // Exec needs no transaction: the team and its owner are written by one
 // statement, so a team without an owner is not a state this can leave
 // behind even if the write fails halfway.
-func (u CreateTeamUsecase) Exec(ctx context.Context) (domain.Team, domain.CreateTeamError) {
+func (u CreateTeam) Exec(ctx context.Context) (domain.Team, domain.CreateTeamError) {
 	team, err := db.New(u.pool).InsertTeamWithOwner(ctx, db.InsertTeamWithOwnerParams{
 		Name:   string(u.name),
 		UserID: uuid.UUID(u.actorID),

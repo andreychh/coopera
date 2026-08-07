@@ -1,12 +1,11 @@
 // SPDX-FileCopyrightText: 2025-2026 Andrey Chernykh
 // SPDX-License-Identifier: MIT
 
-package v2
+package usecase
 
 import (
 	"context"
 	"errors"
-	"fmt"
 	"time"
 
 	"github.com/andreychh/coopera/internal/db"
@@ -17,29 +16,23 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-// AcceptInviteLinkUsecase adds actor as a member of the team an invite
+// AcceptInviteLink adds actor as a member of the team an invite
 // link belongs to. Accepting is idempotent: someone who already belongs
 // to the team is asking for something that already holds, so the call
 // succeeds and changes nothing.
-type AcceptInviteLinkUsecase struct {
+type AcceptInviteLink struct {
 	pool *pgxpool.Pool
 
 	actorID domain.ID
 	code    domain.Code
 }
 
-// unexpected labels a failure the domain has no answer for. It only
-// spells the wrapping out once; every caller still says which step broke.
-func unexpected(step string, err error) domain.UnexpectedError {
-	return domain.UnexpectedError{Err: fmt.Errorf("%s: %w", step, err)}
-}
-
-func NewAcceptInviteLinkUsecase(
+func NewAcceptInviteLink(
 	pool *pgxpool.Pool,
 	actorID domain.ID,
 	code domain.Code,
-) AcceptInviteLinkUsecase {
-	return AcceptInviteLinkUsecase{pool: pool, actorID: actorID, code: code}
+) AcceptInviteLink {
+	return AcceptInviteLink{pool: pool, actorID: actorID, code: code}
 }
 
 // Exec reports the team joined and whether joining actually happened:
@@ -52,7 +45,7 @@ func NewAcceptInviteLinkUsecase(
 // of the one rule. So the link is read, judged and then acted on — and
 // the read locks the row, which is what stops a revoke from committing
 // in between.
-func (u AcceptInviteLinkUsecase) Exec(
+func (u AcceptInviteLink) Exec(
 	ctx context.Context,
 ) (domain.Team, bool, domain.AcceptInviteLinkError) {
 	tx, err := u.pool.Begin(ctx)
@@ -113,7 +106,7 @@ func (u AcceptInviteLinkUsecase) Exec(
 // anything. No row back means they were already an active member: the
 // upsert skips their row on purpose, and that absence is the idempotent
 // outcome rather than a failure.
-func (u AcceptInviteLinkUsecase) join(
+func (u AcceptInviteLink) join(
 	ctx context.Context,
 	tx pgx.Tx,
 	teamID uuid.UUID,

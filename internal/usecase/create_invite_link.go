@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2025-2026 Andrey Chernykh
 // SPDX-License-Identifier: MIT
 
-package v2
+package usecase
 
 import (
 	"context"
@@ -16,9 +16,9 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-// CreateInviteLinkUsecase creates a link that can be used to join a team.
+// CreateInviteLink creates a link that can be used to join a team.
 // Only the team's owner may create one.
-type CreateInviteLinkUsecase struct {
+type CreateInviteLink struct {
 	pool *pgxpool.Pool
 
 	actorID  domain.ID
@@ -26,13 +26,13 @@ type CreateInviteLinkUsecase struct {
 	validity domain.Validity
 }
 
-func NewCreateInviteLinkUsecase(
+func NewCreateInviteLink(
 	pool *pgxpool.Pool,
 	actorID domain.ID,
 	teamID domain.ID,
 	validity domain.Validity,
-) CreateInviteLinkUsecase {
-	return CreateInviteLinkUsecase{
+) CreateInviteLink {
+	return CreateInviteLink{
 		pool:     pool,
 		actorID:  actorID,
 		teamID:   teamID,
@@ -40,7 +40,7 @@ func NewCreateInviteLinkUsecase(
 	}
 }
 
-func (u CreateInviteLinkUsecase) Exec(
+func (u CreateInviteLink) Exec(
 	ctx context.Context,
 ) (domain.InviteLink, domain.CreateInviteLinkError) {
 	code, err := domain.NewCode()
