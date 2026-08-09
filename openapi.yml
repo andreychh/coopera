@@ -449,7 +449,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/Problem'
 
-  /invite-links/{code}/accept:
+  /invite-links/{code}/acceptances:
     post:
       operationId: acceptInviteLink
       tags: [ invite-links ]
