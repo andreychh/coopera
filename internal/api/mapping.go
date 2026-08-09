@@ -93,3 +93,37 @@ func newInviteLinkState(state domain.LinkState) (InviteLinkState, error) {
 	}
 	return out, fmt.Errorf("unknown link state: %T", state)
 }
+
+func newUser(info domain.User) (User, error) {
+	state, err := newUserState(info.State)
+	if err != nil {
+		return User{}, err
+	}
+	return User{
+		Id:        info.ID.String(),
+		State:     state,
+		CreatedAt: info.CreatedAt.String(),
+	}, nil
+}
+
+// newUserState fills the union the generator produced for UserState.
+// Only one branch carries a username, so a person without one cannot be
+// reported as having an empty name — the shape itself refuses to say it.
+func newUserState(state domain.UserState) (UserState, error) {
+	var out UserState
+	switch s := state.(type) {
+	case domain.Unintroduced:
+		err := out.FromUnintroducedUserState(UnintroducedUserState{
+			Status: Unintroduced,
+		})
+		return out, err
+
+	case domain.Introduced:
+		err := out.FromIntroducedUserState(IntroducedUserState{
+			Status:   Introduced,
+			Username: s.Username.String(),
+		})
+		return out, err
+	}
+	return out, fmt.Errorf("unknown user state: %T", state)
+}

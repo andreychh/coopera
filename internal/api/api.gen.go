@@ -53,6 +53,21 @@ func (e ExpiredInviteLinkStateStatus) Valid() bool {
 	}
 }
 
+// Defines values for IntroducedUserStateStatus.
+const (
+	Introduced IntroducedUserStateStatus = "introduced"
+)
+
+// Valid indicates whether the value is a known member of the IntroducedUserStateStatus enum.
+func (e IntroducedUserStateStatus) Valid() bool {
+	switch e {
+	case Introduced:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for RevokedInviteLinkStateStatus.
 const (
 	Revoked RevokedInviteLinkStateStatus = "revoked"
@@ -62,6 +77,21 @@ const (
 func (e RevokedInviteLinkStateStatus) Valid() bool {
 	switch e {
 	case Revoked:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for UnintroducedUserStateStatus.
+const (
+	Unintroduced UnintroducedUserStateStatus = "unintroduced"
+)
+
+// Valid indicates whether the value is a known member of the UnintroducedUserStateStatus enum.
+func (e UnintroducedUserStateStatus) Valid() bool {
+	switch e {
+	case Unintroduced:
 		return true
 	default:
 		return false
@@ -98,6 +128,12 @@ type ActiveInviteLinkState struct {
 // ActiveInviteLinkStateStatus defines model for ActiveInviteLinkState.Status.
 type ActiveInviteLinkStateStatus string
 
+// CreateIntroductionRequest defines model for CreateIntroductionRequest.
+type CreateIntroductionRequest struct {
+	// Username Lowercase letters, digits and underscores, 3 to 32 of them, never starting, ending or doubling on the underscore. The alphabet is narrow on purpose: a name that identifies can be impersonated by one that merely resembles it, and within a single script no two characters resemble each other closely enough. Capitals are refused rather than folded, so that one person has one spelling.
+	Username Username `json:"username"`
+}
+
 // CreateInviteLinkRequest Omitting expires_at creates a link that never expires.
 type CreateInviteLinkRequest struct {
 	ExpiresAt *string `json:"expires_at,omitempty"`
@@ -116,6 +152,17 @@ type ExpiredInviteLinkState struct {
 
 // ExpiredInviteLinkStateStatus defines model for ExpiredInviteLinkState.Status.
 type ExpiredInviteLinkStateStatus string
+
+// IntroducedUserState defines model for IntroducedUserState.
+type IntroducedUserState struct {
+	Status IntroducedUserStateStatus `json:"status"`
+
+	// Username Lowercase letters, digits and underscores, 3 to 32 of them, never starting, ending or doubling on the underscore. The alphabet is narrow on purpose: a name that identifies can be impersonated by one that merely resembles it, and within a single script no two characters resemble each other closely enough. Capitals are refused rather than folded, so that one person has one spelling.
+	Username Username `json:"username"`
+}
+
+// IntroducedUserStateStatus defines model for IntroducedUserState.Status.
+type IntroducedUserStateStatus string
 
 // InviteLink defines model for InviteLink.
 type InviteLink struct {
@@ -157,6 +204,29 @@ type Team struct {
 
 // TeamName defines model for TeamName.
 type TeamName = string
+
+// UnintroducedUserState The person exists and nothing else about them is known yet. Carries no name — not an empty one, none at all, so that "introduced without a name" cannot be said.
+type UnintroducedUserState struct {
+	Status UnintroducedUserStateStatus `json:"status"`
+}
+
+// UnintroducedUserStateStatus defines model for UnintroducedUserState.Status.
+type UnintroducedUserStateStatus string
+
+// User defines model for User.
+type User struct {
+	CreatedAt string    `json:"created_at"`
+	Id        string    `json:"id"`
+	State     UserState `json:"state"`
+}
+
+// UserState defines model for UserState.
+type UserState struct {
+	union json.RawMessage
+}
+
+// Username Lowercase letters, digits and underscores, 3 to 32 of them, never starting, ending or doubling on the underscore. The alphabet is narrow on purpose: a name that identifies can be impersonated by one that merely resembles it, and within a single script no two characters resemble each other closely enough. Capitals are refused rather than folded, so that one person has one spelling.
+type Username = string
 
 // XUserId defines model for XUserId.
 type XUserId = string
@@ -202,6 +272,18 @@ type CreateInviteLinkParams struct {
 	XUserId XUserId `json:"X-User-Id"`
 }
 
+// GetMeParams defines parameters for GetMe.
+type GetMeParams struct {
+	// XUserId Temporary placeholder until real authentication exists. Identifies the caller.
+	XUserId XUserId `json:"X-User-Id"`
+}
+
+// CreateIntroductionParams defines parameters for CreateIntroduction.
+type CreateIntroductionParams struct {
+	// XUserId Temporary placeholder until real authentication exists. Identifies the caller.
+	XUserId XUserId `json:"X-User-Id"`
+}
+
 // ListMyTeamsParams defines parameters for ListMyTeams.
 type ListMyTeamsParams struct {
 	// XUserId Temporary placeholder until real authentication exists. Identifies the caller.
@@ -213,6 +295,9 @@ type CreateTeamJSONRequestBody = CreateTeamRequest
 
 // CreateInviteLinkJSONRequestBody defines body for CreateInviteLink for application/json ContentType.
 type CreateInviteLinkJSONRequestBody = CreateInviteLinkRequest
+
+// CreateIntroductionJSONRequestBody defines body for CreateIntroduction for application/json ContentType.
+type CreateIntroductionJSONRequestBody = CreateIntroductionRequest
 
 // AsActiveInviteLinkState returns the union data inside the InviteLinkState as a ActiveInviteLinkState
 func (t InviteLinkState) AsActiveInviteLinkState() (ActiveInviteLinkState, error) {
@@ -333,6 +418,95 @@ func (t *InviteLinkState) UnmarshalJSON(b []byte) error {
 	return err
 }
 
+// AsUnintroducedUserState returns the union data inside the UserState as a UnintroducedUserState
+func (t UserState) AsUnintroducedUserState() (UnintroducedUserState, error) {
+	var body UnintroducedUserState
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromUnintroducedUserState overwrites any union data inside the UserState as the provided UnintroducedUserState
+func (t *UserState) FromUnintroducedUserState(v UnintroducedUserState) error {
+	v.Status = "unintroduced"
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeUnintroducedUserState performs a merge with any union data inside the UserState, using the provided UnintroducedUserState
+func (t *UserState) MergeUnintroducedUserState(v UnintroducedUserState) error {
+	v.Status = "unintroduced"
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsIntroducedUserState returns the union data inside the UserState as a IntroducedUserState
+func (t UserState) AsIntroducedUserState() (IntroducedUserState, error) {
+	var body IntroducedUserState
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromIntroducedUserState overwrites any union data inside the UserState as the provided IntroducedUserState
+func (t *UserState) FromIntroducedUserState(v IntroducedUserState) error {
+	v.Status = "introduced"
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeIntroducedUserState performs a merge with any union data inside the UserState, using the provided IntroducedUserState
+func (t *UserState) MergeIntroducedUserState(v IntroducedUserState) error {
+	v.Status = "introduced"
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+func (t UserState) Discriminator() (string, error) {
+	var discriminator struct {
+		Discriminator string `json:"status"`
+	}
+	err := json.Unmarshal(t.union, &discriminator)
+	return discriminator.Discriminator, err
+}
+
+func (t UserState) ValueByDiscriminator() (interface{}, error) {
+	discriminator, err := t.Discriminator()
+	if err != nil {
+		return nil, err
+	}
+	switch discriminator {
+	case "introduced":
+		return t.AsIntroducedUserState()
+	case "unintroduced":
+		return t.AsUnintroducedUserState()
+	default:
+		return nil, errors.New("unknown discriminator value: " + discriminator)
+	}
+}
+
+func (t UserState) MarshalJSON() ([]byte, error) {
+	b, err := t.union.MarshalJSON()
+	return b, err
+}
+
+func (t *UserState) UnmarshalJSON(b []byte) error {
+	err := t.union.UnmarshalJSON(b)
+	return err
+}
+
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
 	// Revoke an invite link
@@ -353,6 +527,12 @@ type ServerInterface interface {
 	// Create an invite link
 	// (POST /teams/{team_id}/invite-links)
 	CreateInviteLink(w http.ResponseWriter, r *http.Request, teamId string, params CreateInviteLinkParams)
+	// Get the caller
+	// (GET /users/me)
+	GetMe(w http.ResponseWriter, r *http.Request, params GetMeParams)
+	// Introduce yourself
+	// (POST /users/me/introduction)
+	CreateIntroduction(w http.ResponseWriter, r *http.Request, params CreateIntroductionParams)
 	// List the caller's teams
 	// (GET /users/me/teams)
 	ListMyTeams(w http.ResponseWriter, r *http.Request, params ListMyTeamsParams)
@@ -695,6 +875,96 @@ func (siw *ServerInterfaceWrapper) CreateInviteLink(w http.ResponseWriter, r *ht
 	handler.ServeHTTP(w, r)
 }
 
+// GetMe operation middleware
+func (siw *ServerInterfaceWrapper) GetMe(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params GetMeParams
+
+	headers := r.Header
+
+	// ------------- Required header parameter "X-User-Id" -------------
+	if valueList, found := headers[http.CanonicalHeaderKey("X-User-Id")]; found {
+		var XUserId XUserId
+		n := len(valueList)
+		if n != 1 {
+			siw.ErrorHandlerFunc(w, r, &TooManyValuesForParamError{ParamName: "X-User-Id", Count: n})
+			return
+		}
+
+		err = runtime.BindStyledParameterWithOptions("simple", "X-User-Id", valueList[0], &XUserId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: true, Type: "string", Format: "uuid"})
+		if err != nil {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "X-User-Id", Err: err})
+			return
+		}
+
+		params.XUserId = XUserId
+
+	} else {
+		err := fmt.Errorf("Header parameter X-User-Id is required, but not found")
+		siw.ErrorHandlerFunc(w, r, &RequiredHeaderError{ParamName: "X-User-Id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetMe(w, r, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// CreateIntroduction operation middleware
+func (siw *ServerInterfaceWrapper) CreateIntroduction(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params CreateIntroductionParams
+
+	headers := r.Header
+
+	// ------------- Required header parameter "X-User-Id" -------------
+	if valueList, found := headers[http.CanonicalHeaderKey("X-User-Id")]; found {
+		var XUserId XUserId
+		n := len(valueList)
+		if n != 1 {
+			siw.ErrorHandlerFunc(w, r, &TooManyValuesForParamError{ParamName: "X-User-Id", Count: n})
+			return
+		}
+
+		err = runtime.BindStyledParameterWithOptions("simple", "X-User-Id", valueList[0], &XUserId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: true, Type: "string", Format: "uuid"})
+		if err != nil {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "X-User-Id", Err: err})
+			return
+		}
+
+		params.XUserId = XUserId
+
+	} else {
+		err := fmt.Errorf("Header parameter X-User-Id is required, but not found")
+		siw.ErrorHandlerFunc(w, r, &RequiredHeaderError{ParamName: "X-User-Id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.CreateIntroduction(w, r, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // ListMyTeams operation middleware
 func (siw *ServerInterfaceWrapper) ListMyTeams(w http.ResponseWriter, r *http.Request) {
 
@@ -866,6 +1136,8 @@ func HandlerWithOptions(si ServerInterface, options StdHTTPServerOptions) http.H
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/teams/{id}", wrapper.GetTeam)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/teams/{team_id}/invite-links", wrapper.ListInviteLinks)
 	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/teams/{team_id}/invite-links", wrapper.CreateInviteLink)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/users/me", wrapper.GetMe)
+	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/users/me/introduction", wrapper.CreateIntroduction)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/users/me/teams", wrapper.ListMyTeams)
 
 	return m
@@ -1023,6 +1295,20 @@ func (response AcceptInviteLink401ApplicationProblemPlusJSONResponse) VisitAccep
 	return err
 }
 
+type AcceptInviteLink403ApplicationProblemPlusJSONResponse Problem
+
+func (response AcceptInviteLink403ApplicationProblemPlusJSONResponse) VisitAcceptInviteLinkResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
 type AcceptInviteLink404ApplicationProblemPlusJSONResponse Problem
 
 func (response AcceptInviteLink404ApplicationProblemPlusJSONResponse) VisitAcceptInviteLinkResponse(w http.ResponseWriter) error {
@@ -1126,6 +1412,20 @@ func (response CreateTeam401ApplicationProblemPlusJSONResponse) VisitCreateTeamR
 	return err
 }
 
+type CreateTeam403ApplicationProblemPlusJSONResponse Problem
+
+func (response CreateTeam403ApplicationProblemPlusJSONResponse) VisitCreateTeamResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
 type CreateTeam500ApplicationProblemPlusJSONResponse Problem
 
 func (response CreateTeam500ApplicationProblemPlusJSONResponse) VisitCreateTeamResponse(w http.ResponseWriter) error {
@@ -1173,6 +1473,20 @@ func (response GetTeam400ApplicationProblemPlusJSONResponse) VisitGetTeamRespons
 	}
 	w.Header().Set("Content-Type", "application/problem+json")
 	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetTeam403ApplicationProblemPlusJSONResponse Problem
+
+func (response GetTeam403ApplicationProblemPlusJSONResponse) VisitGetTeamResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
 	_, err := buf.WriteTo(w)
 	return err
 }
@@ -1336,6 +1650,149 @@ func (response CreateInviteLink500ApplicationProblemPlusJSONResponse) VisitCreat
 	return err
 }
 
+type GetMeRequestObject struct {
+	Params GetMeParams
+}
+
+type GetMeResponseObject interface {
+	VisitGetMeResponse(w http.ResponseWriter) error
+}
+
+type GetMe200JSONResponse User
+
+func (response GetMe200JSONResponse) VisitGetMeResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetMe400ApplicationProblemPlusJSONResponse Problem
+
+func (response GetMe400ApplicationProblemPlusJSONResponse) VisitGetMeResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetMe401ApplicationProblemPlusJSONResponse Problem
+
+func (response GetMe401ApplicationProblemPlusJSONResponse) VisitGetMeResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetMe500ApplicationProblemPlusJSONResponse Problem
+
+func (response GetMe500ApplicationProblemPlusJSONResponse) VisitGetMeResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(500)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateIntroductionRequestObject struct {
+	Params CreateIntroductionParams
+	Body   *CreateIntroductionJSONRequestBody
+}
+
+type CreateIntroductionResponseObject interface {
+	VisitCreateIntroductionResponse(w http.ResponseWriter) error
+}
+
+type CreateIntroduction201JSONResponse User
+
+func (response CreateIntroduction201JSONResponse) VisitCreateIntroductionResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(201)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateIntroduction400ApplicationProblemPlusJSONResponse Problem
+
+func (response CreateIntroduction400ApplicationProblemPlusJSONResponse) VisitCreateIntroductionResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateIntroduction401ApplicationProblemPlusJSONResponse Problem
+
+func (response CreateIntroduction401ApplicationProblemPlusJSONResponse) VisitCreateIntroductionResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateIntroduction409ApplicationProblemPlusJSONResponse Problem
+
+func (response CreateIntroduction409ApplicationProblemPlusJSONResponse) VisitCreateIntroductionResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(409)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateIntroduction500ApplicationProblemPlusJSONResponse Problem
+
+func (response CreateIntroduction500ApplicationProblemPlusJSONResponse) VisitCreateIntroductionResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(500)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
 type ListMyTeamsRequestObject struct {
 	Params ListMyTeamsParams
 }
@@ -1368,6 +1825,20 @@ func (response ListMyTeams400ApplicationProblemPlusJSONResponse) VisitListMyTeam
 	}
 	w.Header().Set("Content-Type", "application/problem+json")
 	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListMyTeams403ApplicationProblemPlusJSONResponse Problem
+
+func (response ListMyTeams403ApplicationProblemPlusJSONResponse) VisitListMyTeamsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
 	_, err := buf.WriteTo(w)
 	return err
 }
@@ -1406,6 +1877,12 @@ type StrictServerInterface interface {
 	// Create an invite link
 	// (POST /teams/{team_id}/invite-links)
 	CreateInviteLink(ctx context.Context, request CreateInviteLinkRequestObject) (CreateInviteLinkResponseObject, error)
+	// Get the caller
+	// (GET /users/me)
+	GetMe(ctx context.Context, request GetMeRequestObject) (GetMeResponseObject, error)
+	// Introduce yourself
+	// (POST /users/me/introduction)
+	CreateIntroduction(ctx context.Context, request CreateIntroductionRequestObject) (CreateIntroductionResponseObject, error)
 	// List the caller's teams
 	// (GET /users/me/teams)
 	ListMyTeams(ctx context.Context, request ListMyTeamsRequestObject) (ListMyTeamsResponseObject, error)
@@ -1618,6 +2095,65 @@ func (sh *strictHandler) CreateInviteLink(w http.ResponseWriter, r *http.Request
 	}
 }
 
+// GetMe operation middleware
+func (sh *strictHandler) GetMe(w http.ResponseWriter, r *http.Request, params GetMeParams) {
+	var request GetMeRequestObject
+
+	request.Params = params
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetMe(ctx, request.(GetMeRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetMe")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetMeResponseObject); ok {
+		if err := validResponse.VisitGetMeResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// CreateIntroduction operation middleware
+func (sh *strictHandler) CreateIntroduction(w http.ResponseWriter, r *http.Request, params CreateIntroductionParams) {
+	var request CreateIntroductionRequestObject
+
+	request.Params = params
+
+	var body CreateIntroductionJSONRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.CreateIntroduction(ctx, request.(CreateIntroductionRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "CreateIntroduction")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(CreateIntroductionResponseObject); ok {
+		if err := validResponse.VisitCreateIntroductionResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
 // ListMyTeams operation middleware
 func (sh *strictHandler) ListMyTeams(w http.ResponseWriter, r *http.Request, params ListMyTeamsParams) {
 	var request ListMyTeamsRequestObject
@@ -1649,42 +2185,62 @@ func (sh *strictHandler) ListMyTeams(w http.ResponseWriter, r *http.Request, par
 // const string: with thousands of chunks the chained `+` fold is several
 // times slower for the Go compiler than parsing a slice literal.
 var swaggerSpec = []string{
-	"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",
+	"7Fvrchs3sn6VrjmpcnLOmKIvqRPzn+JkE205jsuRK6lytA440+QgwgATAEOaq2VVHiJPmCfZ6gbmQnJI",
+	"SatY1pb9y7KES6PR/XX315iLJDNlZTRq75LJRVIJK0r0aPl/P71yaE9y+jFHl1lZeWl0MklOsayMFXYF",
+	"lRIZFkblaKHWXiqwKBSI2heovcwEzQB8K513IzjJ6ZcziQ58gZAJpdCOftZJmkhat0CRo03SRIsSk0ny",
+	"032S4P5JnqSJxd9qaTFPJt7WmCYuK7AUJNvM2FL4ZJLUtaSRflXRZOet1PNkvV43g/lQx5mXCzzRC+nx",
+	"mdTnP3jhkc9uTYXWS+Rh+LaSFt0bWri3RS483veyRBKyVkpMFTYSbe2bJs4LX4fVdF0mk9eJ4M2Ts10h",
+	"+wd83cxM+2J0k8z0V8w87fDUovB4or01eZ2Rrl/ibzU6v3ug2qENar1IPrE4SybJ/xx1t38UVXT0qhm3",
+	"LVO7wCFBGq32xNg0ne9L6b3Uc+hOBhlPdiBASX0OvhAeNC7QNoOCiVz7gnZ1vEfuUxTlXsVdRWm0wPMh",
+	"pe1V2Ncsfn5FO8yvccwhu4urXNvw8n2G15gc5mQve2TflUO20wZESW9uo634B421U/quzJnJefsd2YKR",
+	"Xv8iLj3MtgkEPbzJTK19TxKpPc7R7hyZBe5P2RC1keGwGtr7yyX5aim18MbSL0pRVXSYyUWDXXtOMQyr",
+	"rR3tm7bHDeiIC3O+f97L8OcB3cXrXD0PISRaxDpNjMbvZ8nk9eHbGD7HOj08a88xLpu27xRn6zR5Yc1U",
+	"YbmLoC//9hSePP78/yGOgK/QC6kczIyFb09PX8Dxi5NByMx54KB1S+280BluxlMrD8PLtmmmiZdeDftP",
+	"+MVlq28Zd1iu3XLIivfocMexo0HdEEgbs7w6kPb2HRKfIscACv0HYCPzKyRD6c3CGS/JK2ygzL6DPY97",
+	"leLtM9RzXySTB+NxmpRSt/8fEPGVlsPhZSsLLRAqtK5NMEHoHLTxBecXyiGIqak95ZolSAfn2iw1rNCP",
+	"4KmwltJQbYCOA3/+/gfNBKEBy8qvwGhMQRuNIDwIpVJwJmQmP/eiGCylL2gLwcv8nEAmNK0zRXBC5kNe",
+	"uGtUtT4YF4cta0jnpKxbNaYrBbjuCgfN6YrRatMQDsSpni73Rtxd60o3b2HfUQYt8+ZRZ9+6l2UOA3PO",
+	"oq4aP9/0mWdmiTYTDkGhpzovhVzOZfSdWudoXWYsuhQegTfw6CGYGTtQGlNy54WlBD4F1Dk5mrGQm3qq",
+	"+GfNhV23zgjIS4WqCjFFT06ohbVmSSOr2lbG4SQ6T/Au2ZWImdDkR7IMTk5GAlP2zDC0RItqBRYdllOF",
+	"DqRP+RjklFKDACf1XCEEBZCv+6WBrBBWZHT2diqgyAowvkALmTKOlkVt6nlBSFFJL5QDYREszmqHOVjB",
+	"Y30hNMyo+s07fCD5IiwVwvF/XYWK9BPgoIeGjx5ugOGjNKkEXQtd1T9ei/v/HN9/cvZp88O/3jQ/ffa/",
+	"nwwXulLPzO6tPzVknYLUL8Ca2kvSoXDn4K3IztFy7uBRlC5cmFs5jyVYzIzNHeCC7A4+XRYGcpnDks7J",
+	"mi5Qf8Y/5YbR1JNOjVogZEbPlMy8666DNggqiGlCK9jxi5MkTRZoXRB4PBqPHrD7VKhFJZNJ8mg0Ho0T",
+	"VlDBsHYkOeTfp5rRHV1QHrwOR1c4FC6+E/Y88A5hYig2BVkBR+gRfK/VigeYpUYbDZ+lBkmQroyeO/KK",
+	"UqziLJA+nIjPQTudEHiEpKRXZ6Qb1Mrri8B30Fk6tiNm8vuJjp24MAwP3U5HDYOzPqN1XWW0CzHh4fjx",
+	"roZOenppEp11mjwej0NlpD2GkkRUlYrczlEVstD/+9XRGhc9cQ9BV5PdstHuSCGUzMHGgpwleHSbEpy2",
+	"3BQDlvG7RkE6uufYNlJCQPJ0GthLDQg0HaoFuphCcJLBk9nHae0cM5ljDjNpnU9hijNjsd2ARihD1wB1",
+	"RWbGqnh8y5fRmgSdb2ZqHY3iyW1fSd9tCcmURZGv+pb6+W1bKkG1UODQMltlrQkFuqvLUthViwSUV/bE",
+	"JwQUcxcYkQ7EkjOaO4RrRyLLsArklBmi1Y7zvM+pEqwJKLGcbuHYNvx1oDaCY96Dwrh0FIfLypAaJ+BM",
+	"iRTGCP57im83oN+5c5pIYYRGhxScw2EzujAqdzFKBjHB1VmGmIfcIyuEnocYQpNDHIqnKWvnoRAL3ONf",
+	"7D7sXiHIgENOB1yU0FHeQCg7hNXh2Hcaqw9Z9fWsmcvNAVM+3r7TntHwpTVlVbimPFxPRMHaUbivtYdl",
+	"hEErpKOcaIqZoL9KHwY4qNBUKpjSr0bqrVyKyhG6OF6IYj/mEfcejh+8cyX8PQjUnPuuxL4H7yn2ZaZW",
+	"XE9zFt7k5fn7DciHA+0KYwkQelG+wBXkjDgWYywPyGTAFWbZ4WJHFNy1OPtg/D7jrDZAAQItLI09dyP4",
+	"sUB21+ijMfhSCuRkWVHdFKjQJnPKpaOQUktXYD4BlDx7KQhqZhZdEbYLfUKag8jVVKguJJVlEYmWptlU",
+	"uu7iOCu7x1k5vq2UkDqNGZt0VFbcc/FC72BuQHjTRKyFFNdKErhY258PPG1basG8dQ6lON/ou3J8ZPVd",
+	"P9ZOmoXJHWOMTdtgS5UyuZemW2EKTXNtHW61zSY2qLPGsfvuORStu4bdbpy+VoBlgP3S5Ku/LKzs9hLX",
+	"m4QX5QjrneD+7uMa/T42WfMkjV123v2ZCRvtGtCrl88az4szQ0wcbrwPUvnrj/Hzw42fdxBug39G5Oqh",
+	"a4DSHqweXcicqaQ5DkDrS/S11S20TlcMpA3Xv4lW36AfhqqBkkLe7JXLHS8wGIN67MGHSyld6oEUjqXr",
+	"00M9XiiwkT1eiKsz6cGJVeefwR2XMVdr58V3WO8lw2UDaFNbJs38Ds/WlJ93FEG+QX8l+KB/3sh8vUHl",
+	"XAoovdwvNPO7AtzwWKHUCmZSebShFRLaTD3imkbfi1kds9RKug6Wt9HpmXQ93sNdCaXi0W4KVbzybzXa",
+	"Vbd02zLvVtp6N9c9J0kPduJvDwqlx5CGX+2FT/cQIhHWitUlpaD70LGSTJhwwSGGii4aeN9Vupq0xbm2",
+	"GcWAl/aBpv1TYD4pk5Ge0ajX36E6M1YnZqmZEfUBj5WckgehWu1Wt10LsClxTO2dzJuUo3kboFBYHbud",
+	"vn0b+5WJ7TORh6MK7ZaBya2s4VRc+I0QYFGoERzr6O7LwjjsqjJtNgFljtzkjc8bFOulKZRHcNzoZ1mY",
+	"SyIU7xzaoJwWemPazoXQq6ZqEFOzwF6kEv7uZobPIkoOmdf+Mjy9tPbunrPGXjZrzQfqs93wEH6H2ouK",
+	"6P3F8DWp678Iwe9Esb374Hgda+53VGL3ofwwi9fU2x8RnLEkGvJAjhNR/UOH8Q8agJvS/BoEaO0IZsIb",
+	"p8G0+sfCbFUY8cVKY2SrQHMSLA6VYMjpNcYrymFmTRkU3u9YST1DS+k4KodL+vOEzMHUXklu/etV8wyp",
+	"NCVqv0WCFia8OAptJ1FVzRsqLUqyWJdZRA3OS6XYLryhQCIcX+lcSL2Hd/gOb0iQviOCgN8oDpjJD3WW",
+	"oXOzWkGz98cG3F4C8Y4Wx52/9ZyXPXXLa49k75ul/W2M56KMPYv4oq4pi0PH38sSR/AqcpXSQSGqCrUD",
+	"oUrjPOAC7SowItK1fsawULbPDqUL79m4ReGo1NiiQAP1GZ4dDvOgBPsxvPilzLBHZwhFuRS2FgVTbnk4",
+	"Oe9iB2O0nkNOe/z5+x9QoM4QHo+fbEDN4/H4UBLY0+fd7IwMfaZ2yx2SfeDTvaT9iDkHmha3+uTraxlN",
+	"X7rG+9u3RPy8iby35RHZlUNUnG1mgU2opQA9gi+NL7hBufk+lVySoz37ZPycoO98O44c3jJNebmY4il5",
+	"Hvw3QEfUCFDx5EBYKxcYktilsfx0Wmr4JXyU80sLQx6VcuGTBVEJe4eTttZpYGVq61DNLgP9tml9kAfl",
+	"UbAMue0mby40BCqw6TUXskpZb/w23RcoLVijqNDggoDDgMUMtVer5sURBw9KuTkFVzjz4WU0/3dOtsK5",
+	"HluekjT0W7Gg+9ImCtfi+0xIVVsMqK6B71XYwMzGOBKsozGzPgGzj5P9bnXKinpv+duVWM3T+ETqMj7z",
+	"KV9ffCzrPnZ/rtD9IStm5n7JaDzFaDRScz3B32+E144Eewpdi5CxNuXCJlq70DEFohnT0KVtICt8EEDF",
+	"pFAbcLdFFPa/bbC1QpjXIn4YYFeQGxPR77+A4ss2zXGgj0PzeKHgdNsf0GRCQY4LVKaiei5Jk9qqZJIU",
+	"3leToyNFAwrj/OSL8Rfjo8UDdse4yfZqL/g1ZMfNBdRcpxcDzTO3SeENDTvZ5C2bxnK/eF6frf8dAAD/",
+	"/w==",
 }
 
 // decodeSpec returns the embedded OpenAPI spec as raw JSON bytes,
