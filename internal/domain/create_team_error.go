@@ -9,6 +9,10 @@ package domain
 // the usecase runs, and by then [TeamName] guarantees the name is one
 // the database will accept.
 //
+// A caller without a name is absent for the same kind of reason: the
+// gate turns them away before the usecase runs, so being nameless is not
+// a way this can fail.
+//
 // So the CHECK constraint on team names is not a case here. If it ever
 // fires, a name got past [ParseTeamName] that should not have, which is
 // a fault in this program rather than in the request: it belongs in
