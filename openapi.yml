@@ -15,19 +15,121 @@ servers:
     description: Local development
 
 tags:
+  - name: users
+    description: People
   - name: teams
     description: Teams
   - name: invite-links
     description: Invite links
 
 paths:
+  /users/me:
+    get:
+      operationId: getMe
+      tags: [ users ]
+      summary: Get the caller
+      description: >
+        Who the caller is and whether they have named themselves yet. The state is read from here
+        rather than inferred elsewhere: it outlives any single moment, and someone who closed the
+        app on the naming screen still has to be asked again.
+      parameters:
+        - $ref: '#/components/parameters/XUserId'
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+
+        '400':
+          description: Invalid request
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+
+        '401':
+          description: The caller could not be identified
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+
+        '500':
+          description: Internal server error
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+
+  /users/me/introduction:
+    post:
+      operationId: createIntroduction
+      tags: [ users ]
+      summary: Introduce yourself
+      description: >
+        Names the person for the first time. Until this happens almost everything is closed to them:
+        a name is what others see, and until there is one there is nothing to show. Doing it twice
+        is not a malformed request but a sign that it is long done — hence 409 rather than 400.
+      parameters:
+        - $ref: '#/components/parameters/XUserId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateIntroductionRequest'
+
+      responses:
+        '201':
+          description: Introduced
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+
+        '400':
+          description: Invalid request
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+
+        '401':
+          description: The caller could not be identified
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+
+        '409':
+          description: >
+            Either this person already has a name, or the name asked for belongs to someone else.
+            Both are conflicts with a state that exists rather than malformed requests, so both
+            answer alike — until problem types arrive, the wording in `detail` is what tells them
+            apart.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+
+        '500':
+          description: Internal server error
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+
   /teams:
     post:
       operationId: createTeam
       tags: [ teams ]
       summary: Create a team
       description: >
-        Creates a team and makes the caller its owner.
+        Creates a team and makes the caller its owner. The caller must have introduced themselves
+        first: a team has members, members are shown to one another, and someone without a name has
+        nothing to show.
       parameters:
         - $ref: '#/components/parameters/XUserId'
       requestBody:
@@ -60,6 +162,15 @@ paths:
 
         '401':
           description: The caller could not be identified
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+
+        '403':
+          description: >
+            The caller has not introduced themselves yet, and until they do there is nothing to show
+            the team about them.
           content:
             application/problem+json:
               schema:
@@ -102,6 +213,15 @@ paths:
               schema:
                 $ref: '#/components/schemas/Problem'
 
+        '403':
+          description: >
+            The caller has not introduced themselves yet. This is decided before the team is looked
+            up, so it says nothing about whether the team exists.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+
         '404':
           description: Team not found, or the caller is not a member
           content:
@@ -139,6 +259,16 @@ paths:
 
         '400':
           description: Invalid request
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+
+        '403':
+          description: >
+            The caller has not introduced themselves yet. Their list would be empty in any case —
+            a nameless person cannot have joined anything — but the answer is a refusal rather than
+            an empty list, so that one rule guards every door alike.
           content:
             application/problem+json:
               schema:
@@ -192,7 +322,8 @@ paths:
             The caller may not create invite links for this team. Whether the team does not exist,
             the caller does not belong to it, or belongs to it without owning it is deliberately
             not distinguished, so that someone outside a team cannot learn that it exists. Do not
-            read this answer as proof that the team is real.
+            read this answer as proof that the team is real. A caller who has not introduced
+            themselves is refused here too, before any of the above is looked at.
           content:
             application/problem+json:
               schema:
@@ -249,7 +380,8 @@ paths:
             caller does not belong to it, or belongs to it without owning it is deliberately not
             distinguished, so that someone outside a team cannot learn that it exists. Do not read
             this answer as proof that the team is real. An owner whose team has no invite links
-            gets an empty list, not this.
+            gets an empty list, not this. A caller who has not introduced themselves is refused
+            here too, before any of the above is looked at.
           content:
             application/problem+json:
               schema:
@@ -288,7 +420,9 @@ paths:
                 $ref: '#/components/schemas/Problem'
 
         '403':
-          description: The caller is not the owner of the link's team
+          description: >
+            The caller is not the owner of the link's team, or has not introduced themselves at
+            all — the latter is decided first, before the link is looked up.
           content:
             application/problem+json:
               schema:
@@ -323,7 +457,8 @@ paths:
       description: >
         Adds the caller as a member of the team the invite link belongs to. Accepting is
         idempotent: someone who is already a member is asking for something that already holds,
-        so the call succeeds and changes nothing.
+        so the call succeeds and changes nothing. The caller must have introduced themselves
+        first — a team sees its members by name.
       parameters:
         - name: code
           in: path
@@ -357,6 +492,15 @@ paths:
 
         '401':
           description: The caller could not be identified
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+
+        '403':
+          description: >
+            The caller has not introduced themselves yet, and until they do there is nothing to show
+            the team about them.
           content:
             application/problem+json:
               schema:
@@ -399,6 +543,69 @@ components:
         format: uuid
 
   schemas:
+    User:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        created_at:
+          type: string
+          format: date-time
+        state:
+          $ref: '#/components/schemas/UserState'
+      required: [ id, created_at, state ]
+
+    UserState:
+      oneOf:
+        - $ref: '#/components/schemas/UnintroducedUserState'
+        - $ref: '#/components/schemas/IntroducedUserState'
+      discriminator:
+        propertyName: status
+        mapping:
+          unintroduced: '#/components/schemas/UnintroducedUserState'
+          introduced: '#/components/schemas/IntroducedUserState'
+
+    UnintroducedUserState:
+      description: >
+        The person exists and nothing else about them is known yet. Carries no name — not an empty
+        one, none at all, so that "introduced without a name" cannot be said.
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [ unintroduced ]
+      required: [ status ]
+
+    IntroducedUserState:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [ introduced ]
+        username:
+          $ref: "#/components/schemas/Username"
+      required: [ status, username ]
+
+    Username:
+      description: >
+        Lowercase letters, digits and underscores, 3 to 32 of them, never starting, ending or
+        doubling on the underscore. The alphabet is narrow on purpose: a name that identifies can be
+        impersonated by one that merely resembles it, and within a single script no two characters
+        resemble each other closely enough. Capitals are refused rather than folded, so that one
+        person has one spelling.
+      type: string
+      minLength: 3
+      maxLength: 32
+      pattern: '^[a-z0-9]([a-z0-9]|_[a-z0-9])*$'
+
+    CreateIntroductionRequest:
+      type: object
+      properties:
+        username:
+          $ref: "#/components/schemas/Username"
+      required: [ username ]
+
     Team:
       type: object
       properties:

@@ -66,6 +66,8 @@ type Team struct {
 }
 
 type User struct {
-	ID        uuid.UUID
-	CreatedAt time.Time
+	ID           uuid.UUID
+	CreatedAt    time.Time
+	Username     *string
+	IntroducedAt *time.Time
 }

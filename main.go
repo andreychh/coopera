@@ -47,7 +47,11 @@ func run() error {
 			ResponseErrorHandlerFunc: api.ResponseError,
 		},
 	)
-	handler := api.HandlerFromMuxWithBaseURL(strict, mux, "/v1")
+	handler := api.HandlerWithOptions(strict, api.StdHTTPServerOptions{
+		BaseURL:     "/v1",
+		BaseRouter:  mux,
+		Middlewares: []api.MiddlewareFunc{api.NewGate(pool)},
+	})
 
 	port, exists := os.LookupEnv("PORT")
 	if !exists {
