@@ -1,0 +1,4 @@
+-- SPDX-FileCopyrightText: 2025-2026 Andrey Chernykh
+-- SPDX-License-Identifier: MIT
+-- No-op: VALIDATE CONSTRAINT has no inverse. Dropping the constraints
+-- themselves is handled by the down migration that added them.
