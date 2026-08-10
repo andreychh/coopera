@@ -17,7 +17,7 @@ import (
 
 func newCodeDelivery(info domain.CodeDelivery) CodeDelivery {
 	return CodeDelivery{
-		ExpiresAt:  info.ExpiresAt.String(),
+		ExpiresIn:  seconds(info.ExpiresIn),
 		RetryAfter: seconds(info.RetryAfter),
 	}
 }

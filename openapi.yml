@@ -769,13 +769,13 @@ components:
         belongs in the mailbox, and the address is what the caller has just supplied.
       type: object
       properties:
-        expires_at:
-          type: string
-          format: date-time
+        expires_in:
+          type: integer
+          description: Seconds the code just sent will keep working.
         retry_after:
           type: integer
           description: Seconds before another code may be requested for this address.
-      required: [ expires_at, retry_after ]
+      required: [ expires_in, retry_after ]
 
     Email:
       type: string
@@ -801,21 +801,26 @@ components:
         in Authorization on every request. The refresh token is long-lived and buys a fresh pair
         once the access token dies; it is the one worth stealing, and belongs where scripts cannot
         reach it.
+
+        Both lifetimes are counted from the moment this answer arrives rather than named as
+        instants. Their holder acts on them, and naming an instant would send it to its own clock —
+        the one thing here not worth trusting. A phone kept off the network drifts by minutes, and
+        an access token lives fifteen.
       type: object
       properties:
         access_token:
           type: string
-        access_expires_at:
-          type: string
-          format: date-time
+        access_expires_in:
+          type: integer
+          description: Seconds the access token will be accepted for.
         refresh_token:
           type: string
-        refresh_expires_at:
-          type: string
-          format: date-time
+        refresh_expires_in:
+          type: integer
           description: >
-            Moves forward with every refresh: a session dies from disuse, not from age.
-      required: [ access_token, access_expires_at, refresh_token, refresh_expires_at ]
+            Seconds the refresh token will be accepted for. Starts over with every refresh: a
+            session dies from disuse, not from age.
+      required: [ access_token, access_expires_in, refresh_token, refresh_expires_in ]
 
     RefreshSessionRequest:
       type: object

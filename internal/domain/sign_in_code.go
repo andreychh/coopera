@@ -39,10 +39,16 @@ func (c SignInCode) String() string {
 	return string(c)
 }
 
-// CodeDelivery is what the person asking for a code is told: when the
-// one just sent stops working, and how long before another may be asked
-// for. The code itself is not here — it belongs in the mailbox.
+// CodeDelivery is what the person asking for a code is told: how long
+// the one just sent keeps working, and how long before another may be
+// asked for. The code itself is not here — it belongs in the mailbox.
+//
+// Both are spans rather than moments because nothing here is stored.
+// This is a thing said to someone, and the one it is said to counts from
+// hearing it: a countdown on a screen, a timer before the button comes
+// back. Naming instants would send them to a clock the system does not
+// own and has no reason to trust.
 type CodeDelivery struct {
-	ExpiresAt  DateTime
+	ExpiresIn  time.Duration
 	RetryAfter time.Duration
 }

@@ -15,6 +15,11 @@
 -- No row comes back when a limit stands in the way. How long to wait is
 -- not worked out here: only the failing path needs that answer, and it
 -- asks for it separately.
+--
+-- What comes back is how long the code has left, not the moment it dies.
+-- The subtraction happens here so that both spans this address is told —
+-- this one and the wait for the next code — are measured against the
+-- same clock, the one that set the deadline in the first place.
 WITH held AS (
     SELECT PG_ADVISORY_XACT_LOCK(HASHTEXTEXTENDED($1, 0)) AS lock
 ),
@@ -42,7 +47,7 @@ FROM recent
 WHERE
     (recent.latest IS NULL OR recent.latest <= NOW() - INTERVAL '1 minute')
     AND recent.taken < 5
-RETURNING expires_at;
+RETURNING EXTRACT(EPOCH FROM (expires_at - NOW()))::BIGINT AS expires_in;
 
 -- name: SignInCodeRetryAfter :one
 -- Says how long the address has to wait, in seconds. It is asked after

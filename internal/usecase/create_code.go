@@ -47,7 +47,7 @@ func (u CreateCode) Exec(ctx context.Context) (domain.CodeDelivery, domain.Creat
 		return domain.CodeDelivery{}, unexpected("draw code", err)
 	}
 
-	expiresAt, err := db.New(u.pool).InsertSignInCode(ctx, db.InsertSignInCodeParams{
+	expiresIn, err := db.New(u.pool).InsertSignInCode(ctx, db.InsertSignInCodeParams{
 		Email: u.email.String(),
 		Code:  code.String(),
 	})
@@ -69,7 +69,7 @@ func (u CreateCode) Exec(ctx context.Context) (domain.CodeDelivery, domain.Creat
 	}
 
 	return domain.CodeDelivery{
-		ExpiresAt:  domain.DateTime(expiresAt),
+		ExpiresIn:  time.Duration(expiresIn) * time.Second,
 		RetryAfter: retryAfter,
 	}, nil
 }

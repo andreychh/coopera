@@ -7,7 +7,6 @@ package db
 
 import (
 	"context"
-	"time"
 )
 
 const insertSignInCode = `-- name: InsertSignInCode :one
@@ -38,7 +37,7 @@ FROM recent
 WHERE
     (recent.latest IS NULL OR recent.latest <= NOW() - INTERVAL '1 minute')
     AND recent.taken < 5
-RETURNING expires_at
+RETURNING EXTRACT(EPOCH FROM (expires_at - NOW()))::BIGINT AS expires_in
 `
 
 type InsertSignInCodeParams struct {
@@ -62,11 +61,16 @@ type InsertSignInCodeParams struct {
 // No row comes back when a limit stands in the way. How long to wait is
 // not worked out here: only the failing path needs that answer, and it
 // asks for it separately.
-func (q *Queries) InsertSignInCode(ctx context.Context, arg InsertSignInCodeParams) (time.Time, error) {
+//
+// What comes back is how long the code has left, not the moment it dies.
+// The subtraction happens here so that both spans this address is told —
+// this one and the wait for the next code — are measured against the
+// same clock, the one that set the deadline in the first place.
+func (q *Queries) InsertSignInCode(ctx context.Context, arg InsertSignInCodeParams) (int64, error) {
 	row := q.db.QueryRow(ctx, insertSignInCode, arg.Email, arg.Code)
-	var expires_at time.Time
-	err := row.Scan(&expires_at)
-	return expires_at, err
+	var expires_in int64
+	err := row.Scan(&expires_in)
+	return expires_in, err
 }
 
 const signInCodeRetryAfter = `-- name: SignInCodeRetryAfter :one
