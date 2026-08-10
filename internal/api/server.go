@@ -11,8 +11,9 @@ import (
 type Server struct {
 	pool *pgxpool.Pool
 	post usecase.Post
+	seal usecase.Seal
 }
 
-func NewServer(pool *pgxpool.Pool, post usecase.Post) Server {
-	return Server{pool: pool, post: post}
+func NewServer(pool *pgxpool.Pool, post usecase.Post, seal usecase.Seal) Server {
+	return Server{pool: pool, post: post, seal: seal}
 }

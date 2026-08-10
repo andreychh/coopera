@@ -22,6 +22,15 @@ func newCodeDelivery(info domain.CodeDelivery) CodeDelivery {
 	}
 }
 
+func newPass(pass domain.Pass) Pass {
+	return Pass{
+		AccessToken:      pass.AccessToken.String(),
+		AccessExpiresIn:  seconds(pass.AccessExpiresIn),
+		RefreshToken:     pass.RefreshToken.String(),
+		RefreshExpiresIn: seconds(pass.RefreshExpiresIn),
+	}
+}
+
 // seconds rounds a duration up to whole seconds, the only unit the
 // answers speak in. Rounding down would name a moment that is still too
 // early, and a client obeying it would be refused.
