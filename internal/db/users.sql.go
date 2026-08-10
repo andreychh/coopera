@@ -39,6 +39,34 @@ func (q *Queries) GetUser(ctx context.Context, id uuid.UUID) (GetUserRow, error)
 	return i, err
 }
 
+const insertUser = `-- name: InsertUser :one
+INSERT INTO users (email)
+VALUES ($1)
+ON CONFLICT (email) DO UPDATE SET email = excluded.email
+RETURNING id
+`
+
+// Gives the address an account, or hands back the one it already has.
+// Both are the same request as far as the person is concerned: they ask
+// to be let in, and whether the system has seen them before is its own
+// affair rather than news to be announced.
+//
+// ON CONFLICT does nothing of substance — it writes the address over
+// itself — and is here only so that a row comes back either way. DO
+// NOTHING would answer with silence on every sign-in after the first and
+// force a second query to tell "already there" from "just now", a
+// difference nothing above needs.
+//
+// Only the id comes back. The name is not asked for here: whether the
+// person has one changes nothing about being let in, and the pass issued
+// to someone nameless is the same pass.
+func (q *Queries) InsertUser(ctx context.Context, email string) (uuid.UUID, error) {
+	row := q.db.QueryRow(ctx, insertUser, email)
+	var id uuid.UUID
+	err := row.Scan(&id)
+	return id, err
+}
+
 const introduceUser = `-- name: IntroduceUser :one
 UPDATE users
 SET username = $2, introduced_at = NOW()
