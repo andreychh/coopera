@@ -122,8 +122,10 @@ paths:
 
         '401':
           description: >
-            The code does not match the one issued for this address. The code survives this: the
-            answer says how many attempts it has left before being burned.
+            The code does not match the one issued for this address, and an attempt has been spent
+            on the guess. How many are left is in the answer, and zero is one of them: the fifth
+            wrong guess burns the code, and is still reported here rather than as a missing one,
+            because what happened is that the digits were wrong.
           content:
             application/problem+json:
               schema:
