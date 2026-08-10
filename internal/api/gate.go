@@ -14,12 +14,18 @@ import (
 // NewGate builds the middleware that turns away callers who have not
 // introduced themselves.
 //
-// Two operations stay open to them: looking at themselves, and giving
-// themselves a name. Everything else shows a person to other people, and
-// there is nothing yet to show. Matching is by exact path because both
-// are fixed, without parameters; anything unlisted is closed, so a new
-// operation is guarded by default and forgetting about it costs a
-// refusal rather than a hole.
+// Four operations stay open to them: looking at themselves, giving
+// themselves a name, renewing their pass and leaving. Everything else
+// shows a person to other people, and there is nothing yet to show.
+//
+// The last two are open out of necessity rather than kindness. Without
+// renewal a pass would die fifteen minutes in and take with it the only
+// thing its holder came to do; and leaving is nobody's to withhold —
+// a person who wants out gets out, named or not.
+//
+// Matching is by exact path because all four are fixed, without
+// parameters; anything unlisted is closed, so a new operation is guarded
+// by default and forgetting about it costs a refusal rather than a hole.
 //
 // The gate answers outside the typed responses the generator builds per
 // operation: those live inside the strict handler, and this stands in
@@ -31,8 +37,10 @@ import (
 // for that same reason, so nothing gets in that would not have anyway.
 func NewGate(pool *pgxpool.Pool) MiddlewareFunc {
 	open := map[string]string{
-		"/v1/users/me":              http.MethodGet,
-		"/v1/users/me/introduction": http.MethodPost,
+		"/v1/users/me":                      http.MethodGet,
+		"/v1/users/me/introduction":         http.MethodPost,
+		"/v1/auth/sessions/current":         http.MethodDelete,
+		"/v1/auth/sessions/current/refresh": http.MethodPost,
 	}
 
 	return func(next http.Handler) http.Handler {
