@@ -15,6 +15,8 @@ servers:
     description: Local development
 
 tags:
+  - name: auth
+    description: Signing in
   - name: users
     description: People
   - name: teams
@@ -23,6 +25,208 @@ tags:
     description: Invite links
 
 paths:
+  /auth/codes:
+    post:
+      operationId: createCode
+      tags: [ auth ]
+      summary: Request a sign-in code
+      description: >
+        Sends a one-time code to the given address. The answer is the same whether or not an
+        account already exists behind that address: telling the two apart would turn this into a
+        directory of registered people. The code travels by mail only and is never part of any
+        response.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateCodeRequest'
+
+      responses:
+        '202':
+          description: >
+            The code was sent. Nothing here says whether an account exists, and nothing here
+            promises the mail arrived — delivery is the only real test, and its outcome belongs to
+            the mailbox, not to this answer.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CodeDelivery'
+
+        '400':
+          description: >
+            The address is not shaped like an email address. Only its form is checked here: whether
+            mail can actually reach it is not knowable without sending, and the result of sending
+            is deliberately not reported.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+
+        '429':
+          description: >
+            Too many codes requested for this address. Without this limit the endpoint becomes a
+            way to mail anyone repeatedly: the system does the sending, and someone who never asked
+            does the receiving.
+          headers:
+            Retry-After:
+              description: Seconds to wait before requesting another code
+              schema:
+                type: integer
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+
+        '500':
+          description: Internal server error
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+
+  /auth/sessions:
+    post:
+      operationId: createSession
+      tags: [ auth ]
+      summary: Sign in with a code
+      description: >
+        Exchanges an emailed code for a pass. The account comes into being here if the address had
+        none: signing in and signing up are one act, because separating them would mean saying
+        whether the address is known, and that is what this API refuses to say. The code is checked
+        together with the address it was issued for — six digits are not unique, and alone they
+        identify nobody.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateSessionRequest'
+
+      responses:
+        '201':
+          description: >
+            Signed in. The answer does not say whether the account was born just now: that is a
+            state, not an event, and it is read from the person, not from this moment.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Pass'
+
+        '400':
+          description: Invalid request
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+
+        '401':
+          description: >
+            The code does not match the one issued for this address. The code survives this: the
+            answer says how many attempts it has left before being burned.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/InvalidCodeProblem'
+
+        '410':
+          description: >
+            No live code stands behind this address. It may have expired, been spent, been burned by
+            failed attempts, or been replaced by a newer one — all four call for the same thing, a
+            fresh code, so they are not told apart.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+
+        '500':
+          description: Internal server error
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+
+  /auth/sessions/current:
+    delete:
+      operationId: deleteSession
+      tags: [ auth ]
+      summary: Sign out
+      description: >
+        Ends the session the presented token belongs to, on this device only — the other devices a
+        person is signed in on know nothing of it. The refresh token dies with the session, so
+        nothing can be renewed. The access token is not recalled and keeps working until it expires:
+        for those few minutes the pass outlives what it opens. Signing out twice is not an error —
+        the second attempt finds nothing left to end and answers the same way.
+      security:
+        - bearerAuth: [ ]
+      responses:
+        '204':
+          description: Signed out
+
+        '401':
+          description: >
+            The access token is not accepted, so there is no session to speak of.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+
+        '500':
+          description: Internal server error
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+
+  /auth/sessions/current/refresh:
+    post:
+      operationId: refreshSession
+      tags: [ auth ]
+      summary: Trade the refresh token for a fresh pass
+      description: >
+        Issues new keys for the session the presented token belongs to. The session itself is not
+        replaced: it lasts from signing in until signing out, and these are only its keys. The token
+        presented here is spent in the act — a second use of the same one means a copy is loose, and
+        then the session ends for everyone holding it, the rightful owner included.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RefreshSessionRequest'
+
+      responses:
+        '200':
+          description: Fresh pass issued
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Pass'
+
+        '400':
+          description: Invalid request
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+
+        '401':
+          description: >
+            The token is not accepted. Unknown, expired, revoked by signing out, or already spent —
+            all four are answered alike, because the holder can do only one thing about any of them,
+            sign in again, and because telling them apart would help whoever holds a stolen copy.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+
+        '500':
+          description: Internal server error
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+
   /users/me:
     get:
       operationId: getMe
@@ -531,6 +735,15 @@ paths:
                 $ref: '#/components/schemas/Problem'
 
 components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      description: >
+        The access token from a pass, sent as `Authorization: Bearer <token>`. Never a cookie: a
+        header has to be set deliberately, so a page on another site cannot make the browser send
+        one, and a whole class of forged requests stops existing.
+
   parameters:
     XUserId:
       name: X-User-Id
@@ -543,6 +756,73 @@ components:
         format: uuid
 
   schemas:
+    CreateCodeRequest:
+      type: object
+      properties:
+        email:
+          $ref: "#/components/schemas/Email"
+      required: [ email ]
+
+    CodeDelivery:
+      description: >
+        Says that a code was sent. It carries neither the code nor the address on purpose: the code
+        belongs in the mailbox, and the address is what the caller has just supplied.
+      type: object
+      properties:
+        expires_at:
+          type: string
+          format: date-time
+        retry_after:
+          type: integer
+          description: Seconds before another code may be requested for this address.
+      required: [ expires_at, retry_after ]
+
+    Email:
+      type: string
+      format: email
+      maxLength: 254
+
+    CreateSessionRequest:
+      type: object
+      properties:
+        email:
+          $ref: "#/components/schemas/Email"
+        code:
+          $ref: "#/components/schemas/Code"
+      required: [ email, code ]
+
+    Code:
+      type: string
+      pattern: '^[0-9]{6}$'
+
+    Pass:
+      description: >
+        The keys to a session, not the session itself. The access token is short-lived and travels
+        in Authorization on every request. The refresh token is long-lived and buys a fresh pair
+        once the access token dies; it is the one worth stealing, and belongs where scripts cannot
+        reach it.
+      type: object
+      properties:
+        access_token:
+          type: string
+        access_expires_at:
+          type: string
+          format: date-time
+        refresh_token:
+          type: string
+        refresh_expires_at:
+          type: string
+          format: date-time
+          description: >
+            Moves forward with every refresh: a session dies from disuse, not from age.
+      required: [ access_token, access_expires_at, refresh_token, refresh_expires_at ]
+
+    RefreshSessionRequest:
+      type: object
+      properties:
+        refresh_token:
+          type: string
+      required: [ refresh_token ]
     User:
       type: object
       properties:
@@ -718,3 +998,12 @@ components:
           type: string
           format: uri
       required: [ title, status ]
+
+    InvalidCodeProblem:
+      allOf:
+        - $ref: '#/components/schemas/Problem'
+        - type: object
+          properties:
+            attempts_left:
+              type: integer
+          required: [ attempts_left ]

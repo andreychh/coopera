@@ -21,6 +21,11 @@ import (
 
 	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/oapi-codegen/runtime"
+	openapi_types "github.com/oapi-codegen/runtime/types"
+)
+
+const (
+	BearerAuthScopes bearerAuthContextKey = "bearerAuth.Scopes"
 )
 
 // Defines values for ActiveInviteLinkStateStatus.
@@ -128,6 +133,22 @@ type ActiveInviteLinkState struct {
 // ActiveInviteLinkStateStatus defines model for ActiveInviteLinkState.Status.
 type ActiveInviteLinkStateStatus string
 
+// Code defines model for Code.
+type Code = string
+
+// CodeDelivery Says that a code was sent. It carries neither the code nor the address on purpose: the code belongs in the mailbox, and the address is what the caller has just supplied.
+type CodeDelivery struct {
+	ExpiresAt string `json:"expires_at"`
+
+	// RetryAfter Seconds before another code may be requested for this address.
+	RetryAfter int `json:"retry_after"`
+}
+
+// CreateCodeRequest defines model for CreateCodeRequest.
+type CreateCodeRequest struct {
+	Email Email `json:"email"`
+}
+
 // CreateIntroductionRequest defines model for CreateIntroductionRequest.
 type CreateIntroductionRequest struct {
 	// Username Lowercase letters, digits and underscores, 3 to 32 of them, never starting, ending or doubling on the underscore. The alphabet is narrow on purpose: a name that identifies can be impersonated by one that merely resembles it, and within a single script no two characters resemble each other closely enough. Capitals are refused rather than folded, so that one person has one spelling.
@@ -139,10 +160,19 @@ type CreateInviteLinkRequest struct {
 	ExpiresAt *string `json:"expires_at,omitempty"`
 }
 
+// CreateSessionRequest defines model for CreateSessionRequest.
+type CreateSessionRequest struct {
+	Code  Code  `json:"code"`
+	Email Email `json:"email"`
+}
+
 // CreateTeamRequest defines model for CreateTeamRequest.
 type CreateTeamRequest struct {
 	Name TeamName `json:"name"`
 }
+
+// Email defines model for Email.
+type Email = openapi_types.Email
 
 // ExpiredInviteLinkState defines model for ExpiredInviteLinkState.
 type ExpiredInviteLinkState struct {
@@ -164,6 +194,16 @@ type IntroducedUserState struct {
 // IntroducedUserStateStatus defines model for IntroducedUserState.Status.
 type IntroducedUserStateStatus string
 
+// InvalidCodeProblem defines model for InvalidCodeProblem.
+type InvalidCodeProblem struct {
+	AttemptsLeft int     `json:"attempts_left"`
+	Detail       *string `json:"detail,omitempty"`
+	Instance     *string `json:"instance,omitempty"`
+	Status       int     `json:"status"`
+	Title        string  `json:"title"`
+	Type         *string `json:"type,omitempty"`
+}
+
 // InviteLink defines model for InviteLink.
 type InviteLink struct {
 	Code      string          `json:"code"`
@@ -177,6 +217,16 @@ type InviteLinkState struct {
 	union json.RawMessage
 }
 
+// Pass The keys to a session, not the session itself. The access token is short-lived and travels in Authorization on every request. The refresh token is long-lived and buys a fresh pair once the access token dies; it is the one worth stealing, and belongs where scripts cannot reach it.
+type Pass struct {
+	AccessExpiresAt string `json:"access_expires_at"`
+	AccessToken     string `json:"access_token"`
+
+	// RefreshExpiresAt Moves forward with every refresh: a session dies from disuse, not from age.
+	RefreshExpiresAt string `json:"refresh_expires_at"`
+	RefreshToken     string `json:"refresh_token"`
+}
+
 // Problem RFC 9457 Problem Details for HTTP APIs.
 type Problem struct {
 	Detail   *string `json:"detail,omitempty"`
@@ -184,6 +234,11 @@ type Problem struct {
 	Status   int     `json:"status"`
 	Title    string  `json:"title"`
 	Type     *string `json:"type,omitempty"`
+}
+
+// RefreshSessionRequest defines model for RefreshSessionRequest.
+type RefreshSessionRequest struct {
+	RefreshToken string `json:"refresh_token"`
 }
 
 // RevokedInviteLinkState defines model for RevokedInviteLinkState.
@@ -230,6 +285,9 @@ type Username = string
 
 // XUserId defines model for XUserId.
 type XUserId = string
+
+// bearerAuthContextKey is the context key for bearerAuth security scheme
+type bearerAuthContextKey string
 
 // RevokeInviteLinkParams defines parameters for RevokeInviteLink.
 type RevokeInviteLinkParams struct {
@@ -289,6 +347,15 @@ type ListMyTeamsParams struct {
 	// XUserId Temporary placeholder until real authentication exists. Identifies the caller.
 	XUserId XUserId `json:"X-User-Id"`
 }
+
+// CreateCodeJSONRequestBody defines body for CreateCode for application/json ContentType.
+type CreateCodeJSONRequestBody = CreateCodeRequest
+
+// CreateSessionJSONRequestBody defines body for CreateSession for application/json ContentType.
+type CreateSessionJSONRequestBody = CreateSessionRequest
+
+// RefreshSessionJSONRequestBody defines body for RefreshSession for application/json ContentType.
+type RefreshSessionJSONRequestBody = RefreshSessionRequest
 
 // CreateTeamJSONRequestBody defines body for CreateTeam for application/json ContentType.
 type CreateTeamJSONRequestBody = CreateTeamRequest
@@ -509,6 +576,18 @@ func (t *UserState) UnmarshalJSON(b []byte) error {
 
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
+	// Request a sign-in code
+	// (POST /auth/codes)
+	CreateCode(w http.ResponseWriter, r *http.Request)
+	// Sign in with a code
+	// (POST /auth/sessions)
+	CreateSession(w http.ResponseWriter, r *http.Request)
+	// Sign out
+	// (DELETE /auth/sessions/current)
+	DeleteSession(w http.ResponseWriter, r *http.Request)
+	// Trade the refresh token for a fresh pass
+	// (POST /auth/sessions/current/refresh)
+	RefreshSession(w http.ResponseWriter, r *http.Request)
 	// Revoke an invite link
 	// (DELETE /invite-links/{code})
 	RevokeInviteLink(w http.ResponseWriter, r *http.Request, code string, params RevokeInviteLinkParams)
@@ -546,6 +625,68 @@ type ServerInterfaceWrapper struct {
 }
 
 type MiddlewareFunc func(http.Handler) http.Handler
+
+// CreateCode operation middleware
+func (siw *ServerInterfaceWrapper) CreateCode(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.CreateCode(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// CreateSession operation middleware
+func (siw *ServerInterfaceWrapper) CreateSession(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.CreateSession(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// DeleteSession operation middleware
+func (siw *ServerInterfaceWrapper) DeleteSession(w http.ResponseWriter, r *http.Request) {
+
+	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, BearerAuthScopes, []string{})
+
+	r = r.WithContext(ctx)
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.DeleteSession(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// RefreshSession operation middleware
+func (siw *ServerInterfaceWrapper) RefreshSession(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.RefreshSession(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
 
 // RevokeInviteLink operation middleware
 func (siw *ServerInterfaceWrapper) RevokeInviteLink(w http.ResponseWriter, r *http.Request) {
@@ -1130,6 +1271,10 @@ func HandlerWithOptions(si ServerInterface, options StdHTTPServerOptions) http.H
 		ErrorHandlerFunc:   options.ErrorHandlerFunc,
 	}
 
+	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/auth/codes", wrapper.CreateCode)
+	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/auth/sessions", wrapper.CreateSession)
+	m.HandleFunc(http.MethodDelete+" "+options.BaseURL+"/auth/sessions/current", wrapper.DeleteSession)
+	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/auth/sessions/current/refresh", wrapper.RefreshSession)
 	m.HandleFunc(http.MethodDelete+" "+options.BaseURL+"/invite-links/{code}", wrapper.RevokeInviteLink)
 	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/invite-links/{code}/acceptances", wrapper.AcceptInviteLink)
 	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/teams", wrapper.CreateTeam)
@@ -1141,6 +1286,265 @@ func HandlerWithOptions(si ServerInterface, options StdHTTPServerOptions) http.H
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/users/me/teams", wrapper.ListMyTeams)
 
 	return m
+}
+
+type CreateCodeRequestObject struct {
+	Body *CreateCodeJSONRequestBody
+}
+
+type CreateCodeResponseObject interface {
+	VisitCreateCodeResponse(w http.ResponseWriter) error
+}
+
+type CreateCode202JSONResponse CodeDelivery
+
+func (response CreateCode202JSONResponse) VisitCreateCodeResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(202)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateCode400ApplicationProblemPlusJSONResponse Problem
+
+func (response CreateCode400ApplicationProblemPlusJSONResponse) VisitCreateCodeResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateCode429ResponseHeaders struct {
+	RetryAfter *int
+}
+
+type CreateCode429ApplicationProblemPlusJSONResponse struct {
+	Body    Problem
+	Headers CreateCode429ResponseHeaders
+}
+
+func (response CreateCode429ApplicationProblemPlusJSONResponse) VisitCreateCodeResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	if response.Headers.RetryAfter != nil {
+		w.Header().Set("Retry-After", fmt.Sprint(*response.Headers.RetryAfter))
+	}
+	w.WriteHeader(429)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateCode500ApplicationProblemPlusJSONResponse Problem
+
+func (response CreateCode500ApplicationProblemPlusJSONResponse) VisitCreateCodeResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(500)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateSessionRequestObject struct {
+	Body *CreateSessionJSONRequestBody
+}
+
+type CreateSessionResponseObject interface {
+	VisitCreateSessionResponse(w http.ResponseWriter) error
+}
+
+type CreateSession201JSONResponse Pass
+
+func (response CreateSession201JSONResponse) VisitCreateSessionResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(201)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateSession400ApplicationProblemPlusJSONResponse Problem
+
+func (response CreateSession400ApplicationProblemPlusJSONResponse) VisitCreateSessionResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateSession401ApplicationProblemPlusJSONResponse InvalidCodeProblem
+
+func (response CreateSession401ApplicationProblemPlusJSONResponse) VisitCreateSessionResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateSession410ApplicationProblemPlusJSONResponse Problem
+
+func (response CreateSession410ApplicationProblemPlusJSONResponse) VisitCreateSessionResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(410)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateSession500ApplicationProblemPlusJSONResponse Problem
+
+func (response CreateSession500ApplicationProblemPlusJSONResponse) VisitCreateSessionResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(500)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type DeleteSessionRequestObject struct {
+}
+
+type DeleteSessionResponseObject interface {
+	VisitDeleteSessionResponse(w http.ResponseWriter) error
+}
+
+type DeleteSession204Response struct {
+}
+
+func (response DeleteSession204Response) VisitDeleteSessionResponse(w http.ResponseWriter) error {
+	w.WriteHeader(204)
+	return nil
+}
+
+type DeleteSession401ApplicationProblemPlusJSONResponse Problem
+
+func (response DeleteSession401ApplicationProblemPlusJSONResponse) VisitDeleteSessionResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type DeleteSession500ApplicationProblemPlusJSONResponse Problem
+
+func (response DeleteSession500ApplicationProblemPlusJSONResponse) VisitDeleteSessionResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(500)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type RefreshSessionRequestObject struct {
+	Body *RefreshSessionJSONRequestBody
+}
+
+type RefreshSessionResponseObject interface {
+	VisitRefreshSessionResponse(w http.ResponseWriter) error
+}
+
+type RefreshSession200JSONResponse Pass
+
+func (response RefreshSession200JSONResponse) VisitRefreshSessionResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type RefreshSession400ApplicationProblemPlusJSONResponse Problem
+
+func (response RefreshSession400ApplicationProblemPlusJSONResponse) VisitRefreshSessionResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type RefreshSession401ApplicationProblemPlusJSONResponse Problem
+
+func (response RefreshSession401ApplicationProblemPlusJSONResponse) VisitRefreshSessionResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type RefreshSession500ApplicationProblemPlusJSONResponse Problem
+
+func (response RefreshSession500ApplicationProblemPlusJSONResponse) VisitRefreshSessionResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(500)
+	_, err := buf.WriteTo(w)
+	return err
 }
 
 type RevokeInviteLinkRequestObject struct {
@@ -1859,6 +2263,18 @@ func (response ListMyTeams500ApplicationProblemPlusJSONResponse) VisitListMyTeam
 
 // StrictServerInterface represents all server handlers.
 type StrictServerInterface interface {
+	// Request a sign-in code
+	// (POST /auth/codes)
+	CreateCode(ctx context.Context, request CreateCodeRequestObject) (CreateCodeResponseObject, error)
+	// Sign in with a code
+	// (POST /auth/sessions)
+	CreateSession(ctx context.Context, request CreateSessionRequestObject) (CreateSessionResponseObject, error)
+	// Sign out
+	// (DELETE /auth/sessions/current)
+	DeleteSession(ctx context.Context, request DeleteSessionRequestObject) (DeleteSessionResponseObject, error)
+	// Trade the refresh token for a fresh pass
+	// (POST /auth/sessions/current/refresh)
+	RefreshSession(ctx context.Context, request RefreshSessionRequestObject) (RefreshSessionResponseObject, error)
 	// Revoke an invite link
 	// (DELETE /invite-links/{code})
 	RevokeInviteLink(ctx context.Context, request RevokeInviteLinkRequestObject) (RevokeInviteLinkResponseObject, error)
@@ -1915,6 +2331,123 @@ type strictHandler struct {
 	ssi         StrictServerInterface
 	middlewares []StrictMiddlewareFunc
 	options     StrictHTTPServerOptions
+}
+
+// CreateCode operation middleware
+func (sh *strictHandler) CreateCode(w http.ResponseWriter, r *http.Request) {
+	var request CreateCodeRequestObject
+
+	var body CreateCodeJSONRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.CreateCode(ctx, request.(CreateCodeRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "CreateCode")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(CreateCodeResponseObject); ok {
+		if err := validResponse.VisitCreateCodeResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// CreateSession operation middleware
+func (sh *strictHandler) CreateSession(w http.ResponseWriter, r *http.Request) {
+	var request CreateSessionRequestObject
+
+	var body CreateSessionJSONRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.CreateSession(ctx, request.(CreateSessionRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "CreateSession")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(CreateSessionResponseObject); ok {
+		if err := validResponse.VisitCreateSessionResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// DeleteSession operation middleware
+func (sh *strictHandler) DeleteSession(w http.ResponseWriter, r *http.Request) {
+	var request DeleteSessionRequestObject
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.DeleteSession(ctx, request.(DeleteSessionRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "DeleteSession")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(DeleteSessionResponseObject); ok {
+		if err := validResponse.VisitDeleteSessionResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// RefreshSession operation middleware
+func (sh *strictHandler) RefreshSession(w http.ResponseWriter, r *http.Request) {
+	var request RefreshSessionRequestObject
+
+	var body RefreshSessionJSONRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.RefreshSession(ctx, request.(RefreshSessionRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "RefreshSession")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(RefreshSessionResponseObject); ok {
+		if err := validResponse.VisitRefreshSessionResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
 }
 
 // RevokeInviteLink operation middleware
@@ -2185,62 +2718,94 @@ func (sh *strictHandler) ListMyTeams(w http.ResponseWriter, r *http.Request, par
 // const string: with thousands of chunks the chained `+` fold is several
 // times slower for the Go compiler than parsing a slice literal.
 var swaggerSpec = []string{
-	"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",
-	"AAD//w==",
+	"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",
+	"xyjbNzfsfJriTDXocZx9+fryfwIAAP//",
 }
 
 // decodeSpec returns the embedded OpenAPI spec as raw JSON bytes,

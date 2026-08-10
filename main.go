@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/andreychh/coopera/internal/api"
+	"github.com/andreychh/coopera/internal/post"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -40,7 +41,7 @@ func run() error {
 	)
 
 	strict := api.NewStrictHandlerWithOptions(
-		api.NewServer(pool),
+		api.NewServer(pool, post.NewLog()),
 		nil,
 		api.StrictHTTPServerOptions{
 			RequestErrorHandlerFunc:  api.RequestError,
