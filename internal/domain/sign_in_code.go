@@ -5,8 +5,10 @@ package domain
 
 import (
 	"crypto/rand"
+	"errors"
 	"fmt"
 	"math/big"
+	"regexp"
 	"time"
 )
 
@@ -35,6 +37,25 @@ func NewSignInCode() (SignInCode, error) {
 	return SignInCode(fmt.Sprintf("%06d", n)), nil
 }
 
+// ParseSignInCode accepts six digits and refuses everything else.
+//
+// Refusing here rather than letting the characters reach the table is
+// not tidiness. A code that could never have been issued is not a wrong
+// guess, and charging an attempt for one would hand anybody a way to
+// burn a stranger's code with nonsense: five requests of "hello" and the
+// letter in their mailbox stops working.
+func ParseSignInCode(s string) (SignInCode, error) {
+	if !signInCodeShape.MatchString(s) {
+		return "", errors.New("must be six digits")
+	}
+	return SignInCode(s), nil
+}
+
+// signInCodeShape is the rule the schema puts on the column, written in
+// the notation Go prefers: what the table refuses to hold is refused
+// before it ever gets there.
+var signInCodeShape = regexp.MustCompile(`^\d{6}$`)
+
 func (c SignInCode) String() string {
 	return string(c)
 }
@@ -51,4 +72,37 @@ func (c SignInCode) String() string {
 type CodeDelivery struct {
 	ExpiresIn  time.Duration
 	RetryAfter time.Duration
+}
+
+// SignInCodeMismatchError says the digits do not match the ones issued
+// for this address. The code survives it: attempts are there for a slip
+// of the finger, and only the fifth wrong one burns it.
+//
+// AttemptsLeft is told to the person because it is the only thing here
+// that changes what they do next — look at the letter again, or ask for
+// a new code.
+type SignInCodeMismatchError struct {
+	AttemptsLeft int64
+}
+
+func (e SignInCodeMismatchError) Error() string {
+	return fmt.Sprintf("sign-in code does not match, %d attempts left", e.AttemptsLeft)
+}
+
+// SignInCodeNotUsableError says no live code stands behind the address.
+// Five ways lead here — it expired, it was already spent, five wrong
+// attempts burned it, a newer code replaced it, or none was ever asked
+// for — and they are one refusal on purpose.
+//
+// Partly because the remedy is the same for all five: ask for a code.
+// But mostly because whoever typed the address is not always its owner,
+// and two of the five would report the owner's doings to them. "Already
+// spent" says somebody got in moments ago; "replaced by a newer one"
+// says somebody asked again. Neither is the typist's business.
+type SignInCodeNotUsableError struct {
+	Email Email
+}
+
+func (e SignInCodeNotUsableError) Error() string {
+	return fmt.Sprintf("no usable sign-in code for %s", e.Email)
 }
