@@ -10,6 +10,7 @@ import (
 
 	"github.com/andreychh/coopera/internal/domain"
 	"github.com/golang-jwt/jwt/v5"
+	"github.com/google/uuid"
 )
 
 // accessLifetime is how long a stamped token is accepted. It is short
@@ -40,6 +41,12 @@ func NewJWT(key []byte) JWT {
 // OpenID Connect gives it, and not in jti: jti stands for the token
 // itself and has to differ between two tokens, while every token a
 // session is refreshed into names that same session.
+//
+// jti is filled all the same, and has to be. Without it a token is a
+// function of the person, the session and the second — and since
+// deadlines are counted in whole seconds, two stampings inside one
+// second would produce the very same string. Renewal would then hand
+// back the key it was asked to replace.
 type claims struct {
 	jwt.RegisteredClaims
 
@@ -61,9 +68,15 @@ func (s JWT) Stamp(
 	sessionID domain.ID,
 ) (domain.AccessToken, time.Duration, error) {
 	now := time.Now()
+	unique, err := uuid.NewRandom()
+	if err != nil {
+		return "", 0, fmt.Errorf("draw token id: %w", err)
+	}
+
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims{
 		SessionID: sessionID.String(),
 		RegisteredClaims: jwt.RegisteredClaims{
+			ID:        unique.String(),
 			Subject:   personID.String(),
 			IssuedAt:  jwt.NewNumericDate(now),
 			ExpiresAt: jwt.NewNumericDate(now.Add(accessLifetime)),
