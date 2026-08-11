@@ -76,3 +76,44 @@ func (s JWT) Stamp(
 	}
 	return domain.AccessToken(signed), accessLifetime, nil
 }
+
+// Read says who a token names, and refuses it if the key does not
+// vouch for it or its hour has passed.
+//
+// The order is the whole of it: the signature is checked before a single
+// claim is believed. A token's claims travel in the open and anyone
+// holding one can rewrite them, so read first and verify after is not a
+// stricter or looser way of doing this — it is no check at all.
+//
+// The algorithm is pinned rather than taken from the token. A token
+// carries the name of its own algorithm, and a reader that obeys it can
+// be handed one saying "none", or one signed with a key it was meant to
+// verify against rather than sign with. Saying in advance which
+// algorithm is acceptable closes that whole family at once.
+//
+// The deadline is compared against this machine's clock, never the
+// caller's. What the caller believes the time to be is not asked and
+// would not be worth having.
+func (s JWT) Read(token domain.AccessToken) (domain.Actor, error) {
+	var read claims
+	_, err := jwt.ParseWithClaims(
+		string(token),
+		&read,
+		func(*jwt.Token) (any, error) { return s.key, nil },
+		jwt.WithValidMethods([]string{jwt.SigningMethodHS256.Alg()}),
+		jwt.WithExpirationRequired(),
+	)
+	if err != nil {
+		return domain.Actor{}, fmt.Errorf("parse access token: %w", err)
+	}
+
+	actorID, err := domain.ParseID(read.Subject)
+	if err != nil {
+		return domain.Actor{}, fmt.Errorf("read subject: %w", err)
+	}
+	sessionID, err := domain.ParseID(read.SessionID)
+	if err != nil {
+		return domain.Actor{}, fmt.Errorf("read session: %w", err)
+	}
+	return domain.Actor{ID: actorID, SessionID: sessionID}, nil
+}
