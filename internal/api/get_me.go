@@ -15,17 +15,19 @@ func (s Server) GetMe(
 	ctx context.Context,
 	req GetMeRequestObject,
 ) (GetMeResponseObject, error) {
-	userID, err := domain.ParseID(req.Params.XUserId)
-	if err != nil {
-		//nolint:nilerr // outcome is encoded in the response, not the error return
-		return GetMe400ApplicationProblemPlusJSONResponse(
-			NewDetailedProblem(http.StatusBadRequest, "Invalid X-User-Id"),
+	// The gate put the actor here, having read their token and found the
+	// session behind it still open. Absence means this handler was reached
+	// without the gate in front of it, which is a fault of ours.
+	actor, present := actorFrom(ctx)
+	if !present {
+		return GetMe500ApplicationProblemPlusJSONResponse(
+			NewProblem(http.StatusInternalServerError),
 		), nil
 	}
 
 	// Kept in its own variable: assigning into the err above would widen
 	// it back to error and the sum would stop being checked.
-	info, getErr := usecase.NewGetMe(s.pool, userID).Exec(ctx)
+	info, getErr := usecase.NewGetMe(s.pool, actor.ID).Exec(ctx)
 	if getErr != nil {
 		return getMeError(getErr), nil
 	}

@@ -22,11 +22,13 @@ func (s Server) CreateInviteLink(
 			NewDetailedProblem(http.StatusBadRequest, "Invalid team_id"),
 		), nil
 	}
-	userID, err := domain.ParseID(req.Params.XUserId)
-	if err != nil {
-		//nolint:nilerr // outcome is encoded in the response, not the error return
-		return CreateInviteLink400ApplicationProblemPlusJSONResponse(
-			NewDetailedProblem(http.StatusBadRequest, "Invalid X-User-Id"),
+	// The gate put the actor here, having read their token and found the
+	// session behind it still open. Absence means this handler was reached
+	// without the gate in front of it, which is a fault of ours.
+	actor, present := actorFrom(ctx)
+	if !present {
+		return CreateInviteLink500ApplicationProblemPlusJSONResponse(
+			NewProblem(http.StatusInternalServerError),
 		), nil
 	}
 
@@ -46,7 +48,7 @@ func (s Server) CreateInviteLink(
 
 	// Kept in its own variable: assigning into the err above would widen
 	// it back to error and the sum would stop being checked.
-	link, createErr := usecase.NewCreateInviteLink(s.pool, userID, teamID, validity).Exec(ctx)
+	link, createErr := usecase.NewCreateInviteLink(s.pool, actor.ID, teamID, validity).Exec(ctx)
 	if createErr != nil {
 		return createInviteLinkError(createErr), nil
 	}

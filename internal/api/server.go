@@ -3,12 +3,17 @@
 
 package api
 
-import "github.com/jackc/pgx/v5/pgxpool"
+import (
+	"github.com/andreychh/coopera/internal/usecase"
+	"github.com/jackc/pgx/v5/pgxpool"
+)
 
 type Server struct {
 	pool *pgxpool.Pool
+	post usecase.Post
+	seal usecase.Seal
 }
 
-func NewServer(pool *pgxpool.Pool) Server {
-	return Server{pool: pool}
+func NewServer(pool *pgxpool.Pool, post usecase.Post, seal usecase.Seal) Server {
+	return Server{pool: pool, post: post, seal: seal}
 }

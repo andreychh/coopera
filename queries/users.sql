@@ -11,6 +11,26 @@ SELECT
 FROM users
 WHERE id = $1;
 
+-- name: InsertUser :one
+-- Gives the address an account, or hands back the one it already has.
+-- Both are the same request as far as the person is concerned: they ask
+-- to be let in, and whether the system has seen them before is its own
+-- affair rather than news to be announced.
+--
+-- ON CONFLICT does nothing of substance — it writes the address over
+-- itself — and is here only so that a row comes back either way. DO
+-- NOTHING would answer with silence on every sign-in after the first and
+-- force a second query to tell "already there" from "just now", a
+-- difference nothing above needs.
+--
+-- Only the id comes back. The name is not asked for here: whether the
+-- person has one changes nothing about being let in, and the pass issued
+-- to someone nameless is the same pass.
+INSERT INTO users (email)
+VALUES ($1)
+ON CONFLICT (email) DO UPDATE SET email = excluded.email
+RETURNING id;
+
 -- name: IntroduceUser :one
 -- Names a person who has no name yet, and refuses to overwrite one that
 -- is already there — so introducing oneself twice touches nothing, no

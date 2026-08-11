@@ -15,17 +15,19 @@ func (s Server) ListMyTeams(
 	ctx context.Context,
 	req ListMyTeamsRequestObject,
 ) (ListMyTeamsResponseObject, error) {
-	userID, err := domain.ParseID(req.Params.XUserId)
-	if err != nil {
-		//nolint:nilerr // outcome is encoded in the response, not the error return
-		return ListMyTeams400ApplicationProblemPlusJSONResponse(
-			NewDetailedProblem(http.StatusBadRequest, "Invalid X-User-Id"),
+	// The gate put the actor here, having read their token and found the
+	// session behind it still open. Absence means this handler was reached
+	// without the gate in front of it, which is a fault of ours.
+	actor, present := actorFrom(ctx)
+	if !present {
+		return ListMyTeams500ApplicationProblemPlusJSONResponse(
+			NewProblem(http.StatusInternalServerError),
 		), nil
 	}
 
 	// Kept in its own variable: assigning into the err above would widen
 	// it back to error and the sum would stop being checked.
-	teams, listErr := usecase.NewListMyTeams(s.pool, userID).Exec(ctx)
+	teams, listErr := usecase.NewListMyTeams(s.pool, actor.ID).Exec(ctx)
 	if listErr != nil {
 		return listMyTeamsError(listErr), nil
 	}

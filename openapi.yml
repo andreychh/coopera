@@ -15,6 +15,8 @@ servers:
     description: Local development
 
 tags:
+  - name: auth
+    description: Signing in
   - name: users
     description: People
   - name: teams
@@ -23,6 +25,219 @@ tags:
     description: Invite links
 
 paths:
+  /auth/codes:
+    post:
+      operationId: createCode
+      tags: [ auth ]
+      summary: Request a sign-in code
+      description: >
+        Sends a one-time code to the given address. The answer is the same whether or not an
+        account already exists behind that address: telling the two apart would turn this into a
+        directory of registered people. The code travels by mail only and is never part of any
+        response.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateCodeRequest'
+
+      responses:
+        '202':
+          description: >
+            The code was sent. Nothing here says whether an account exists, and nothing here
+            promises the mail arrived — delivery is the only real test, and its outcome belongs to
+            the mailbox, not to this answer.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CodeDelivery'
+
+        '400':
+          description: >
+            The address is not shaped like an email address. Only its form is checked here: whether
+            mail can actually reach it is not knowable without sending, and the result of sending
+            is deliberately not reported.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+
+        '429':
+          description: >
+            Too many codes requested for this address. Without this limit the endpoint becomes a
+            way to mail anyone repeatedly: the system does the sending, and someone who never asked
+            does the receiving.
+          headers:
+            Retry-After:
+              description: Seconds to wait before requesting another code
+              schema:
+                type: integer
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+
+        '500':
+          description: Internal server error
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+
+  /auth/sessions:
+    post:
+      operationId: createSession
+      tags: [ auth ]
+      summary: Sign in with a code
+      description: >
+        Exchanges an emailed code for a pass. The account comes into being here if the address had
+        none: signing in and signing up are one act, because separating them would mean saying
+        whether the address is known, and that is what this API refuses to say. The code is checked
+        together with the address it was issued for — six digits are not unique, and alone they
+        identify nobody.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateSessionRequest'
+
+      responses:
+        '201':
+          description: >
+            Signed in. The answer does not say whether the account was born just now: that is a
+            state, not an event, and it is read from the person, not from this moment.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Pass'
+
+        '400':
+          description: Invalid request
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+
+        '401':
+          description: >
+            The code does not match the one issued for this address, and an attempt has been spent
+            on the guess. How many are left is in the answer, and zero is one of them: the fifth
+            wrong guess burns the code, and is still reported here rather than as a missing one,
+            because what happened is that the digits were wrong.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/InvalidCodeProblem'
+
+        '410':
+          description: >
+            No live code stands behind this address. It may have expired, been spent, been burned by
+            failed attempts, or been replaced by a newer one — all four call for the same thing, a
+            fresh code, so they are not told apart.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+
+        '500':
+          description: Internal server error
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+
+  /auth/sessions/current:
+    delete:
+      operationId: deleteSession
+      tags: [ auth ]
+      summary: Sign out
+      description: >
+        Ends the session the presented token belongs to, on this device only — the other devices a
+        person is signed in on know nothing of it.
+
+        It takes effect at once, including for the access token just used. That token is not
+        recalled and cannot be: it is believed on its signature alone. But every guarded operation
+        asks after the session behind the token it was shown, and from here on the answer is that
+        there is none. The refresh token goes the same way and for the same reason — it buys keys to
+        a session, and there is no longer a session to buy them for. Neither is crossed out one by
+        one; both die of what they point at.
+
+        Signing out twice answers 401 rather than 204. The second attempt arrives holding a pass
+        that no longer stands, and is turned away before it can be read as a request at all — the
+        same answer every other operation now gives it.
+      security:
+        - bearerAuth: [ ]
+      responses:
+        '204':
+          description: Signed out
+
+        '401':
+          description: >
+            The pass shown is not accepted — unreadable, expired, or belonging to a session that has
+            already ended. The three are answered alike, and signing out a second time lands here.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+
+        '500':
+          description: Internal server error
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+
+  /auth/sessions/current/refresh:
+    post:
+      operationId: refreshSession
+      tags: [ auth ]
+      summary: Trade the refresh token for a fresh pass
+      description: >
+        Issues new keys for the session the presented token belongs to. The session itself is not
+        replaced: it lasts from signing in until signing out, and these are only its keys. The token
+        presented here is spent in the act — a second use of the same one means a copy is loose, and
+        then the session ends for everyone holding it, the rightful owner included.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RefreshSessionRequest'
+
+      responses:
+        '200':
+          description: Fresh pass issued
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Pass'
+
+        '400':
+          description: Invalid request
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+
+        '401':
+          description: >
+            The token is not accepted. Unknown, expired, revoked by signing out, or already spent —
+            all four are answered alike, because the holder can do only one thing about any of them,
+            sign in again, and because telling them apart would help whoever holds a stolen copy.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+
+        '500':
+          description: Internal server error
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+
   /users/me:
     get:
       operationId: getMe
@@ -32,8 +247,8 @@ paths:
         Who the caller is and whether they have named themselves yet. The state is read from here
         rather than inferred elsewhere: it outlives any single moment, and someone who closed the
         app on the naming screen still has to be asked again.
-      parameters:
-        - $ref: '#/components/parameters/XUserId'
+      security:
+        - bearerAuth: [ ]
       responses:
         '200':
           description: Successful response
@@ -72,8 +287,8 @@ paths:
         Names the person for the first time. Until this happens almost everything is closed to them:
         a name is what others see, and until there is one there is nothing to show. Doing it twice
         is not a malformed request but a sign that it is long done — hence 409 rather than 400.
-      parameters:
-        - $ref: '#/components/parameters/XUserId'
+      security:
+        - bearerAuth: [ ]
       requestBody:
         required: true
         content:
@@ -130,8 +345,8 @@ paths:
         Creates a team and makes the caller its owner. The caller must have introduced themselves
         first: a team has members, members are shown to one another, and someone without a name has
         nothing to show.
-      parameters:
-        - $ref: '#/components/parameters/XUserId'
+      security:
+        - bearerAuth: [ ]
       requestBody:
         required: true
         content:
@@ -197,7 +412,6 @@ paths:
           schema:
             type: string
             format: uuid
-        - $ref: '#/components/parameters/XUserId'
       responses:
         '200':
           description: Team found
@@ -245,8 +459,8 @@ paths:
         Returns teams where the caller has an active membership, whatever their role in it, most
         recently joined first. A team left is a team gone from this list. Having no teams is not a
         failure but an ordinary state, and answers with an empty list.
-      parameters:
-        - $ref: '#/components/parameters/XUserId'
+      security:
+        - bearerAuth: [ ]
       responses:
         '200':
           description: Caller's teams
@@ -295,7 +509,6 @@ paths:
           schema:
             type: string
             format: uuid
-        - $ref: '#/components/parameters/XUserId'
       requestBody:
         required: false
         content:
@@ -356,7 +569,6 @@ paths:
           schema:
             type: string
             enum: [ active, expired, revoked ]
-        - $ref: '#/components/parameters/XUserId'
       responses:
         '200':
           description: Invite links
@@ -407,7 +619,6 @@ paths:
           required: true
           schema:
             type: string
-        - $ref: '#/components/parameters/XUserId'
       responses:
         '204':
           description: Invite link revoked
@@ -465,7 +676,6 @@ paths:
           required: true
           schema:
             type: string
-        - $ref: '#/components/parameters/XUserId'
       responses:
         '200':
           description: >
@@ -531,18 +741,88 @@ paths:
                 $ref: '#/components/schemas/Problem'
 
 components:
-  parameters:
-    XUserId:
-      name: X-User-Id
-      in: header
-      required: true
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
       description: >
-        Temporary placeholder until real authentication exists. Identifies the caller.
-      schema:
-        type: string
-        format: uuid
+        The access token from a pass, sent as `Authorization: Bearer <token>`. Never a cookie: a
+        header has to be set deliberately, so a page on another site cannot make the browser send
+        one, and a whole class of forged requests stops existing.
 
   schemas:
+    CreateCodeRequest:
+      type: object
+      properties:
+        email:
+          $ref: "#/components/schemas/Email"
+      required: [ email ]
+
+    CodeDelivery:
+      description: >
+        Says that a code was sent. It carries neither the code nor the address on purpose: the code
+        belongs in the mailbox, and the address is what the caller has just supplied.
+      type: object
+      properties:
+        expires_in:
+          type: integer
+          description: Seconds the code just sent will keep working.
+        retry_after:
+          type: integer
+          description: Seconds before another code may be requested for this address.
+      required: [ expires_in, retry_after ]
+
+    Email:
+      type: string
+      format: email
+      maxLength: 254
+
+    CreateSessionRequest:
+      type: object
+      properties:
+        email:
+          $ref: "#/components/schemas/Email"
+        code:
+          $ref: "#/components/schemas/Code"
+      required: [ email, code ]
+
+    Code:
+      type: string
+      pattern: '^[0-9]{6}$'
+
+    Pass:
+      description: >
+        The keys to a session, not the session itself. The access token is short-lived and travels
+        in Authorization on every request. The refresh token is long-lived and buys a fresh pair
+        once the access token dies; it is the one worth stealing, and belongs where scripts cannot
+        reach it.
+
+        Both lifetimes are counted from the moment this answer arrives rather than named as
+        instants. Their holder acts on them, and naming an instant would send it to its own clock —
+        the one thing here not worth trusting. A phone kept off the network drifts by minutes, and
+        an access token lives fifteen.
+      type: object
+      properties:
+        access_token:
+          type: string
+        access_expires_in:
+          type: integer
+          description: Seconds the access token will be accepted for.
+        refresh_token:
+          type: string
+        refresh_expires_in:
+          type: integer
+          description: >
+            Seconds the refresh token will be accepted for. Starts over with every refresh: a
+            session dies from disuse, not from age.
+      required: [ access_token, access_expires_in, refresh_token, refresh_expires_in ]
+
+    RefreshSessionRequest:
+      type: object
+      properties:
+        refresh_token:
+          type: string
+      required: [ refresh_token ]
     User:
       type: object
       properties:
@@ -718,3 +998,12 @@ components:
           type: string
           format: uri
       required: [ title, status ]
+
+    InvalidCodeProblem:
+      allOf:
+        - $ref: '#/components/schemas/Problem'
+        - type: object
+          properties:
+            attempts_left:
+              type: integer
+          required: [ attempts_left ]

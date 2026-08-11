@@ -5,6 +5,8 @@ package api
 
 import (
 	"fmt"
+	"math"
+	"time"
 
 	"github.com/andreychh/coopera/internal/domain"
 )
@@ -12,6 +14,29 @@ import (
 // This file holds pure domain-to-API mapping functions: they only shape
 // data already fetched by the caller, never do I/O themselves (no ctx,
 // no db/pool), and may call each other.
+
+func newCodeDelivery(info domain.CodeDelivery) CodeDelivery {
+	return CodeDelivery{
+		ExpiresIn:  seconds(info.ExpiresIn),
+		RetryAfter: seconds(info.RetryAfter),
+	}
+}
+
+func newPass(pass domain.Pass) Pass {
+	return Pass{
+		AccessToken:      pass.AccessToken.String(),
+		AccessExpiresIn:  seconds(pass.AccessExpiresIn),
+		RefreshToken:     pass.RefreshToken.String(),
+		RefreshExpiresIn: seconds(pass.RefreshExpiresIn),
+	}
+}
+
+// seconds rounds a duration up to whole seconds, the only unit the
+// answers speak in. Rounding down would name a moment that is still too
+// early, and a client obeying it would be refused.
+func seconds(d time.Duration) int {
+	return int(math.Ceil(d.Seconds()))
+}
 
 func newTeams(infos []domain.Team) []Team {
 	teams := make([]Team, 0, len(infos))

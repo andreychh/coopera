@@ -5,6 +5,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log"
 	"net/http"
@@ -12,6 +13,8 @@ import (
 	"time"
 
 	"github.com/andreychh/coopera/internal/api"
+	"github.com/andreychh/coopera/internal/post"
+	"github.com/andreychh/coopera/internal/seal"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -39,8 +42,19 @@ func run() error {
 		},
 	)
 
+	key, err := accessTokenKey()
+	if err != nil {
+		return err
+	}
+
+	// One seal both stamps passes and reads them back, because one key
+	// does both. The two halves are asked for separately — the handlers
+	// want stamping, the gate wants reading — and neither is handed more
+	// than it needs.
+	stamp := seal.NewJWT(key)
+
 	strict := api.NewStrictHandlerWithOptions(
-		api.NewServer(pool),
+		api.NewServer(pool, post.NewLog(), stamp),
 		nil,
 		api.StrictHTTPServerOptions{
 			RequestErrorHandlerFunc:  api.RequestError,
@@ -50,7 +64,7 @@ func run() error {
 	handler := api.HandlerWithOptions(strict, api.StdHTTPServerOptions{
 		BaseURL:     "/v1",
 		BaseRouter:  mux,
-		Middlewares: []api.MiddlewareFunc{api.NewGate(pool)},
+		Middlewares: []api.MiddlewareFunc{api.NewGate(pool, stamp)},
 	})
 
 	port, exists := os.LookupEnv("PORT")
@@ -65,6 +79,27 @@ func run() error {
 	}
 
 	return server.ListenAndServe()
+}
+
+// accessTokenKey reads the key access tokens are signed with. There is
+// no default and cannot be: a key shipped in the source would be known
+// to everyone who has read it, and anybody could then write themselves a
+// pass as anybody else. Refusing to start is the only safe way to be
+// missing it.
+//
+// Thirty-two bytes is the floor because the signature is HMAC-SHA256,
+// which is no stronger than the key behind it; a short one can be
+// searched for offline against any single token that has ever been
+// issued.
+func accessTokenKey() ([]byte, error) {
+	key, exists := os.LookupEnv("ACCESS_TOKEN_KEY")
+	if !exists {
+		return nil, errors.New("ACCESS_TOKEN_KEY is not set")
+	}
+	if len(key) < 32 {
+		return nil, errors.New("ACCESS_TOKEN_KEY must be at least 32 bytes")
+	}
+	return []byte(key), nil
 }
 
 func databaseURL() string {

@@ -59,6 +59,32 @@ type Member struct {
 	CreatedAt time.Time
 }
 
+type RefreshToken struct {
+	ID         uuid.UUID
+	SessionID  uuid.UUID
+	Hash       string
+	ExpiresAt  time.Time
+	ConsumedAt *time.Time
+	CreatedAt  time.Time
+}
+
+type Session struct {
+	ID        uuid.UUID
+	UserID    uuid.UUID
+	RevokedAt *time.Time
+	CreatedAt time.Time
+}
+
+type SignInCode struct {
+	ID           uuid.UUID
+	Email        string
+	Code         string
+	AttemptsLeft int64
+	ExpiresAt    time.Time
+	ConsumedAt   *time.Time
+	CreatedAt    time.Time
+}
+
 type Team struct {
 	ID        uuid.UUID
 	Name      string
@@ -70,4 +96,5 @@ type User struct {
 	CreatedAt    time.Time
 	Username     *string
 	IntroducedAt *time.Time
+	Email        string
 }

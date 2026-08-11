@@ -15,15 +15,17 @@ func (s Server) RevokeInviteLink(
 	ctx context.Context,
 	req RevokeInviteLinkRequestObject,
 ) (RevokeInviteLinkResponseObject, error) {
-	userID, err := domain.ParseID(req.Params.XUserId)
-	if err != nil {
-		//nolint:nilerr // outcome is encoded in the response, not the error return
-		return RevokeInviteLink400ApplicationProblemPlusJSONResponse(
-			NewDetailedProblem(http.StatusBadRequest, "Invalid X-User-Id"),
+	// The gate put the actor here, having read their token and found the
+	// session behind it still open. Absence means this handler was reached
+	// without the gate in front of it, which is a fault of ours.
+	actor, present := actorFrom(ctx)
+	if !present {
+		return RevokeInviteLink500ApplicationProblemPlusJSONResponse(
+			NewProblem(http.StatusInternalServerError),
 		), nil
 	}
 
-	revokeErr := usecase.NewRevokeInviteLink(s.pool, userID, domain.Code(req.Code)).Exec(ctx)
+	revokeErr := usecase.NewRevokeInviteLink(s.pool, actor.ID, domain.Code(req.Code)).Exec(ctx)
 	if revokeErr != nil {
 		return revokeInviteLinkError(revokeErr), nil
 	}

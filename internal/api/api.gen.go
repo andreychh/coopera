@@ -21,6 +21,11 @@ import (
 
 	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/oapi-codegen/runtime"
+	openapi_types "github.com/oapi-codegen/runtime/types"
+)
+
+const (
+	BearerAuthScopes bearerAuthContextKey = "bearerAuth.Scopes"
 )
 
 // Defines values for ActiveInviteLinkStateStatus.
@@ -128,6 +133,23 @@ type ActiveInviteLinkState struct {
 // ActiveInviteLinkStateStatus defines model for ActiveInviteLinkState.Status.
 type ActiveInviteLinkStateStatus string
 
+// Code defines model for Code.
+type Code = string
+
+// CodeDelivery Says that a code was sent. It carries neither the code nor the address on purpose: the code belongs in the mailbox, and the address is what the caller has just supplied.
+type CodeDelivery struct {
+	// ExpiresIn Seconds the code just sent will keep working.
+	ExpiresIn int `json:"expires_in"`
+
+	// RetryAfter Seconds before another code may be requested for this address.
+	RetryAfter int `json:"retry_after"`
+}
+
+// CreateCodeRequest defines model for CreateCodeRequest.
+type CreateCodeRequest struct {
+	Email Email `json:"email"`
+}
+
 // CreateIntroductionRequest defines model for CreateIntroductionRequest.
 type CreateIntroductionRequest struct {
 	// Username Lowercase letters, digits and underscores, 3 to 32 of them, never starting, ending or doubling on the underscore. The alphabet is narrow on purpose: a name that identifies can be impersonated by one that merely resembles it, and within a single script no two characters resemble each other closely enough. Capitals are refused rather than folded, so that one person has one spelling.
@@ -139,10 +161,19 @@ type CreateInviteLinkRequest struct {
 	ExpiresAt *string `json:"expires_at,omitempty"`
 }
 
+// CreateSessionRequest defines model for CreateSessionRequest.
+type CreateSessionRequest struct {
+	Code  Code  `json:"code"`
+	Email Email `json:"email"`
+}
+
 // CreateTeamRequest defines model for CreateTeamRequest.
 type CreateTeamRequest struct {
 	Name TeamName `json:"name"`
 }
+
+// Email defines model for Email.
+type Email = openapi_types.Email
 
 // ExpiredInviteLinkState defines model for ExpiredInviteLinkState.
 type ExpiredInviteLinkState struct {
@@ -164,6 +195,16 @@ type IntroducedUserState struct {
 // IntroducedUserStateStatus defines model for IntroducedUserState.Status.
 type IntroducedUserStateStatus string
 
+// InvalidCodeProblem defines model for InvalidCodeProblem.
+type InvalidCodeProblem struct {
+	AttemptsLeft int     `json:"attempts_left"`
+	Detail       *string `json:"detail,omitempty"`
+	Instance     *string `json:"instance,omitempty"`
+	Status       int     `json:"status"`
+	Title        string  `json:"title"`
+	Type         *string `json:"type,omitempty"`
+}
+
 // InviteLink defines model for InviteLink.
 type InviteLink struct {
 	Code      string          `json:"code"`
@@ -177,6 +218,18 @@ type InviteLinkState struct {
 	union json.RawMessage
 }
 
+// Pass The keys to a session, not the session itself. The access token is short-lived and travels in Authorization on every request. The refresh token is long-lived and buys a fresh pair once the access token dies; it is the one worth stealing, and belongs where scripts cannot reach it.
+// Both lifetimes are counted from the moment this answer arrives rather than named as instants. Their holder acts on them, and naming an instant would send it to its own clock — the one thing here not worth trusting. A phone kept off the network drifts by minutes, and an access token lives fifteen.
+type Pass struct {
+	// AccessExpiresIn Seconds the access token will be accepted for.
+	AccessExpiresIn int    `json:"access_expires_in"`
+	AccessToken     string `json:"access_token"`
+
+	// RefreshExpiresIn Seconds the refresh token will be accepted for. Starts over with every refresh: a session dies from disuse, not from age.
+	RefreshExpiresIn int    `json:"refresh_expires_in"`
+	RefreshToken     string `json:"refresh_token"`
+}
+
 // Problem RFC 9457 Problem Details for HTTP APIs.
 type Problem struct {
 	Detail   *string `json:"detail,omitempty"`
@@ -184,6 +237,11 @@ type Problem struct {
 	Status   int     `json:"status"`
 	Title    string  `json:"title"`
 	Type     *string `json:"type,omitempty"`
+}
+
+// RefreshSessionRequest defines model for RefreshSessionRequest.
+type RefreshSessionRequest struct {
+	RefreshToken string `json:"refresh_token"`
 }
 
 // RevokedInviteLinkState defines model for RevokedInviteLinkState.
@@ -228,67 +286,25 @@ type UserState struct {
 // Username Lowercase letters, digits and underscores, 3 to 32 of them, never starting, ending or doubling on the underscore. The alphabet is narrow on purpose: a name that identifies can be impersonated by one that merely resembles it, and within a single script no two characters resemble each other closely enough. Capitals are refused rather than folded, so that one person has one spelling.
 type Username = string
 
-// XUserId defines model for XUserId.
-type XUserId = string
-
-// RevokeInviteLinkParams defines parameters for RevokeInviteLink.
-type RevokeInviteLinkParams struct {
-	// XUserId Temporary placeholder until real authentication exists. Identifies the caller.
-	XUserId XUserId `json:"X-User-Id"`
-}
-
-// AcceptInviteLinkParams defines parameters for AcceptInviteLink.
-type AcceptInviteLinkParams struct {
-	// XUserId Temporary placeholder until real authentication exists. Identifies the caller.
-	XUserId XUserId `json:"X-User-Id"`
-}
-
-// CreateTeamParams defines parameters for CreateTeam.
-type CreateTeamParams struct {
-	// XUserId Temporary placeholder until real authentication exists. Identifies the caller.
-	XUserId XUserId `json:"X-User-Id"`
-}
-
-// GetTeamParams defines parameters for GetTeam.
-type GetTeamParams struct {
-	// XUserId Temporary placeholder until real authentication exists. Identifies the caller.
-	XUserId XUserId `json:"X-User-Id"`
-}
+// bearerAuthContextKey is the context key for bearerAuth security scheme
+type bearerAuthContextKey string
 
 // ListInviteLinksParams defines parameters for ListInviteLinks.
 type ListInviteLinksParams struct {
 	Status *ListInviteLinksParamsStatus `form:"status,omitempty" json:"status,omitempty"`
-
-	// XUserId Temporary placeholder until real authentication exists. Identifies the caller.
-	XUserId XUserId `json:"X-User-Id"`
 }
 
 // ListInviteLinksParamsStatus defines parameters for ListInviteLinks.
 type ListInviteLinksParamsStatus string
 
-// CreateInviteLinkParams defines parameters for CreateInviteLink.
-type CreateInviteLinkParams struct {
-	// XUserId Temporary placeholder until real authentication exists. Identifies the caller.
-	XUserId XUserId `json:"X-User-Id"`
-}
+// CreateCodeJSONRequestBody defines body for CreateCode for application/json ContentType.
+type CreateCodeJSONRequestBody = CreateCodeRequest
 
-// GetMeParams defines parameters for GetMe.
-type GetMeParams struct {
-	// XUserId Temporary placeholder until real authentication exists. Identifies the caller.
-	XUserId XUserId `json:"X-User-Id"`
-}
+// CreateSessionJSONRequestBody defines body for CreateSession for application/json ContentType.
+type CreateSessionJSONRequestBody = CreateSessionRequest
 
-// CreateIntroductionParams defines parameters for CreateIntroduction.
-type CreateIntroductionParams struct {
-	// XUserId Temporary placeholder until real authentication exists. Identifies the caller.
-	XUserId XUserId `json:"X-User-Id"`
-}
-
-// ListMyTeamsParams defines parameters for ListMyTeams.
-type ListMyTeamsParams struct {
-	// XUserId Temporary placeholder until real authentication exists. Identifies the caller.
-	XUserId XUserId `json:"X-User-Id"`
-}
+// RefreshSessionJSONRequestBody defines body for RefreshSession for application/json ContentType.
+type RefreshSessionJSONRequestBody = RefreshSessionRequest
 
 // CreateTeamJSONRequestBody defines body for CreateTeam for application/json ContentType.
 type CreateTeamJSONRequestBody = CreateTeamRequest
@@ -509,33 +525,45 @@ func (t *UserState) UnmarshalJSON(b []byte) error {
 
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
+	// Request a sign-in code
+	// (POST /auth/codes)
+	CreateCode(w http.ResponseWriter, r *http.Request)
+	// Sign in with a code
+	// (POST /auth/sessions)
+	CreateSession(w http.ResponseWriter, r *http.Request)
+	// Sign out
+	// (DELETE /auth/sessions/current)
+	DeleteSession(w http.ResponseWriter, r *http.Request)
+	// Trade the refresh token for a fresh pass
+	// (POST /auth/sessions/current/refresh)
+	RefreshSession(w http.ResponseWriter, r *http.Request)
 	// Revoke an invite link
 	// (DELETE /invite-links/{code})
-	RevokeInviteLink(w http.ResponseWriter, r *http.Request, code string, params RevokeInviteLinkParams)
+	RevokeInviteLink(w http.ResponseWriter, r *http.Request, code string)
 	// Join a team via an invite link
 	// (POST /invite-links/{code}/acceptances)
-	AcceptInviteLink(w http.ResponseWriter, r *http.Request, code string, params AcceptInviteLinkParams)
+	AcceptInviteLink(w http.ResponseWriter, r *http.Request, code string)
 	// Create a team
 	// (POST /teams)
-	CreateTeam(w http.ResponseWriter, r *http.Request, params CreateTeamParams)
+	CreateTeam(w http.ResponseWriter, r *http.Request)
 	// Get a team
 	// (GET /teams/{id})
-	GetTeam(w http.ResponseWriter, r *http.Request, id string, params GetTeamParams)
+	GetTeam(w http.ResponseWriter, r *http.Request, id string)
 	// List the team's invite links
 	// (GET /teams/{team_id}/invite-links)
 	ListInviteLinks(w http.ResponseWriter, r *http.Request, teamId string, params ListInviteLinksParams)
 	// Create an invite link
 	// (POST /teams/{team_id}/invite-links)
-	CreateInviteLink(w http.ResponseWriter, r *http.Request, teamId string, params CreateInviteLinkParams)
+	CreateInviteLink(w http.ResponseWriter, r *http.Request, teamId string)
 	// Get the caller
 	// (GET /users/me)
-	GetMe(w http.ResponseWriter, r *http.Request, params GetMeParams)
+	GetMe(w http.ResponseWriter, r *http.Request)
 	// Introduce yourself
 	// (POST /users/me/introduction)
-	CreateIntroduction(w http.ResponseWriter, r *http.Request, params CreateIntroductionParams)
+	CreateIntroduction(w http.ResponseWriter, r *http.Request)
 	// List the caller's teams
 	// (GET /users/me/teams)
-	ListMyTeams(w http.ResponseWriter, r *http.Request, params ListMyTeamsParams)
+	ListMyTeams(w http.ResponseWriter, r *http.Request)
 }
 
 // ServerInterfaceWrapper converts contexts to parameters.
@@ -546,6 +574,68 @@ type ServerInterfaceWrapper struct {
 }
 
 type MiddlewareFunc func(http.Handler) http.Handler
+
+// CreateCode operation middleware
+func (siw *ServerInterfaceWrapper) CreateCode(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.CreateCode(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// CreateSession operation middleware
+func (siw *ServerInterfaceWrapper) CreateSession(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.CreateSession(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// DeleteSession operation middleware
+func (siw *ServerInterfaceWrapper) DeleteSession(w http.ResponseWriter, r *http.Request) {
+
+	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, BearerAuthScopes, []string{})
+
+	r = r.WithContext(ctx)
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.DeleteSession(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// RefreshSession operation middleware
+func (siw *ServerInterfaceWrapper) RefreshSession(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.RefreshSession(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
 
 // RevokeInviteLink operation middleware
 func (siw *ServerInterfaceWrapper) RevokeInviteLink(w http.ResponseWriter, r *http.Request) {
@@ -562,36 +652,8 @@ func (siw *ServerInterfaceWrapper) RevokeInviteLink(w http.ResponseWriter, r *ht
 		return
 	}
 
-	// Parameter object where we will unmarshal all parameters from the context
-	var params RevokeInviteLinkParams
-
-	headers := r.Header
-
-	// ------------- Required header parameter "X-User-Id" -------------
-	if valueList, found := headers[http.CanonicalHeaderKey("X-User-Id")]; found {
-		var XUserId XUserId
-		n := len(valueList)
-		if n != 1 {
-			siw.ErrorHandlerFunc(w, r, &TooManyValuesForParamError{ParamName: "X-User-Id", Count: n})
-			return
-		}
-
-		err = runtime.BindStyledParameterWithOptions("simple", "X-User-Id", valueList[0], &XUserId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: true, Type: "string", Format: "uuid"})
-		if err != nil {
-			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "X-User-Id", Err: err})
-			return
-		}
-
-		params.XUserId = XUserId
-
-	} else {
-		err := fmt.Errorf("Header parameter X-User-Id is required, but not found")
-		siw.ErrorHandlerFunc(w, r, &RequiredHeaderError{ParamName: "X-User-Id", Err: err})
-		return
-	}
-
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.RevokeInviteLink(w, r, code, params)
+		siw.Handler.RevokeInviteLink(w, r, code)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -616,36 +678,8 @@ func (siw *ServerInterfaceWrapper) AcceptInviteLink(w http.ResponseWriter, r *ht
 		return
 	}
 
-	// Parameter object where we will unmarshal all parameters from the context
-	var params AcceptInviteLinkParams
-
-	headers := r.Header
-
-	// ------------- Required header parameter "X-User-Id" -------------
-	if valueList, found := headers[http.CanonicalHeaderKey("X-User-Id")]; found {
-		var XUserId XUserId
-		n := len(valueList)
-		if n != 1 {
-			siw.ErrorHandlerFunc(w, r, &TooManyValuesForParamError{ParamName: "X-User-Id", Count: n})
-			return
-		}
-
-		err = runtime.BindStyledParameterWithOptions("simple", "X-User-Id", valueList[0], &XUserId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: true, Type: "string", Format: "uuid"})
-		if err != nil {
-			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "X-User-Id", Err: err})
-			return
-		}
-
-		params.XUserId = XUserId
-
-	} else {
-		err := fmt.Errorf("Header parameter X-User-Id is required, but not found")
-		siw.ErrorHandlerFunc(w, r, &RequiredHeaderError{ParamName: "X-User-Id", Err: err})
-		return
-	}
-
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.AcceptInviteLink(w, r, code, params)
+		siw.Handler.AcceptInviteLink(w, r, code)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -658,39 +692,14 @@ func (siw *ServerInterfaceWrapper) AcceptInviteLink(w http.ResponseWriter, r *ht
 // CreateTeam operation middleware
 func (siw *ServerInterfaceWrapper) CreateTeam(w http.ResponseWriter, r *http.Request) {
 
-	var err error
-	_ = err
+	ctx := r.Context()
 
-	// Parameter object where we will unmarshal all parameters from the context
-	var params CreateTeamParams
+	ctx = context.WithValue(ctx, BearerAuthScopes, []string{})
 
-	headers := r.Header
-
-	// ------------- Required header parameter "X-User-Id" -------------
-	if valueList, found := headers[http.CanonicalHeaderKey("X-User-Id")]; found {
-		var XUserId XUserId
-		n := len(valueList)
-		if n != 1 {
-			siw.ErrorHandlerFunc(w, r, &TooManyValuesForParamError{ParamName: "X-User-Id", Count: n})
-			return
-		}
-
-		err = runtime.BindStyledParameterWithOptions("simple", "X-User-Id", valueList[0], &XUserId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: true, Type: "string", Format: "uuid"})
-		if err != nil {
-			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "X-User-Id", Err: err})
-			return
-		}
-
-		params.XUserId = XUserId
-
-	} else {
-		err := fmt.Errorf("Header parameter X-User-Id is required, but not found")
-		siw.ErrorHandlerFunc(w, r, &RequiredHeaderError{ParamName: "X-User-Id", Err: err})
-		return
-	}
+	r = r.WithContext(ctx)
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.CreateTeam(w, r, params)
+		siw.Handler.CreateTeam(w, r)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -715,36 +724,8 @@ func (siw *ServerInterfaceWrapper) GetTeam(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	// Parameter object where we will unmarshal all parameters from the context
-	var params GetTeamParams
-
-	headers := r.Header
-
-	// ------------- Required header parameter "X-User-Id" -------------
-	if valueList, found := headers[http.CanonicalHeaderKey("X-User-Id")]; found {
-		var XUserId XUserId
-		n := len(valueList)
-		if n != 1 {
-			siw.ErrorHandlerFunc(w, r, &TooManyValuesForParamError{ParamName: "X-User-Id", Count: n})
-			return
-		}
-
-		err = runtime.BindStyledParameterWithOptions("simple", "X-User-Id", valueList[0], &XUserId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: true, Type: "string", Format: "uuid"})
-		if err != nil {
-			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "X-User-Id", Err: err})
-			return
-		}
-
-		params.XUserId = XUserId
-
-	} else {
-		err := fmt.Errorf("Header parameter X-User-Id is required, but not found")
-		siw.ErrorHandlerFunc(w, r, &RequiredHeaderError{ParamName: "X-User-Id", Err: err})
-		return
-	}
-
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.GetTeam(w, r, id, params)
+		siw.Handler.GetTeam(w, r, id)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -785,31 +766,6 @@ func (siw *ServerInterfaceWrapper) ListInviteLinks(w http.ResponseWriter, r *htt
 		return
 	}
 
-	headers := r.Header
-
-	// ------------- Required header parameter "X-User-Id" -------------
-	if valueList, found := headers[http.CanonicalHeaderKey("X-User-Id")]; found {
-		var XUserId XUserId
-		n := len(valueList)
-		if n != 1 {
-			siw.ErrorHandlerFunc(w, r, &TooManyValuesForParamError{ParamName: "X-User-Id", Count: n})
-			return
-		}
-
-		err = runtime.BindStyledParameterWithOptions("simple", "X-User-Id", valueList[0], &XUserId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: true, Type: "string", Format: "uuid"})
-		if err != nil {
-			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "X-User-Id", Err: err})
-			return
-		}
-
-		params.XUserId = XUserId
-
-	} else {
-		err := fmt.Errorf("Header parameter X-User-Id is required, but not found")
-		siw.ErrorHandlerFunc(w, r, &RequiredHeaderError{ParamName: "X-User-Id", Err: err})
-		return
-	}
-
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.ListInviteLinks(w, r, teamId, params)
 	}))
@@ -836,36 +792,8 @@ func (siw *ServerInterfaceWrapper) CreateInviteLink(w http.ResponseWriter, r *ht
 		return
 	}
 
-	// Parameter object where we will unmarshal all parameters from the context
-	var params CreateInviteLinkParams
-
-	headers := r.Header
-
-	// ------------- Required header parameter "X-User-Id" -------------
-	if valueList, found := headers[http.CanonicalHeaderKey("X-User-Id")]; found {
-		var XUserId XUserId
-		n := len(valueList)
-		if n != 1 {
-			siw.ErrorHandlerFunc(w, r, &TooManyValuesForParamError{ParamName: "X-User-Id", Count: n})
-			return
-		}
-
-		err = runtime.BindStyledParameterWithOptions("simple", "X-User-Id", valueList[0], &XUserId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: true, Type: "string", Format: "uuid"})
-		if err != nil {
-			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "X-User-Id", Err: err})
-			return
-		}
-
-		params.XUserId = XUserId
-
-	} else {
-		err := fmt.Errorf("Header parameter X-User-Id is required, but not found")
-		siw.ErrorHandlerFunc(w, r, &RequiredHeaderError{ParamName: "X-User-Id", Err: err})
-		return
-	}
-
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.CreateInviteLink(w, r, teamId, params)
+		siw.Handler.CreateInviteLink(w, r, teamId)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -878,39 +806,14 @@ func (siw *ServerInterfaceWrapper) CreateInviteLink(w http.ResponseWriter, r *ht
 // GetMe operation middleware
 func (siw *ServerInterfaceWrapper) GetMe(w http.ResponseWriter, r *http.Request) {
 
-	var err error
-	_ = err
+	ctx := r.Context()
 
-	// Parameter object where we will unmarshal all parameters from the context
-	var params GetMeParams
+	ctx = context.WithValue(ctx, BearerAuthScopes, []string{})
 
-	headers := r.Header
-
-	// ------------- Required header parameter "X-User-Id" -------------
-	if valueList, found := headers[http.CanonicalHeaderKey("X-User-Id")]; found {
-		var XUserId XUserId
-		n := len(valueList)
-		if n != 1 {
-			siw.ErrorHandlerFunc(w, r, &TooManyValuesForParamError{ParamName: "X-User-Id", Count: n})
-			return
-		}
-
-		err = runtime.BindStyledParameterWithOptions("simple", "X-User-Id", valueList[0], &XUserId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: true, Type: "string", Format: "uuid"})
-		if err != nil {
-			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "X-User-Id", Err: err})
-			return
-		}
-
-		params.XUserId = XUserId
-
-	} else {
-		err := fmt.Errorf("Header parameter X-User-Id is required, but not found")
-		siw.ErrorHandlerFunc(w, r, &RequiredHeaderError{ParamName: "X-User-Id", Err: err})
-		return
-	}
+	r = r.WithContext(ctx)
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.GetMe(w, r, params)
+		siw.Handler.GetMe(w, r)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -923,39 +826,14 @@ func (siw *ServerInterfaceWrapper) GetMe(w http.ResponseWriter, r *http.Request)
 // CreateIntroduction operation middleware
 func (siw *ServerInterfaceWrapper) CreateIntroduction(w http.ResponseWriter, r *http.Request) {
 
-	var err error
-	_ = err
+	ctx := r.Context()
 
-	// Parameter object where we will unmarshal all parameters from the context
-	var params CreateIntroductionParams
+	ctx = context.WithValue(ctx, BearerAuthScopes, []string{})
 
-	headers := r.Header
-
-	// ------------- Required header parameter "X-User-Id" -------------
-	if valueList, found := headers[http.CanonicalHeaderKey("X-User-Id")]; found {
-		var XUserId XUserId
-		n := len(valueList)
-		if n != 1 {
-			siw.ErrorHandlerFunc(w, r, &TooManyValuesForParamError{ParamName: "X-User-Id", Count: n})
-			return
-		}
-
-		err = runtime.BindStyledParameterWithOptions("simple", "X-User-Id", valueList[0], &XUserId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: true, Type: "string", Format: "uuid"})
-		if err != nil {
-			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "X-User-Id", Err: err})
-			return
-		}
-
-		params.XUserId = XUserId
-
-	} else {
-		err := fmt.Errorf("Header parameter X-User-Id is required, but not found")
-		siw.ErrorHandlerFunc(w, r, &RequiredHeaderError{ParamName: "X-User-Id", Err: err})
-		return
-	}
+	r = r.WithContext(ctx)
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.CreateIntroduction(w, r, params)
+		siw.Handler.CreateIntroduction(w, r)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -968,39 +846,14 @@ func (siw *ServerInterfaceWrapper) CreateIntroduction(w http.ResponseWriter, r *
 // ListMyTeams operation middleware
 func (siw *ServerInterfaceWrapper) ListMyTeams(w http.ResponseWriter, r *http.Request) {
 
-	var err error
-	_ = err
+	ctx := r.Context()
 
-	// Parameter object where we will unmarshal all parameters from the context
-	var params ListMyTeamsParams
+	ctx = context.WithValue(ctx, BearerAuthScopes, []string{})
 
-	headers := r.Header
-
-	// ------------- Required header parameter "X-User-Id" -------------
-	if valueList, found := headers[http.CanonicalHeaderKey("X-User-Id")]; found {
-		var XUserId XUserId
-		n := len(valueList)
-		if n != 1 {
-			siw.ErrorHandlerFunc(w, r, &TooManyValuesForParamError{ParamName: "X-User-Id", Count: n})
-			return
-		}
-
-		err = runtime.BindStyledParameterWithOptions("simple", "X-User-Id", valueList[0], &XUserId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: true, Type: "string", Format: "uuid"})
-		if err != nil {
-			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "X-User-Id", Err: err})
-			return
-		}
-
-		params.XUserId = XUserId
-
-	} else {
-		err := fmt.Errorf("Header parameter X-User-Id is required, but not found")
-		siw.ErrorHandlerFunc(w, r, &RequiredHeaderError{ParamName: "X-User-Id", Err: err})
-		return
-	}
+	r = r.WithContext(ctx)
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.ListMyTeams(w, r, params)
+		siw.Handler.ListMyTeams(w, r)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -1130,6 +983,10 @@ func HandlerWithOptions(si ServerInterface, options StdHTTPServerOptions) http.H
 		ErrorHandlerFunc:   options.ErrorHandlerFunc,
 	}
 
+	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/auth/codes", wrapper.CreateCode)
+	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/auth/sessions", wrapper.CreateSession)
+	m.HandleFunc(http.MethodDelete+" "+options.BaseURL+"/auth/sessions/current", wrapper.DeleteSession)
+	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/auth/sessions/current/refresh", wrapper.RefreshSession)
 	m.HandleFunc(http.MethodDelete+" "+options.BaseURL+"/invite-links/{code}", wrapper.RevokeInviteLink)
 	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/invite-links/{code}/acceptances", wrapper.AcceptInviteLink)
 	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/teams", wrapper.CreateTeam)
@@ -1143,9 +1000,267 @@ func HandlerWithOptions(si ServerInterface, options StdHTTPServerOptions) http.H
 	return m
 }
 
+type CreateCodeRequestObject struct {
+	Body *CreateCodeJSONRequestBody
+}
+
+type CreateCodeResponseObject interface {
+	VisitCreateCodeResponse(w http.ResponseWriter) error
+}
+
+type CreateCode202JSONResponse CodeDelivery
+
+func (response CreateCode202JSONResponse) VisitCreateCodeResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(202)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateCode400ApplicationProblemPlusJSONResponse Problem
+
+func (response CreateCode400ApplicationProblemPlusJSONResponse) VisitCreateCodeResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateCode429ResponseHeaders struct {
+	RetryAfter *int
+}
+
+type CreateCode429ApplicationProblemPlusJSONResponse struct {
+	Body    Problem
+	Headers CreateCode429ResponseHeaders
+}
+
+func (response CreateCode429ApplicationProblemPlusJSONResponse) VisitCreateCodeResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	if response.Headers.RetryAfter != nil {
+		w.Header().Set("Retry-After", fmt.Sprint(*response.Headers.RetryAfter))
+	}
+	w.WriteHeader(429)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateCode500ApplicationProblemPlusJSONResponse Problem
+
+func (response CreateCode500ApplicationProblemPlusJSONResponse) VisitCreateCodeResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(500)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateSessionRequestObject struct {
+	Body *CreateSessionJSONRequestBody
+}
+
+type CreateSessionResponseObject interface {
+	VisitCreateSessionResponse(w http.ResponseWriter) error
+}
+
+type CreateSession201JSONResponse Pass
+
+func (response CreateSession201JSONResponse) VisitCreateSessionResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(201)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateSession400ApplicationProblemPlusJSONResponse Problem
+
+func (response CreateSession400ApplicationProblemPlusJSONResponse) VisitCreateSessionResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateSession401ApplicationProblemPlusJSONResponse InvalidCodeProblem
+
+func (response CreateSession401ApplicationProblemPlusJSONResponse) VisitCreateSessionResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateSession410ApplicationProblemPlusJSONResponse Problem
+
+func (response CreateSession410ApplicationProblemPlusJSONResponse) VisitCreateSessionResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(410)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateSession500ApplicationProblemPlusJSONResponse Problem
+
+func (response CreateSession500ApplicationProblemPlusJSONResponse) VisitCreateSessionResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(500)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type DeleteSessionRequestObject struct {
+}
+
+type DeleteSessionResponseObject interface {
+	VisitDeleteSessionResponse(w http.ResponseWriter) error
+}
+
+type DeleteSession204Response struct {
+}
+
+func (response DeleteSession204Response) VisitDeleteSessionResponse(w http.ResponseWriter) error {
+	w.WriteHeader(204)
+	return nil
+}
+
+type DeleteSession401ApplicationProblemPlusJSONResponse Problem
+
+func (response DeleteSession401ApplicationProblemPlusJSONResponse) VisitDeleteSessionResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type DeleteSession500ApplicationProblemPlusJSONResponse Problem
+
+func (response DeleteSession500ApplicationProblemPlusJSONResponse) VisitDeleteSessionResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(500)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type RefreshSessionRequestObject struct {
+	Body *RefreshSessionJSONRequestBody
+}
+
+type RefreshSessionResponseObject interface {
+	VisitRefreshSessionResponse(w http.ResponseWriter) error
+}
+
+type RefreshSession200JSONResponse Pass
+
+func (response RefreshSession200JSONResponse) VisitRefreshSessionResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type RefreshSession400ApplicationProblemPlusJSONResponse Problem
+
+func (response RefreshSession400ApplicationProblemPlusJSONResponse) VisitRefreshSessionResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type RefreshSession401ApplicationProblemPlusJSONResponse Problem
+
+func (response RefreshSession401ApplicationProblemPlusJSONResponse) VisitRefreshSessionResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type RefreshSession500ApplicationProblemPlusJSONResponse Problem
+
+func (response RefreshSession500ApplicationProblemPlusJSONResponse) VisitRefreshSessionResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(500)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
 type RevokeInviteLinkRequestObject struct {
-	Code   string `json:"code"`
-	Params RevokeInviteLinkParams
+	Code string `json:"code"`
 }
 
 type RevokeInviteLinkResponseObject interface {
@@ -1231,8 +1346,7 @@ func (response RevokeInviteLink500ApplicationProblemPlusJSONResponse) VisitRevok
 }
 
 type AcceptInviteLinkRequestObject struct {
-	Code   string `json:"code"`
-	Params AcceptInviteLinkParams
+	Code string `json:"code"`
 }
 
 type AcceptInviteLinkResponseObject interface {
@@ -1352,8 +1466,7 @@ func (response AcceptInviteLink500ApplicationProblemPlusJSONResponse) VisitAccep
 }
 
 type CreateTeamRequestObject struct {
-	Params CreateTeamParams
-	Body   *CreateTeamJSONRequestBody
+	Body *CreateTeamJSONRequestBody
 }
 
 type CreateTeamResponseObject interface {
@@ -1441,8 +1554,7 @@ func (response CreateTeam500ApplicationProblemPlusJSONResponse) VisitCreateTeamR
 }
 
 type GetTeamRequestObject struct {
-	Id     string `json:"id"`
-	Params GetTeamParams
+	Id string `json:"id"`
 }
 
 type GetTeamResponseObject interface {
@@ -1586,7 +1698,6 @@ func (response ListInviteLinks500ApplicationProblemPlusJSONResponse) VisitListIn
 
 type CreateInviteLinkRequestObject struct {
 	TeamId string `json:"team_id"`
-	Params CreateInviteLinkParams
 	Body   *CreateInviteLinkJSONRequestBody
 }
 
@@ -1651,7 +1762,6 @@ func (response CreateInviteLink500ApplicationProblemPlusJSONResponse) VisitCreat
 }
 
 type GetMeRequestObject struct {
-	Params GetMeParams
 }
 
 type GetMeResponseObject interface {
@@ -1715,8 +1825,7 @@ func (response GetMe500ApplicationProblemPlusJSONResponse) VisitGetMeResponse(w 
 }
 
 type CreateIntroductionRequestObject struct {
-	Params CreateIntroductionParams
-	Body   *CreateIntroductionJSONRequestBody
+	Body *CreateIntroductionJSONRequestBody
 }
 
 type CreateIntroductionResponseObject interface {
@@ -1794,7 +1903,6 @@ func (response CreateIntroduction500ApplicationProblemPlusJSONResponse) VisitCre
 }
 
 type ListMyTeamsRequestObject struct {
-	Params ListMyTeamsParams
 }
 
 type ListMyTeamsResponseObject interface {
@@ -1859,6 +1967,18 @@ func (response ListMyTeams500ApplicationProblemPlusJSONResponse) VisitListMyTeam
 
 // StrictServerInterface represents all server handlers.
 type StrictServerInterface interface {
+	// Request a sign-in code
+	// (POST /auth/codes)
+	CreateCode(ctx context.Context, request CreateCodeRequestObject) (CreateCodeResponseObject, error)
+	// Sign in with a code
+	// (POST /auth/sessions)
+	CreateSession(ctx context.Context, request CreateSessionRequestObject) (CreateSessionResponseObject, error)
+	// Sign out
+	// (DELETE /auth/sessions/current)
+	DeleteSession(ctx context.Context, request DeleteSessionRequestObject) (DeleteSessionResponseObject, error)
+	// Trade the refresh token for a fresh pass
+	// (POST /auth/sessions/current/refresh)
+	RefreshSession(ctx context.Context, request RefreshSessionRequestObject) (RefreshSessionResponseObject, error)
 	// Revoke an invite link
 	// (DELETE /invite-links/{code})
 	RevokeInviteLink(ctx context.Context, request RevokeInviteLinkRequestObject) (RevokeInviteLinkResponseObject, error)
@@ -1917,12 +2037,128 @@ type strictHandler struct {
 	options     StrictHTTPServerOptions
 }
 
+// CreateCode operation middleware
+func (sh *strictHandler) CreateCode(w http.ResponseWriter, r *http.Request) {
+	var request CreateCodeRequestObject
+
+	var body CreateCodeJSONRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.CreateCode(ctx, request.(CreateCodeRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "CreateCode")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(CreateCodeResponseObject); ok {
+		if err := validResponse.VisitCreateCodeResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// CreateSession operation middleware
+func (sh *strictHandler) CreateSession(w http.ResponseWriter, r *http.Request) {
+	var request CreateSessionRequestObject
+
+	var body CreateSessionJSONRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.CreateSession(ctx, request.(CreateSessionRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "CreateSession")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(CreateSessionResponseObject); ok {
+		if err := validResponse.VisitCreateSessionResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// DeleteSession operation middleware
+func (sh *strictHandler) DeleteSession(w http.ResponseWriter, r *http.Request) {
+	var request DeleteSessionRequestObject
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.DeleteSession(ctx, request.(DeleteSessionRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "DeleteSession")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(DeleteSessionResponseObject); ok {
+		if err := validResponse.VisitDeleteSessionResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// RefreshSession operation middleware
+func (sh *strictHandler) RefreshSession(w http.ResponseWriter, r *http.Request) {
+	var request RefreshSessionRequestObject
+
+	var body RefreshSessionJSONRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.RefreshSession(ctx, request.(RefreshSessionRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "RefreshSession")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(RefreshSessionResponseObject); ok {
+		if err := validResponse.VisitRefreshSessionResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
 // RevokeInviteLink operation middleware
-func (sh *strictHandler) RevokeInviteLink(w http.ResponseWriter, r *http.Request, code string, params RevokeInviteLinkParams) {
+func (sh *strictHandler) RevokeInviteLink(w http.ResponseWriter, r *http.Request, code string) {
 	var request RevokeInviteLinkRequestObject
 
 	request.Code = code
-	request.Params = params
 
 	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
 		return sh.ssi.RevokeInviteLink(ctx, request.(RevokeInviteLinkRequestObject))
@@ -1945,11 +2181,10 @@ func (sh *strictHandler) RevokeInviteLink(w http.ResponseWriter, r *http.Request
 }
 
 // AcceptInviteLink operation middleware
-func (sh *strictHandler) AcceptInviteLink(w http.ResponseWriter, r *http.Request, code string, params AcceptInviteLinkParams) {
+func (sh *strictHandler) AcceptInviteLink(w http.ResponseWriter, r *http.Request, code string) {
 	var request AcceptInviteLinkRequestObject
 
 	request.Code = code
-	request.Params = params
 
 	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
 		return sh.ssi.AcceptInviteLink(ctx, request.(AcceptInviteLinkRequestObject))
@@ -1972,10 +2207,8 @@ func (sh *strictHandler) AcceptInviteLink(w http.ResponseWriter, r *http.Request
 }
 
 // CreateTeam operation middleware
-func (sh *strictHandler) CreateTeam(w http.ResponseWriter, r *http.Request, params CreateTeamParams) {
+func (sh *strictHandler) CreateTeam(w http.ResponseWriter, r *http.Request) {
 	var request CreateTeamRequestObject
-
-	request.Params = params
 
 	var body CreateTeamJSONRequestBody
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
@@ -2005,11 +2238,10 @@ func (sh *strictHandler) CreateTeam(w http.ResponseWriter, r *http.Request, para
 }
 
 // GetTeam operation middleware
-func (sh *strictHandler) GetTeam(w http.ResponseWriter, r *http.Request, id string, params GetTeamParams) {
+func (sh *strictHandler) GetTeam(w http.ResponseWriter, r *http.Request, id string) {
 	var request GetTeamRequestObject
 
 	request.Id = id
-	request.Params = params
 
 	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
 		return sh.ssi.GetTeam(ctx, request.(GetTeamRequestObject))
@@ -2059,11 +2291,10 @@ func (sh *strictHandler) ListInviteLinks(w http.ResponseWriter, r *http.Request,
 }
 
 // CreateInviteLink operation middleware
-func (sh *strictHandler) CreateInviteLink(w http.ResponseWriter, r *http.Request, teamId string, params CreateInviteLinkParams) {
+func (sh *strictHandler) CreateInviteLink(w http.ResponseWriter, r *http.Request, teamId string) {
 	var request CreateInviteLinkRequestObject
 
 	request.TeamId = teamId
-	request.Params = params
 
 	var body CreateInviteLinkJSONRequestBody
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
@@ -2096,10 +2327,8 @@ func (sh *strictHandler) CreateInviteLink(w http.ResponseWriter, r *http.Request
 }
 
 // GetMe operation middleware
-func (sh *strictHandler) GetMe(w http.ResponseWriter, r *http.Request, params GetMeParams) {
+func (sh *strictHandler) GetMe(w http.ResponseWriter, r *http.Request) {
 	var request GetMeRequestObject
-
-	request.Params = params
 
 	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
 		return sh.ssi.GetMe(ctx, request.(GetMeRequestObject))
@@ -2122,10 +2351,8 @@ func (sh *strictHandler) GetMe(w http.ResponseWriter, r *http.Request, params Ge
 }
 
 // CreateIntroduction operation middleware
-func (sh *strictHandler) CreateIntroduction(w http.ResponseWriter, r *http.Request, params CreateIntroductionParams) {
+func (sh *strictHandler) CreateIntroduction(w http.ResponseWriter, r *http.Request) {
 	var request CreateIntroductionRequestObject
-
-	request.Params = params
 
 	var body CreateIntroductionJSONRequestBody
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
@@ -2155,10 +2382,8 @@ func (sh *strictHandler) CreateIntroduction(w http.ResponseWriter, r *http.Reque
 }
 
 // ListMyTeams operation middleware
-func (sh *strictHandler) ListMyTeams(w http.ResponseWriter, r *http.Request, params ListMyTeamsParams) {
+func (sh *strictHandler) ListMyTeams(w http.ResponseWriter, r *http.Request) {
 	var request ListMyTeamsRequestObject
-
-	request.Params = params
 
 	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
 		return sh.ssi.ListMyTeams(ctx, request.(ListMyTeamsRequestObject))
@@ -2185,62 +2410,99 @@ func (sh *strictHandler) ListMyTeams(w http.ResponseWriter, r *http.Request, par
 // const string: with thousands of chunks the chained `+` fold is several
 // times slower for the Go compiler than parsing a slice literal.
 var swaggerSpec = []string{
-	"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",
-	"AAD//w==",
+	"7Fxtcxw3cv4rqMlV+S4ZkasXJ6e9T7SsOzMlyypJLn+wGRk707sDLwYYAxiu1gqr8iPyC/NLUt0NzMvu",
+	"7JKKJFqO9EkUiRkAje6nn37BvMkKWzfWgAk+m7/JfFFBLenHsyKoSzg3lyrAE2XWL4IMgH9onG3ABQU0",
+	"DF43yoF/JQP+b2ldjT9lpQxwJ6gasjwzrdZyoSGbB9dCnoVtA9k888Eps8qu8swHGVp+m2nrbP5jJmny",
+	"7GJv8FWeOfi1VQ5KHBefzIfL6B+yi1+gCDjDI1vy2mUI4Ew2z/7jx9mdhxdv/vXqT9nEinD816DVJbgt",
+	"PleCL5xqgrL47Au59SJUMggpCluC2EgvPJhwIs6DKKRzCrwwoEIFToQKeJSx/B9Zlg68F9aIpnWN9TDv",
+	"By1AW7PyQhn6XS2VXtjXuZCmHD2svNjgCuhBqTU4UUkvfml9EL5tGq2gPPnJZPmB81JmYl9QWFP6fjH8",
+	"NjBBbJTWYg3QiI11a2VWJ73YlAmwApfR2QS3fSWXAdzh1y9gaR0IaSzJh2aq5VYsQODZgg9QiiUJS/m0",
+	"4an5dpRhsLXxSiY1woEMgOf8nOecUG0UPv7wJwfLbJ7902lvLKfRUk4f06C9pdBvD897boKzZVugZA7O",
+	"33pwRtZw3RK+T+N2V9G94NhCkn0PljE+tu9qFYIyK9HbmCjoYS+k0Mqs2RYMXIJLg46p3hGo2Lf2A+t+",
+	"Ad4fk10RDf6Y3AgUrvJ3P+ecpzss5Zcg64NLvckR4wueTh3xweN9nDbVyTmttZavn4BZhSqb3/vywQT4",
+	"PaZzKm8I/eVbnOcU1Me3vDXWl4ewPtkWlGgYB9a+vw7VPTaxlPzdjbFb/lGrPDeXUqsSVfOZswsNNU4o",
+	"tf5umc1/PD51euAq390ter26Cf6VhiUd1jVIOh6/v84LXmlUj8PWtydFxo23V5lrxb6rrHxirwrbmpts",
+	"mBY8fGS01LSGAwe2ayWlQvislZHBkhusZdPgZvAkmNgc2MU05+o0/iA2TRssbvHSrg8/95z/PCG7eJxb",
+	"wpx50t2rPLMGbqCJ0/tAvTwKsdPbuO6xQ7tAJX0mvd/3aC8rEGtADmeFFJ5dSS6MZToVfyFU8KCXJwKH",
+	"y6JA1hXsGgxyL19ZF+4gQSyZmjl5CZpo21kbKuvUbxJnQ5KHfnGbqA2/zsHSga/69yHpG7xu0W7RufKg",
+	"RionrCmACeBwJaUC/zehAr4C/2gNIEELlfABpFZmxcwxscpNBQ4Ey8KLQhrcswNZVEKFk5/MVzZUQqsl",
+	"oDF6IR0SwdYQIXO2Zkpqa2SETM6M34ATyHgvwQsnI+OVRiDElUKiSHyQJnjauXKisrrEZ4pAFDhUUPMi",
+	"jayRZkiTHhEb2+oSCWiJewwWj0TYjRGFtsVa/M9//Xe361Dhs7Q93BMLIbjWI3U5EWeiqXDYGpog7HJJ",
+	"zxkIyGZF6dQyeLHYilqZNoDn9UgzFramPS7VMgCYKYLDo1/dlGKPXk4Ee8G/bCIBnubYcRZ6bBJko3Ld",
+	"eB1jZZxciHgRpEPZI8XbqFB1Sk2PznszIpVkZSmVbz2wXdEv5ApYbFOBA6/50K52HdRQBvmE4HffOCmV",
+	"KTwfeN2xxJ7//ZF4+ODLfxNxhPgaglTaU6TyzcuXz8TZs/NJ3lvSwMmjYkUvYOQNW6eOU6d98QUV9LTH",
+	"5V9c9/Yd8fLruimn5PScxXkdD3/Lcx0Pn553Eu0nJqZx70hOkwO9OTkdzDu1fCTyE3zp/0CLVDk+1laV",
+	"U8PeKbqgV9IbRnzo0MaexrkGEcbd2SzPamW6/08s8Xujpin7vtduwHn0qK+VD56dhmXkB+1ByIVtyYfX",
+	"6BDXBl3FFsKJeJRyMpb8EnkOhCVpBBLdLboQBCoDQgYhtc6FtxzW/jSIDAj6cApJr/kpSy50AcJLNZlw",
+	"2Veq1hyNNaY1a0rmKKxbVaYbUfH+CCfV6Ya8eqwIRxj1QJYHY4N97crHp3BoK5Oa+e78+NB7r4txJp65",
+	"iLJKdj62mSd2A66QHoSGEMD5XJRqpaLttKYE5wvrkPHcR351/56wy0jJOJ/j0fETjwRToqFZJ0rbLjT9",
+	"zEnK/j2RLOumkgsgVmqkc3YzynWy8bB1qRJMUEu0zUIatCNVs5GjkiAlY3Ing6jBgUbK4aFeaPBCBeZp",
+	"aJTKIAVRZqUTvUVbDxsriko6WeDeu0cFEd6YfdTW42vB2HZVIVI0KkjN3NfBsvVQjnjtEulr2eMDri/C",
+	"UiU9/dc3oFE+DAcDNLx/bwSG9/NRQlre+W125+HFn9MP//kq/fSXf/7TpM/2ULROhe0L1BC2/gVIBw5j",
+	"kGkEHZFOZmWikd7nnOeVXvw8CmDm4it6o/ipnc3uF/Qc/Qg/n4inpCJSFNauFZ1sBbKMqehgCRYhiBK0",
+	"WoCTAfSWBIdTrpC3d0lgrwIkMK3lmkOdhbMbj3/EAIAQmmi52FRWgyi09B7VdWndCg+JOYgXPtjGs4/o",
+	"DoFsCKXH8umlWYXQZFdXxMWWdl9mjyxaukRVlsLZNijUR+nXGPIVa3CcqQZZc4Aj/NYHqIWDwrrSI082",
+	"wYs/byorSlVy0p60tgLzF/qptOSZMBDzVl9iyGWWWmF81Kk2ThC5M1O9bmFnz86zPLsE53nBs5PZyV2C",
+	"ogaMbFQ2z+6fzE5mGSlbRUpyKttQnRa2ZJ1p7FTe9wVggCBR8OQ3OFEfLB3NSl2C6XLzbPUcC8ZI1KOJ",
+	"byqg07UueVtZUDwppHYgy23y5AuoFBU4UDj80rkIbEX0OrRk2UiXYsLQOsMhqDIUxZfKQRGs26JGOFgp",
+	"H8BBKRqwjY64xBuIkTpGe1JpYY3e0jEgWJE+0zR2KaQhtGms8TFuIYmjeM7RZfQlhIz9HPjwlS23nAEz",
+	"ATj1JJtGq4IeO/3FW9PX2a5NUO/VKK7GLjW4FugXvEg6zHuze+9vAcMyGM29Dyg7BbCndhCJe7n1nRIM",
+	"Tp9PPR8ROHqgcbZWHnxX+4qphZIYWxmX0mc7yB9ILQL46AwoQ9CGwtZ9LS3qbFdLo0SPHWYw8Hiv8uzB",
+	"bHZEdg0Hfv/ydjLssrLT4hvU83BZvpINlEKrNTA5JRkkM/sON4w7RKaGjxQVFGsoSXjzTtL0UEHyDq3U",
+	"LCRK8aRpkBpL9ISJ0Hr27n2d0YFvNZlB/BM+OgTyiFiNdYErjSi/ew9vVX7WihqtlJDsWPFQ/BD3Sb/V",
+	"qlac6gNTNlYZJPCoMQh3G7lF5WDBmy36cwcNcVa95UJthHjCbU4YDoTnbQ2UhqtsxBPp8Yi60Q4KUJed",
+	"Z2KPSab7HILb3jk7Xj0NVmykCqmKGjfNibO+oJpcnpxMfqMov7xdXT83yHOkFh4c1Qmds5yH921dS7fN",
+	"5llEOWJyK3NHmbSVIFee0j5Iay7wIfZgMed0xIk9fl1U0qzwZKM1QcmQhTrC1KfL8BI2sR6QV1lAB0xq",
+	"Oaq+V7KkaHFOKyXrMHz68b9tQwSSAsoi5KhfsvWoKo1EF8JurY7erAZpECzx18mId4r9FMwm85RhUP9X",
+	"HjlA5KqkH15uBw5vABPBrvjllMIbzRAIw5X3bbQfBFyvXnfxQkystkb92iYmppmcwzbxeESFhS23h91l",
+	"TBh9UI+5k5S6kdO8+97WQDWHCQt4oVYGSqHMiC515M/L7fjsoz7isSysM9yMYexm3imAFBQ/510qA7lm",
+	"coM4ADlWn7jnKGWQjyXd4XT+7+MAY7UzgRiv4O57X8FEUfUYmemOpJahqLoKw8A2hr6lrxVw0ZRinwWA",
+	"wTDQhBQjr1ryQ9/YDbsstCcNSzqm2OvDGsHv+w2cxT/hxDEiZ9+zVMtQiY2zZsXvFIvWmb5nJ09c1gel",
+	"deegGcWGcaxE/amV9xzIQ49RhCuVbBogfY2tTjhBxIINvouWkNTm7q2qzVNLtRg+LR8kNxXFCGLo9c8D",
+	"NRZV8hJiY0qZD84m/owC5FzDkv1DKn/nGLjQEAeNlgUPksIAWi4eDYKk1FosbeuoDSuqR4x/iNnmXSGP",
+	"z4cSB7DtEDVYXXJsE6X5EXpmxC5UU/Ib8qZu+bRonYtbKEHDVFb3capCpfoRIZUDjCbIY63xhDoin7M9",
+	"ERe9VEWMAbpCIKk3/wXVO+Zl0BoS+OLz6Eu7uMMuufR5HkSQa/AClksogqDUTgG5UKbQLTHgdLajHArB",
+	"cuuhRFhHO0klXebH1JvHRd0uVzyP8LwArQCDGy420yJlaB2wZz0RX7UhFtpWrXQljkwuFVmlF9TfNhJf",
+	"ZweQVsIuxFcdfyDsJzywQ+AZWroD3oGBqXr1qiO+FORLjp9Hmu9AouTxYJCrtls/VXGPwUaajarglFDq",
+	"lMHis0yVqA75NDZVIqlx1nsUSctJOM4V/k0sbKhEqQg3U4vkVjDNl3jSLyJHo3hgg0rEAvDiwezuCCPv",
+	"zR7EpA6R7w7iU727spoUg3lkbIPrtsHI1AFyYJiRG2p1JPKuQsp6kqcmSHaJBFMdolNtkmo8KFYJVvZe",
+	"IVCpV7Qs0uc9/vU1WeCQf40I0IOJkIONxrYfzDNf445JqqS5yaC6qjTKpTUoNoxj8x7eCbLxBIhj26Ey",
+	"sV/zffLJlGy2iNQOgCCZZYwHhUF4PmL1XPqJykA5MU3OB1X4owPvmBumYsQwK/zjxdXFHrbjGd8c0E8j",
+	"HhyOu86RLHn0lGz3HTjcCOWT0Q37cHpIZVdMIKqlD7HbYBCItSYoPTy0Dmk8xLAs5lFwbVEBaAn9khIq",
+	"MYlLDK0I7PKTDiBdYnrGBoo4hMGcJyfZbLm1x3roVmBGYqAUK8qGTBqfTpCiQs7ZArWqwrLVwm4M4h45",
+	"o9TaPTbwcUn+A0VY03X/G4VYsw8eYv099kv5FMn+/41prkHOEQtJoHkivjcxj9DBZexXQO85MhjrOphk",
+	"ExhR3SmgTOEDam3s8ULnVlo2t75Ji6v0GAR1tUYf+aVcSWVSy1p8XV8FqEclgAp0IzaVpRwbTsgBsdVg",
+	"yPY+Xjb90skSJlqvOCW17JR4GpEVtb7c0cqs/ekbpOJXxwj2t9Ktma3xg9yxL306+ZhVJvpMEBPxLICs",
+	"ibv1SXSMpfipAxSDm3MGncF51kgnawiU4fzxTaZwSY0MVWosmafe2zF6TKQvu7rnxU24y/lgs6mL5yMB",
+	"g/u3DQbxflBEg72TRhl94enAye6RIuHAQd8LGp8HjeRyh5dqKmBzcaBQGKIslfMUWhPFTRNET4hQ0zZd",
+	"tunBLR9GpxKUA7OtiUrx8LaPZGiLqmekA039KPPzZPvUoNstfwBSQ2Q6DFan7I6kKY5Vn8/KdBGNlZfT",
+	"VVAvdhBqF9iGJPKMJoq1K1VC3ViU5XxUoxlIv5sAf+fXKeTH0ey5uD4dR5PLSekcTv74tigASu6uSYWH",
+	"mGiIGXneTd36wGmpaSMjG4pUk7bpgeI6H1dI5WvEzykU5m3fPgq/P35HXZITSnq2e1ADTaCTSEkdln2M",
+	"7SK+IZnoU+oUSkjlOSPIVAPDcRzgY9cA6ccvVpmdFiBujo+JFUtp0oho77OOcEgI/84LSvv+ZCluNKWC",
+	"yGBswuzaycrf19Ued6FbiBEpB6qUnyrtMBMW4cZS8qMHu76/9WPzoHdnv6cH7XNuG+vW/kT8EAtp0UZT",
+	"kINgrupGb1P8kzhRyb1irfIVlHMRk4yU2Yx8nKbjRBs1CgE1AXIjlyqqDok2tq+l9gdHfOsLItHwutEU",
+	"5DAX4+rtF/7jjVYQb5IbulTyrdw/9cUddvKPumvErN6mpOa/keOPV37Avb0DnacXozlGx5l3HhRjWM4t",
+	"BsuFeu6f2GnjGHV8J8MemufhWjch+IcsdA/vFd9ylfuQd8Lfx+vh5bi75YnlifbV4PvnT5L9xCfZsw3p",
+	"xzX3V64+e8FP1wv+8XLubL4RngYQyng5wM7TN6qk9M4KJvDzOQQq/keYW3BSW01mh/8BIeLR9cEAXdQ4",
+	"HApcc0/kdwkNCHcGEf2nm+a51urQkSo/TNkMcjWc9hvkaiiuUoF7eZNNsgkO25XoOe7r/X24KSlAR0op",
+	"kRX2cl8pcPxIqdY/INwIE/CfV6q8GqVXrkWJAWvrC3Ix60djqVV4qTR3zi+2gu81DTLEOPqLyMcoHayV",
+	"76F4F3KeKD9IQ/gbQU/c2jvhTx7f/GsLbtu/uruj2b9p53tT/ZcW8mNXP98V31QAZsU3+6JFf403k87J",
+	"7TWRmf/UARD1kjoqATjAilo71P8+ROzAq2v7IxTLh+jR/Ymzi/wlgkGrgeffdMGC3XApOkw2zY+Czf4i",
+	"WYo4bBu8KhM5SF1DGqSLLQwqXaA4EV/bWBOX5fiDDF40zhKnjq17CdcdSH0izky04U1lPfRBkrFjlFhB",
+	"8P0lWU1ySXHriThL8tlU9hq3QzPzZTrid8HavP8QWKoEol+5hIH7kR9xT9yTCH1T6nU4Ks6vDYX7L2rF",
+	"3iCSWuBMZDfhMVDmIApj2sOx6Vumh98HLF98yFB4/0NmVzEi/kAB8BCfj2fKUjT8GZYJIKJ2TrCRCNWf",
+	"OjZ/0qiaIuO3SDK2Hpw/5evvkwT4h8ruxALxAm5Sstgizp8s2g+WgO9ZjG9U7DXUK7MEh8QZtIcN38hT",
+	"AVWGPxyEBxJvqPOdi/37YnQZPX7ns2lSe278LpIvHHWuU19/f8Gab5dR48yBsP9byD5gQE4foZi67tJS",
+	"l/Sy1d0l2s+lqoNJuj9eCgtj1d6oBhZK5rhjmqdq8MHTw/WAp7KOyf/YuZ+iVK6HB1XDifg+pguVj5dU",
+	"vJC6tj62ynOCQvnOmGy8PRMz+OniHOX6PQYJO1lIzj7Gm22TqUjE9uhDuH+8zy5IjSyo/xqBWLTpPmPn",
+	"IOLn3kSZbpBUYAoQD2YPR3jyYDY7Rt8G8vywvGr/S7W3XGo4hDD991A+A8uR7P+t9jY9Tt+8Vj7ZcNcv",
+	"Qy08aINdco4Mkh3YckzYkldEX3oi6LOE/DHC4Zcx0gVItqz4KYmhCe2ZI/fr0A2RxMboqj3fJkAAiBIR",
+	"GLz4eNGD+ebGujI2mP/Mn3T7ub+FC1r7QYvqH7Yw0dmU2NrWedDL65C9K/EezT3SqPj5yZ1PlvN3CtQl",
+	"pMpspZqcxEqdvYE+GumsxpCBqD1hvYMCTNDb1J9DHgLJM5HpdLMy8vQVqlJ/5VUrHPqNvMTjNDYurgPx",
+	"pVS6dcDQbQQdu3TbdNmWr3vyhSHWwmF+5FAe9NvtSxLUbaQOX8a2oOuSho/oEGLrp/9cN7lB3QR1kXLe",
+	"3IO+gHj0dP1/K+hTW9y2h9imwXcwGGNFCjSizkoT2Qo+seCa5uAynuTgTurxvd1xNm74GSrXauCbgj7e",
+	"ESutjRD3h0WkLs1WjLV1okBCr8V5OI21+ym0QmpRwiVo22D4leVZ63T8BNT89FTjgMr6MP/r7K+z08u7",
+	"GS4kTjJ1NY6dQZ8jox79q3x36DPqJeyHMYruj0v4MMi4TQ07H6cZU8V2GBZfXVz9bwAAAP//",
 }
 
 // decodeSpec returns the embedded OpenAPI spec as raw JSON bytes,
