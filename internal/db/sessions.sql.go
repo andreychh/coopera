@@ -11,6 +11,47 @@ import (
 	"github.com/google/uuid"
 )
 
+const getPass = `-- name: GetPass :one
+SELECT u.username
+FROM users AS u
+INNER JOIN sessions AS s ON u.id = s.user_id
+WHERE
+    u.id = $1  -- noqa: RF02
+    AND s.id = $2  -- noqa: RF02
+    AND s.revoked_at IS NULL
+`
+
+type GetPassParams struct {
+	UserID    uuid.UUID
+	SessionID uuid.UUID
+}
+
+// Answers what the door needs about a pass being shown: whether it still
+// stands, and what its holder is called.
+//
+// The token was already read and its signature found good, so who is
+// asking is not in doubt. What a signature cannot say is whether the
+// session behind it is still open — signing out and catching a theft
+// both end one, and neither can reach a token already handed out.
+//
+// Nothing comes back when the pass is no longer good, and the three ways
+// that happens are not told apart: no such person, no such session, or a
+// session already ended. All three mean the same to the one holding it.
+//
+// The name comes back rather than a yes-or-no about it, so that what
+// counts as being introduced stays decided in one place, above.
+// The two parameters are named rather than numbered: with both tables
+// keyed by an id, $1 and $2 would arrive in Go as ID and ID_2, and
+// nothing at the call site would say which is which. sqlfluff reads what
+// is inside SQLC.ARG as a column and asks for a table in front of it,
+// which is why the two refusals below are silenced.
+func (q *Queries) GetPass(ctx context.Context, arg GetPassParams) (*string, error) {
+	row := q.db.QueryRow(ctx, getPass, arg.UserID, arg.SessionID)
+	var username *string
+	err := row.Scan(&username)
+	return username, err
+}
+
 const insertRefreshToken = `-- name: InsertRefreshToken :one
 INSERT INTO refresh_tokens (session_id, hash, expires_at)
 VALUES ($1, $2, NOW() + INTERVAL '30 days')
