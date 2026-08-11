@@ -286,70 +286,16 @@ type UserState struct {
 // Username Lowercase letters, digits and underscores, 3 to 32 of them, never starting, ending or doubling on the underscore. The alphabet is narrow on purpose: a name that identifies can be impersonated by one that merely resembles it, and within a single script no two characters resemble each other closely enough. Capitals are refused rather than folded, so that one person has one spelling.
 type Username = string
 
-// XUserId defines model for XUserId.
-type XUserId = string
-
 // bearerAuthContextKey is the context key for bearerAuth security scheme
 type bearerAuthContextKey string
-
-// RevokeInviteLinkParams defines parameters for RevokeInviteLink.
-type RevokeInviteLinkParams struct {
-	// XUserId Temporary placeholder until real authentication exists. Identifies the caller.
-	XUserId XUserId `json:"X-User-Id"`
-}
-
-// AcceptInviteLinkParams defines parameters for AcceptInviteLink.
-type AcceptInviteLinkParams struct {
-	// XUserId Temporary placeholder until real authentication exists. Identifies the caller.
-	XUserId XUserId `json:"X-User-Id"`
-}
-
-// CreateTeamParams defines parameters for CreateTeam.
-type CreateTeamParams struct {
-	// XUserId Temporary placeholder until real authentication exists. Identifies the caller.
-	XUserId XUserId `json:"X-User-Id"`
-}
-
-// GetTeamParams defines parameters for GetTeam.
-type GetTeamParams struct {
-	// XUserId Temporary placeholder until real authentication exists. Identifies the caller.
-	XUserId XUserId `json:"X-User-Id"`
-}
 
 // ListInviteLinksParams defines parameters for ListInviteLinks.
 type ListInviteLinksParams struct {
 	Status *ListInviteLinksParamsStatus `form:"status,omitempty" json:"status,omitempty"`
-
-	// XUserId Temporary placeholder until real authentication exists. Identifies the caller.
-	XUserId XUserId `json:"X-User-Id"`
 }
 
 // ListInviteLinksParamsStatus defines parameters for ListInviteLinks.
 type ListInviteLinksParamsStatus string
-
-// CreateInviteLinkParams defines parameters for CreateInviteLink.
-type CreateInviteLinkParams struct {
-	// XUserId Temporary placeholder until real authentication exists. Identifies the caller.
-	XUserId XUserId `json:"X-User-Id"`
-}
-
-// GetMeParams defines parameters for GetMe.
-type GetMeParams struct {
-	// XUserId Temporary placeholder until real authentication exists. Identifies the caller.
-	XUserId XUserId `json:"X-User-Id"`
-}
-
-// CreateIntroductionParams defines parameters for CreateIntroduction.
-type CreateIntroductionParams struct {
-	// XUserId Temporary placeholder until real authentication exists. Identifies the caller.
-	XUserId XUserId `json:"X-User-Id"`
-}
-
-// ListMyTeamsParams defines parameters for ListMyTeams.
-type ListMyTeamsParams struct {
-	// XUserId Temporary placeholder until real authentication exists. Identifies the caller.
-	XUserId XUserId `json:"X-User-Id"`
-}
 
 // CreateCodeJSONRequestBody defines body for CreateCode for application/json ContentType.
 type CreateCodeJSONRequestBody = CreateCodeRequest
@@ -593,31 +539,31 @@ type ServerInterface interface {
 	RefreshSession(w http.ResponseWriter, r *http.Request)
 	// Revoke an invite link
 	// (DELETE /invite-links/{code})
-	RevokeInviteLink(w http.ResponseWriter, r *http.Request, code string, params RevokeInviteLinkParams)
+	RevokeInviteLink(w http.ResponseWriter, r *http.Request, code string)
 	// Join a team via an invite link
 	// (POST /invite-links/{code}/acceptances)
-	AcceptInviteLink(w http.ResponseWriter, r *http.Request, code string, params AcceptInviteLinkParams)
+	AcceptInviteLink(w http.ResponseWriter, r *http.Request, code string)
 	// Create a team
 	// (POST /teams)
-	CreateTeam(w http.ResponseWriter, r *http.Request, params CreateTeamParams)
+	CreateTeam(w http.ResponseWriter, r *http.Request)
 	// Get a team
 	// (GET /teams/{id})
-	GetTeam(w http.ResponseWriter, r *http.Request, id string, params GetTeamParams)
+	GetTeam(w http.ResponseWriter, r *http.Request, id string)
 	// List the team's invite links
 	// (GET /teams/{team_id}/invite-links)
 	ListInviteLinks(w http.ResponseWriter, r *http.Request, teamId string, params ListInviteLinksParams)
 	// Create an invite link
 	// (POST /teams/{team_id}/invite-links)
-	CreateInviteLink(w http.ResponseWriter, r *http.Request, teamId string, params CreateInviteLinkParams)
+	CreateInviteLink(w http.ResponseWriter, r *http.Request, teamId string)
 	// Get the caller
 	// (GET /users/me)
-	GetMe(w http.ResponseWriter, r *http.Request, params GetMeParams)
+	GetMe(w http.ResponseWriter, r *http.Request)
 	// Introduce yourself
 	// (POST /users/me/introduction)
-	CreateIntroduction(w http.ResponseWriter, r *http.Request, params CreateIntroductionParams)
+	CreateIntroduction(w http.ResponseWriter, r *http.Request)
 	// List the caller's teams
 	// (GET /users/me/teams)
-	ListMyTeams(w http.ResponseWriter, r *http.Request, params ListMyTeamsParams)
+	ListMyTeams(w http.ResponseWriter, r *http.Request)
 }
 
 // ServerInterfaceWrapper converts contexts to parameters.
@@ -706,36 +652,8 @@ func (siw *ServerInterfaceWrapper) RevokeInviteLink(w http.ResponseWriter, r *ht
 		return
 	}
 
-	// Parameter object where we will unmarshal all parameters from the context
-	var params RevokeInviteLinkParams
-
-	headers := r.Header
-
-	// ------------- Required header parameter "X-User-Id" -------------
-	if valueList, found := headers[http.CanonicalHeaderKey("X-User-Id")]; found {
-		var XUserId XUserId
-		n := len(valueList)
-		if n != 1 {
-			siw.ErrorHandlerFunc(w, r, &TooManyValuesForParamError{ParamName: "X-User-Id", Count: n})
-			return
-		}
-
-		err = runtime.BindStyledParameterWithOptions("simple", "X-User-Id", valueList[0], &XUserId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: true, Type: "string", Format: "uuid"})
-		if err != nil {
-			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "X-User-Id", Err: err})
-			return
-		}
-
-		params.XUserId = XUserId
-
-	} else {
-		err := fmt.Errorf("Header parameter X-User-Id is required, but not found")
-		siw.ErrorHandlerFunc(w, r, &RequiredHeaderError{ParamName: "X-User-Id", Err: err})
-		return
-	}
-
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.RevokeInviteLink(w, r, code, params)
+		siw.Handler.RevokeInviteLink(w, r, code)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -760,36 +678,8 @@ func (siw *ServerInterfaceWrapper) AcceptInviteLink(w http.ResponseWriter, r *ht
 		return
 	}
 
-	// Parameter object where we will unmarshal all parameters from the context
-	var params AcceptInviteLinkParams
-
-	headers := r.Header
-
-	// ------------- Required header parameter "X-User-Id" -------------
-	if valueList, found := headers[http.CanonicalHeaderKey("X-User-Id")]; found {
-		var XUserId XUserId
-		n := len(valueList)
-		if n != 1 {
-			siw.ErrorHandlerFunc(w, r, &TooManyValuesForParamError{ParamName: "X-User-Id", Count: n})
-			return
-		}
-
-		err = runtime.BindStyledParameterWithOptions("simple", "X-User-Id", valueList[0], &XUserId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: true, Type: "string", Format: "uuid"})
-		if err != nil {
-			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "X-User-Id", Err: err})
-			return
-		}
-
-		params.XUserId = XUserId
-
-	} else {
-		err := fmt.Errorf("Header parameter X-User-Id is required, but not found")
-		siw.ErrorHandlerFunc(w, r, &RequiredHeaderError{ParamName: "X-User-Id", Err: err})
-		return
-	}
-
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.AcceptInviteLink(w, r, code, params)
+		siw.Handler.AcceptInviteLink(w, r, code)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -802,39 +692,14 @@ func (siw *ServerInterfaceWrapper) AcceptInviteLink(w http.ResponseWriter, r *ht
 // CreateTeam operation middleware
 func (siw *ServerInterfaceWrapper) CreateTeam(w http.ResponseWriter, r *http.Request) {
 
-	var err error
-	_ = err
+	ctx := r.Context()
 
-	// Parameter object where we will unmarshal all parameters from the context
-	var params CreateTeamParams
+	ctx = context.WithValue(ctx, BearerAuthScopes, []string{})
 
-	headers := r.Header
-
-	// ------------- Required header parameter "X-User-Id" -------------
-	if valueList, found := headers[http.CanonicalHeaderKey("X-User-Id")]; found {
-		var XUserId XUserId
-		n := len(valueList)
-		if n != 1 {
-			siw.ErrorHandlerFunc(w, r, &TooManyValuesForParamError{ParamName: "X-User-Id", Count: n})
-			return
-		}
-
-		err = runtime.BindStyledParameterWithOptions("simple", "X-User-Id", valueList[0], &XUserId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: true, Type: "string", Format: "uuid"})
-		if err != nil {
-			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "X-User-Id", Err: err})
-			return
-		}
-
-		params.XUserId = XUserId
-
-	} else {
-		err := fmt.Errorf("Header parameter X-User-Id is required, but not found")
-		siw.ErrorHandlerFunc(w, r, &RequiredHeaderError{ParamName: "X-User-Id", Err: err})
-		return
-	}
+	r = r.WithContext(ctx)
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.CreateTeam(w, r, params)
+		siw.Handler.CreateTeam(w, r)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -859,36 +724,8 @@ func (siw *ServerInterfaceWrapper) GetTeam(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	// Parameter object where we will unmarshal all parameters from the context
-	var params GetTeamParams
-
-	headers := r.Header
-
-	// ------------- Required header parameter "X-User-Id" -------------
-	if valueList, found := headers[http.CanonicalHeaderKey("X-User-Id")]; found {
-		var XUserId XUserId
-		n := len(valueList)
-		if n != 1 {
-			siw.ErrorHandlerFunc(w, r, &TooManyValuesForParamError{ParamName: "X-User-Id", Count: n})
-			return
-		}
-
-		err = runtime.BindStyledParameterWithOptions("simple", "X-User-Id", valueList[0], &XUserId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: true, Type: "string", Format: "uuid"})
-		if err != nil {
-			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "X-User-Id", Err: err})
-			return
-		}
-
-		params.XUserId = XUserId
-
-	} else {
-		err := fmt.Errorf("Header parameter X-User-Id is required, but not found")
-		siw.ErrorHandlerFunc(w, r, &RequiredHeaderError{ParamName: "X-User-Id", Err: err})
-		return
-	}
-
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.GetTeam(w, r, id, params)
+		siw.Handler.GetTeam(w, r, id)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -929,31 +766,6 @@ func (siw *ServerInterfaceWrapper) ListInviteLinks(w http.ResponseWriter, r *htt
 		return
 	}
 
-	headers := r.Header
-
-	// ------------- Required header parameter "X-User-Id" -------------
-	if valueList, found := headers[http.CanonicalHeaderKey("X-User-Id")]; found {
-		var XUserId XUserId
-		n := len(valueList)
-		if n != 1 {
-			siw.ErrorHandlerFunc(w, r, &TooManyValuesForParamError{ParamName: "X-User-Id", Count: n})
-			return
-		}
-
-		err = runtime.BindStyledParameterWithOptions("simple", "X-User-Id", valueList[0], &XUserId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: true, Type: "string", Format: "uuid"})
-		if err != nil {
-			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "X-User-Id", Err: err})
-			return
-		}
-
-		params.XUserId = XUserId
-
-	} else {
-		err := fmt.Errorf("Header parameter X-User-Id is required, but not found")
-		siw.ErrorHandlerFunc(w, r, &RequiredHeaderError{ParamName: "X-User-Id", Err: err})
-		return
-	}
-
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.ListInviteLinks(w, r, teamId, params)
 	}))
@@ -980,36 +792,8 @@ func (siw *ServerInterfaceWrapper) CreateInviteLink(w http.ResponseWriter, r *ht
 		return
 	}
 
-	// Parameter object where we will unmarshal all parameters from the context
-	var params CreateInviteLinkParams
-
-	headers := r.Header
-
-	// ------------- Required header parameter "X-User-Id" -------------
-	if valueList, found := headers[http.CanonicalHeaderKey("X-User-Id")]; found {
-		var XUserId XUserId
-		n := len(valueList)
-		if n != 1 {
-			siw.ErrorHandlerFunc(w, r, &TooManyValuesForParamError{ParamName: "X-User-Id", Count: n})
-			return
-		}
-
-		err = runtime.BindStyledParameterWithOptions("simple", "X-User-Id", valueList[0], &XUserId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: true, Type: "string", Format: "uuid"})
-		if err != nil {
-			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "X-User-Id", Err: err})
-			return
-		}
-
-		params.XUserId = XUserId
-
-	} else {
-		err := fmt.Errorf("Header parameter X-User-Id is required, but not found")
-		siw.ErrorHandlerFunc(w, r, &RequiredHeaderError{ParamName: "X-User-Id", Err: err})
-		return
-	}
-
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.CreateInviteLink(w, r, teamId, params)
+		siw.Handler.CreateInviteLink(w, r, teamId)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -1022,39 +806,14 @@ func (siw *ServerInterfaceWrapper) CreateInviteLink(w http.ResponseWriter, r *ht
 // GetMe operation middleware
 func (siw *ServerInterfaceWrapper) GetMe(w http.ResponseWriter, r *http.Request) {
 
-	var err error
-	_ = err
+	ctx := r.Context()
 
-	// Parameter object where we will unmarshal all parameters from the context
-	var params GetMeParams
+	ctx = context.WithValue(ctx, BearerAuthScopes, []string{})
 
-	headers := r.Header
-
-	// ------------- Required header parameter "X-User-Id" -------------
-	if valueList, found := headers[http.CanonicalHeaderKey("X-User-Id")]; found {
-		var XUserId XUserId
-		n := len(valueList)
-		if n != 1 {
-			siw.ErrorHandlerFunc(w, r, &TooManyValuesForParamError{ParamName: "X-User-Id", Count: n})
-			return
-		}
-
-		err = runtime.BindStyledParameterWithOptions("simple", "X-User-Id", valueList[0], &XUserId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: true, Type: "string", Format: "uuid"})
-		if err != nil {
-			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "X-User-Id", Err: err})
-			return
-		}
-
-		params.XUserId = XUserId
-
-	} else {
-		err := fmt.Errorf("Header parameter X-User-Id is required, but not found")
-		siw.ErrorHandlerFunc(w, r, &RequiredHeaderError{ParamName: "X-User-Id", Err: err})
-		return
-	}
+	r = r.WithContext(ctx)
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.GetMe(w, r, params)
+		siw.Handler.GetMe(w, r)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -1067,39 +826,14 @@ func (siw *ServerInterfaceWrapper) GetMe(w http.ResponseWriter, r *http.Request)
 // CreateIntroduction operation middleware
 func (siw *ServerInterfaceWrapper) CreateIntroduction(w http.ResponseWriter, r *http.Request) {
 
-	var err error
-	_ = err
+	ctx := r.Context()
 
-	// Parameter object where we will unmarshal all parameters from the context
-	var params CreateIntroductionParams
+	ctx = context.WithValue(ctx, BearerAuthScopes, []string{})
 
-	headers := r.Header
-
-	// ------------- Required header parameter "X-User-Id" -------------
-	if valueList, found := headers[http.CanonicalHeaderKey("X-User-Id")]; found {
-		var XUserId XUserId
-		n := len(valueList)
-		if n != 1 {
-			siw.ErrorHandlerFunc(w, r, &TooManyValuesForParamError{ParamName: "X-User-Id", Count: n})
-			return
-		}
-
-		err = runtime.BindStyledParameterWithOptions("simple", "X-User-Id", valueList[0], &XUserId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: true, Type: "string", Format: "uuid"})
-		if err != nil {
-			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "X-User-Id", Err: err})
-			return
-		}
-
-		params.XUserId = XUserId
-
-	} else {
-		err := fmt.Errorf("Header parameter X-User-Id is required, but not found")
-		siw.ErrorHandlerFunc(w, r, &RequiredHeaderError{ParamName: "X-User-Id", Err: err})
-		return
-	}
+	r = r.WithContext(ctx)
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.CreateIntroduction(w, r, params)
+		siw.Handler.CreateIntroduction(w, r)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -1112,39 +846,14 @@ func (siw *ServerInterfaceWrapper) CreateIntroduction(w http.ResponseWriter, r *
 // ListMyTeams operation middleware
 func (siw *ServerInterfaceWrapper) ListMyTeams(w http.ResponseWriter, r *http.Request) {
 
-	var err error
-	_ = err
+	ctx := r.Context()
 
-	// Parameter object where we will unmarshal all parameters from the context
-	var params ListMyTeamsParams
+	ctx = context.WithValue(ctx, BearerAuthScopes, []string{})
 
-	headers := r.Header
-
-	// ------------- Required header parameter "X-User-Id" -------------
-	if valueList, found := headers[http.CanonicalHeaderKey("X-User-Id")]; found {
-		var XUserId XUserId
-		n := len(valueList)
-		if n != 1 {
-			siw.ErrorHandlerFunc(w, r, &TooManyValuesForParamError{ParamName: "X-User-Id", Count: n})
-			return
-		}
-
-		err = runtime.BindStyledParameterWithOptions("simple", "X-User-Id", valueList[0], &XUserId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: true, Type: "string", Format: "uuid"})
-		if err != nil {
-			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "X-User-Id", Err: err})
-			return
-		}
-
-		params.XUserId = XUserId
-
-	} else {
-		err := fmt.Errorf("Header parameter X-User-Id is required, but not found")
-		siw.ErrorHandlerFunc(w, r, &RequiredHeaderError{ParamName: "X-User-Id", Err: err})
-		return
-	}
+	r = r.WithContext(ctx)
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.ListMyTeams(w, r, params)
+		siw.Handler.ListMyTeams(w, r)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -1551,8 +1260,7 @@ func (response RefreshSession500ApplicationProblemPlusJSONResponse) VisitRefresh
 }
 
 type RevokeInviteLinkRequestObject struct {
-	Code   string `json:"code"`
-	Params RevokeInviteLinkParams
+	Code string `json:"code"`
 }
 
 type RevokeInviteLinkResponseObject interface {
@@ -1638,8 +1346,7 @@ func (response RevokeInviteLink500ApplicationProblemPlusJSONResponse) VisitRevok
 }
 
 type AcceptInviteLinkRequestObject struct {
-	Code   string `json:"code"`
-	Params AcceptInviteLinkParams
+	Code string `json:"code"`
 }
 
 type AcceptInviteLinkResponseObject interface {
@@ -1759,8 +1466,7 @@ func (response AcceptInviteLink500ApplicationProblemPlusJSONResponse) VisitAccep
 }
 
 type CreateTeamRequestObject struct {
-	Params CreateTeamParams
-	Body   *CreateTeamJSONRequestBody
+	Body *CreateTeamJSONRequestBody
 }
 
 type CreateTeamResponseObject interface {
@@ -1848,8 +1554,7 @@ func (response CreateTeam500ApplicationProblemPlusJSONResponse) VisitCreateTeamR
 }
 
 type GetTeamRequestObject struct {
-	Id     string `json:"id"`
-	Params GetTeamParams
+	Id string `json:"id"`
 }
 
 type GetTeamResponseObject interface {
@@ -1993,7 +1698,6 @@ func (response ListInviteLinks500ApplicationProblemPlusJSONResponse) VisitListIn
 
 type CreateInviteLinkRequestObject struct {
 	TeamId string `json:"team_id"`
-	Params CreateInviteLinkParams
 	Body   *CreateInviteLinkJSONRequestBody
 }
 
@@ -2058,7 +1762,6 @@ func (response CreateInviteLink500ApplicationProblemPlusJSONResponse) VisitCreat
 }
 
 type GetMeRequestObject struct {
-	Params GetMeParams
 }
 
 type GetMeResponseObject interface {
@@ -2122,8 +1825,7 @@ func (response GetMe500ApplicationProblemPlusJSONResponse) VisitGetMeResponse(w 
 }
 
 type CreateIntroductionRequestObject struct {
-	Params CreateIntroductionParams
-	Body   *CreateIntroductionJSONRequestBody
+	Body *CreateIntroductionJSONRequestBody
 }
 
 type CreateIntroductionResponseObject interface {
@@ -2201,7 +1903,6 @@ func (response CreateIntroduction500ApplicationProblemPlusJSONResponse) VisitCre
 }
 
 type ListMyTeamsRequestObject struct {
-	Params ListMyTeamsParams
 }
 
 type ListMyTeamsResponseObject interface {
@@ -2454,11 +2155,10 @@ func (sh *strictHandler) RefreshSession(w http.ResponseWriter, r *http.Request) 
 }
 
 // RevokeInviteLink operation middleware
-func (sh *strictHandler) RevokeInviteLink(w http.ResponseWriter, r *http.Request, code string, params RevokeInviteLinkParams) {
+func (sh *strictHandler) RevokeInviteLink(w http.ResponseWriter, r *http.Request, code string) {
 	var request RevokeInviteLinkRequestObject
 
 	request.Code = code
-	request.Params = params
 
 	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
 		return sh.ssi.RevokeInviteLink(ctx, request.(RevokeInviteLinkRequestObject))
@@ -2481,11 +2181,10 @@ func (sh *strictHandler) RevokeInviteLink(w http.ResponseWriter, r *http.Request
 }
 
 // AcceptInviteLink operation middleware
-func (sh *strictHandler) AcceptInviteLink(w http.ResponseWriter, r *http.Request, code string, params AcceptInviteLinkParams) {
+func (sh *strictHandler) AcceptInviteLink(w http.ResponseWriter, r *http.Request, code string) {
 	var request AcceptInviteLinkRequestObject
 
 	request.Code = code
-	request.Params = params
 
 	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
 		return sh.ssi.AcceptInviteLink(ctx, request.(AcceptInviteLinkRequestObject))
@@ -2508,10 +2207,8 @@ func (sh *strictHandler) AcceptInviteLink(w http.ResponseWriter, r *http.Request
 }
 
 // CreateTeam operation middleware
-func (sh *strictHandler) CreateTeam(w http.ResponseWriter, r *http.Request, params CreateTeamParams) {
+func (sh *strictHandler) CreateTeam(w http.ResponseWriter, r *http.Request) {
 	var request CreateTeamRequestObject
-
-	request.Params = params
 
 	var body CreateTeamJSONRequestBody
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
@@ -2541,11 +2238,10 @@ func (sh *strictHandler) CreateTeam(w http.ResponseWriter, r *http.Request, para
 }
 
 // GetTeam operation middleware
-func (sh *strictHandler) GetTeam(w http.ResponseWriter, r *http.Request, id string, params GetTeamParams) {
+func (sh *strictHandler) GetTeam(w http.ResponseWriter, r *http.Request, id string) {
 	var request GetTeamRequestObject
 
 	request.Id = id
-	request.Params = params
 
 	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
 		return sh.ssi.GetTeam(ctx, request.(GetTeamRequestObject))
@@ -2595,11 +2291,10 @@ func (sh *strictHandler) ListInviteLinks(w http.ResponseWriter, r *http.Request,
 }
 
 // CreateInviteLink operation middleware
-func (sh *strictHandler) CreateInviteLink(w http.ResponseWriter, r *http.Request, teamId string, params CreateInviteLinkParams) {
+func (sh *strictHandler) CreateInviteLink(w http.ResponseWriter, r *http.Request, teamId string) {
 	var request CreateInviteLinkRequestObject
 
 	request.TeamId = teamId
-	request.Params = params
 
 	var body CreateInviteLinkJSONRequestBody
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
@@ -2632,10 +2327,8 @@ func (sh *strictHandler) CreateInviteLink(w http.ResponseWriter, r *http.Request
 }
 
 // GetMe operation middleware
-func (sh *strictHandler) GetMe(w http.ResponseWriter, r *http.Request, params GetMeParams) {
+func (sh *strictHandler) GetMe(w http.ResponseWriter, r *http.Request) {
 	var request GetMeRequestObject
-
-	request.Params = params
 
 	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
 		return sh.ssi.GetMe(ctx, request.(GetMeRequestObject))
@@ -2658,10 +2351,8 @@ func (sh *strictHandler) GetMe(w http.ResponseWriter, r *http.Request, params Ge
 }
 
 // CreateIntroduction operation middleware
-func (sh *strictHandler) CreateIntroduction(w http.ResponseWriter, r *http.Request, params CreateIntroductionParams) {
+func (sh *strictHandler) CreateIntroduction(w http.ResponseWriter, r *http.Request) {
 	var request CreateIntroductionRequestObject
-
-	request.Params = params
 
 	var body CreateIntroductionJSONRequestBody
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
@@ -2691,10 +2382,8 @@ func (sh *strictHandler) CreateIntroduction(w http.ResponseWriter, r *http.Reque
 }
 
 // ListMyTeams operation middleware
-func (sh *strictHandler) ListMyTeams(w http.ResponseWriter, r *http.Request, params ListMyTeamsParams) {
+func (sh *strictHandler) ListMyTeams(w http.ResponseWriter, r *http.Request) {
 	var request ListMyTeamsRequestObject
-
-	request.Params = params
 
 	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
 		return sh.ssi.ListMyTeams(ctx, request.(ListMyTeamsRequestObject))
@@ -2721,97 +2410,99 @@ func (sh *strictHandler) ListMyTeams(w http.ResponseWriter, r *http.Request, par
 // const string: with thousands of chunks the chained `+` fold is several
 // times slower for the Go compiler than parsing a slice literal.
 var swaggerSpec = []string{
-	"7Fz9chw3cn8V1MRVvktWJPXh5LT5i5Z1d0zJskof5auSFRk707sDLwYYA5hdzSmsykPkCfMkqe4G5mN3",
-	"dklFEs1E/ksUiRkAje5f//oD8z7LbVVbAyb4bP4+q6WTFQRw9L+/vfLgLgr8sQCfO1UHZU02z15CVVsn",
-	"XStqLXMorS7AicYEpYUDqYVsQgkmqFziEwLeKR/8ibgo8JdLBV6EEkQutQZ38pPJZpnC95YgC3DZLDOy",
-	"gmye/e0OruDORZHNMge/NspBkc2Da2CW+byESuLaltZVMmTzrGkUjgxtjQ/74JRZZZeXl2kwbeo8D2oD",
-	"F2ajAjxRZv0iyAC0d2drcEEBDYN3tXLg3+KLB1MUMsCdoCrARTZay4WGtKKdeWeZDzI0/DbTVNn8dSZp",
-	"8uzN/iKHG3ydnpwNl9E/ZBe/QB5whke24LXLEMChCP/99dmdh2/e//PlV9nEinD8d6DVBly7f6wvZIsH",
-	"I4OQIrcFiK30woMJJ+IiiFw6hydnQIUSHJ8gjjKW/yOLwoH3whpRN662Hub9oAVoa1ZeKEO/q6TSC/tu",
-	"JqQpRg8rL7a4gl4/RCm9+KXxQfimrrWCgjVm+rxQj/b2Bbk1he8Xw28DE8RWaS3WALXYWrdWZnXSi02Z",
-	"ACtwGZ1NcO1buQzgDr9+AUvrQEhjST40UyVbsQCBZws+QCGWJCzl04an5ttRhsHWxiuZ1AgHMgCe83Oe",
-	"c0K1Ufj4w1cOltk8+4fTHgROo6WcPqZBe0uh3x6e98IEZ4smR8kcnL/x4NjAjy/hVRq3u4ruBccWkux7",
-	"sIzxsf1QqRCUWYnexkROD3shhVZmzbZgYAMuDTqmekegYt/aD6z7BXh/THZ5NPhjciNQuJx9/DnPeLrD",
-	"Un4Jsjq41OscMb7g6dQRHzzex2lTnZzTWiv57gmYVSiz+b1vHkyA32M6p+Ka0F98wHlOQX18ywdjfXEI",
-	"65NtQYGGcWDt++tQ3WMTS5l9vDF2yz9qlRdmI7UqUDWfObvQUOGEUusfltn89fGp0wOXs93doter6uDf",
-	"aljSYV2BpOPx++t8wyuN6nHY+vakyLjx4Spzpdh3lZVP7G1uG3OdDdOCh4+MlprWcODAdq2kUAiflTIy",
-	"WHKDlaxr3AyeBBObA7uY5lydxh/EpmmDxS1u7Prwc8/5zxOyi8fZPmV+GXX3cpZZA9fQxOl9oF4ehdjp",
-	"bVz12KFdoJI+k95P0PISxBqQw1khhWdXMhPGMp2KvxAqeNDLE4HDZZ4j6wp2DQa5ly+tC3eQIBZMzZzc",
-	"gCbadt6E0jr1d6b0yOqRRSZqw69zsHTgy/59SPoGr1s0LTpXHlRL5YQ1OTABHK6kUOD/VaiAr8A/WgNI",
-	"0EIpfACplVkxc0yscluCA8Gy8CKXBvfsQOalUOHkJ/OtDaXQaglojF5Ih0SwMUTInK2YktoKGSGTM+O3",
-	"4AQy3g144WRkvNIIhLhCSBSJD9JgWPOyBOVEjIJkHogChxIqXqSRFdIMadIjYmsbXSABLXCPweKRCLs1",
-	"Itc2X4v//s//6nYdSnyWtod7YiEE13ikLifiXNQlDltDHYRdLuk5AwHZrCicWgYvFq2olGkCeF6PNGNh",
-	"a9rjUi0DgJkiODz67XUp9ujlRLAX/Ms6EuBpjh1noccmQTYq17XXMVbGyYWIF0E6lD1SvK0KZafU9Oi8",
-	"NyNSSVaWQvnGA9sV/UKugMU2FTjwmg/tatdBDWUwmxD87hsnpTKF5wOvO5bY8z8/Eg8ffPMvIo4Q30GQ",
-	"SnuKVP768uUzcf7sYpL3FjRw8qhY0XMYh+dOHadO++ILKuhpj8u/uOrtO+Ll13VTTsnpOYvzKh7+gec6",
-	"Hj497yTaT0xM4z6SnCYHen1yOph3avlI5Cf40v+CFqniGjmd2cdFF/RKesOIDx3a2NM41yDCuHt2Nssq",
-	"Zbr/TyzxlVHTlH3fa9fgfJcnY6dhGflBexByYRvy4RU6xLVBV9FCOBGPUk7Gkl8iz4GwJI1AotuiC0Gg",
-	"MiBkEFLrmfCWw9qfBpEBQR9OIek1P2XJhS5AeKkmEy77StWYo7HGtGZNyRyFdaPKdC0q3h/hpDpdk1eP",
-	"FeEIox7I8mBssK9ds/EpHNrKpGZ+PD8+9N6rYpyJZ95EWSU7H9vME7sFl0sPQkMI4PxMFGqlou00pgDn",
-	"c+uQ8dxHfnX/nrDLSMk4n+PR8ROPBFOgoVknCtssNP3MScr+PZEs67qUCyBWaqRzdjvKdbLxsHWpPtOd",
-	"S4N2pCo2clQSpGRM7mQQFTjQSDk8VAsNXqjAPA2NUhmkIMqsdKK3aOtha0VeSidz3Hv3qCDCG7OP2np8",
-	"LRjbrEpEiloFqZn7Olg2HooRr10ifS16fMD1RVgqpaf/+ho0yofhYICG9++NwPD+bJSQlnf+fnbn4Zs/",
-	"pB/+42366Y//+NWkz/aQN06F9gVqCFv/AqQDhzHINIKOSCezMlFL72ec55Ve/DwKYObiW3qj+Kk5O7uf",
-	"03P0I/x8Ip6SikiRW7tWdLJcmSBJBEuwCEEUoNUCnAygWxIcTrlC3t4lgb0KkMC0kmsOdRbObj3+EQMA",
-	"Qmii5WJbWg0i19J7VNeldSs8JOYgXvhga88+ojsEsiGUHsunl2YZQs21D2WWdl9mjyxaukRVlsLZJijU",
-	"R+nXGPLla3CcqQZZcYAjfOsDVMJBbl3hkSeb4MUftqUVhSo4aU9aW4L5I/1UWPJMGIh5qzcYcpmlVhgf",
-	"daqNE0TuzFSvW9j5s4tslm3AeV7w2cnZyV2CohqMrFU2z+6fnJ2cZaRsJSnJqWxCeZrbgnWmtlN53xeA",
-	"AYJEwZPf4ER9sHQ0K7UB0+Xm2eo5FoyRqEcT35ZAp2td8rYyp3hSSO1AFm3y5AsoFRU4UDj80rkIbEX0",
-	"OrRkWUuXYsLQOMMhqDIUxRfKQR6sa1EjHKyUD+CgEDXYWkdc4g3ESB2jPam0sEa3dAwIVqTPNI1dCmkI",
-	"bWprfIxbSOIongt0GX0JIZbdwIdvbdFyBswE4NSTrGsdC3ynv3hLLLgvyh1NUO/VKC7HLjW4BugXvEg6",
-	"zHtn9z7dAoZlMJp7H1B2CmBP7SAS97L1nRIMTp9PfTYicPRA7WylfCx70vFwaqEgxlbEpfTZDvIHUosA",
-	"PjoDyhA0IbdVX0uLOtvV0ijRY4cZDDzey1n24OzsiOxqDvz+6cNk2GVlp8U3qOfhsnwpayiEVmtgckoy",
-	"SGb2A24Yd4hMDR/JS8jXUJDw5p2k6aGc5B0aqVlIlOJJ0yA1lugJE6H17N37OqMD32gyg/gnfHQI5BGx",
-	"ausCVxpRfvce3qj8rBUVWikh2bHiofgx7pN+q1WlONUHpqitMkjgUWMQ7rayReVgwZsW/bmDmjirbrlQ",
-	"GyGecJsThgPheVsBpeFKG/FEejyibrSDHNSm80zsMcl0n0Nw7Z3z49XTYMVWqpCqqHHTnDjrC6rZsPC/",
-	"l/xGUX5zs7p+YZDnSC08OKoTOmc5D++bqpKuzeZZRDlicitzR5m0lSBXntI+SGve4EPswWLO6YgTe/wu",
-	"L6VZ4clGa4KCIQt1hKlPl+ElbGI9IK+ygA6Y1HJUfS9lQdHinFZK1mH49ON/m5oIJAWUeZihfsnGo6rU",
-	"El0Iu7UqerMKpEGwxF8nI94p9lMwm8xThkH9X3nkAJGrkn542Q4c3gAmgl3xyymFN5ohEIYr75toPwi4",
-	"Xr3r4oWYWG2M+rVJTEwzOYc28XhEhYUt2sPuMiaMPqvH3ElKXctp3v1ka6Caw4QFvFArA4VQZkSXOvLn",
-	"ZTs++6iPeCwL6ww3Yxi7nXcKIAXFz7MulYFcM7lBHIAcq0/cc5QyyMeS7nA6/7dxgLHamUCMV3D3k69g",
-	"oqh6jMx0R1LJkJddhWFgG2Pf0j3oG7ehGgH+nV1FPGUiQqXdsrtK5VU8JYyUNCw7PGfMWTTO9F717o0e",
-	"ylNLlY64pSC5ZSfy8+G+LwK17ZRyA7Hto0CgA4MBsAnxZ94K0u0lo2/a/QzDAhrigNrjaJAUBlBiKHGE",
-	"IKm1WNrGUZNTFH6MLog3zroyGa43huXQdngVrC44cojSvIV+D5EBHQihsryu0zvNG+fiFgrQMJUzfZxq",
-	"PKk6QzjgALk6+YM1nlBHk2ec0SGmt1F5ZNhdmY2wif+C4BOzHsqT1yNow+fRU3Ws3i6Fmqx5Upmoc0Nd",
-	"Ddbb7tGYD3KAClFMl2GZg1L/GxdO1wC1Tz1qsdNShdSVNI8KZD2IJWxTuY+lQtmEJnCVj3yrCgKDaH8i",
-	"XkS3ThRyi5KJkyPq4ol2QvJE05KSi6XCE0hbIkMPFmlnrDAiOgwDZjnpOr+j4x26zpHvejDBFvlEbPPZ",
-	"QPWquGbipFJJMVmpi2LstdMidMi1sMtbZ60x1Ua53WGS7fWbyzd7xoxyv74Fn0bTOExjL9D3eIRGblzo",
-	"cPBaZh0TU6O2ht56GHvnqO1a+hCLtwNey1bkexPookQPkeXGsBTXxpPxEvolpcMmz5CaW2UeGOOT1SBD",
-	"5vwzmwM6AeTGnlCxbrlTwnroVmBGYqCMFcqGqtP4dGk1B69hxsGXWpVh2WhhtwacUCbXTZE6ZcdGN65w",
-	"fibCOl1GvRZjPfvsjPXPsf3Ep8Dg/y9FvALNJmHsRLwyMSzr6E8s/yKTGRkMBpsx5ckmMOI20iWmiG5M",
-	"qzX0ESNqbWyZQY9YWDa3vueFi57IK7vSjY+EQq6kMqkDKL6uT6pWo4xqCboW29JSygIn5PjCajBke7eX",
-	"Pr10soCJThaO8JedEk8jsqJOgjtambU/fY/c6/IYo/peujU7bH6QG6ClTycfk3TElwhiIp4FkJWgtE2X",
-	"k0TyzE9x89UEAuEfB42Ws9HFk9fv+TZILUPZ3wXJ+3z09DWQvTLS9OH0M52m+y3o6K6mHhcDuaT+iVuC",
-	"G/dvGjfizYwIHHtKgTL62pNuEERgMIgDBx0HaKceNHJS7kzomKam0iGnZXNVYGiqnKewiyLJNEF0mohK",
-	"Td3F+Q9u+DA6laDsg21MVIqHN30kQ7PFaDai8kBTb2VmlGCCWiO75Q/wbAhih3HtlD2XNPmxut95UQyv",
-	"nSG2SVFBtdgBs10MHPLNc5ooVg1UAVVtUZbzUXZ8IP1uAvydp9gN0RtHs5PjymAcTd4pBRGcGPBNngMU",
-	"3NeQUr4x7IoZGt5N1fjAKYtpIyMbiqyUtumBWg18XCEVDhFqpwCbt32rAfvTsUZqZZvQ5/PdMx0ozTjA",
-	"p2OKkX2EQqQofd6TAhSpPCeWmMCowAN8LO2SKv1ildnp0+AO5pjXxjC+y6d9ymTvISH8Gy8o7fuLJc7R",
-	"6nKimLFTruv5KX5br3zc27YQ41wOfympWIzSFhGZrPCl3fa42Dch3jZne/fst3S2xtItB3CUnvMn4sdY",
-	"7Yg2mkInxH1V1bpNUVWiTwU39DTKl1DMRbxeu5Vtx/JpOr53Qd0cQJ1a3G2j8rJDoq3tC179wRE1+5qo",
-	"ObyrNYVOTNu4xPa1v70xEOJN8lgbJT+IKVDz0mE+8Ki768nqbQrq0BpxhHgvA9yH+9p5ejGaY/Sxs87Z",
-	"YmSM5kW5QaqmcpF7p9Y+astNhj00z8MFSULwPT/9QQ72c9Uxh9dGb7iIeciv4e/j7d9i3LzwxPJE+wr0",
-	"6vmTZHnxSfaJ098mmLyecPm7//xy/ecthFu2z4hcA3RlKB3A6ul7VVA+aQUT0PocQuNMB60LzqKryXT0",
-	"XyBMQ9VESKE+7kMgtzzAIAwapBC+3LzSlRaI7lj5YY5okBzilOQgOUTRmQrcrZDsk81x2JlCz8VP1fwm",
-	"DJcUoKO2lDkLe8m2FH7eUgT5C4RrwQf+81YVl6N8zpWAMuB+fbEwphlpLHWFLpXmJulFK/gKyyB7jaO/",
-	"jqyOUtVa+R6Wd9HpifKDvIe/FkrFrX0sVNGbf23Atf2ru+t4/Zt2Pi3UX6qfHb3ld3NQqAIwDb/edw76",
-	"y52ZdE62V4SC/kvHSlRh6rMD4IguKvjQVPqYtMO5rhmMAG82BJruT5z55PvpsaupK/JgnBmjE7vlinqY",
-	"bKUeRbf99aIU4tgmeFUkypGuymiQdA+Cm1XS58O+s7G0L4vxNX0vameJiscvRyUX4EDqE3FuorlvqUOm",
-	"i8qMHQPKCoLvr05qkksKlE/EeZLPtrRXeCiama9YES0M1s76z0Olgia6oA0MPJW8xb1cTyJKTqnX4TB8",
-	"dmXs3X9nKfZFkdQCpz67CY/hN8deGEQfDoY/MHX9iRD8VgTb+1/Cuowx92cKsYdQfjyLl+Lt3xGcsCQq",
-	"8gTHiaj+pcP4Fw3AKTT/gARo4xFm+P70JK3+sbQ7EUa8wZmULHZB8zdv9kMw4Eb9cUs+CXxYsVJmCQ7p",
-	"OGgPW77SpULfk4oHEq84c9P+/oUjus0cPxRZ1+l+dvywjs8dNWcHpfXghi5fT6JWoQN5h+/hIxOknylB",
-	"QN8/mLpp0VDz6bLR3f3N3wtwBxOItzQ47u1tYLxkqTtWe6oGH9M8XMZ4KqvU6c196yks5op/UBWciFcx",
-	"V6m8KGVdg/FC6sr6wB2lnBFRvrMzgoWq+6RBupRFJQqPocZOCpRTn/HW1GQeFGE/updxo7mopEYu1d90",
-	"F4sm3ZXrfEf8lJgo0v2JEkwO4sHZwxHUPDg7O0YCB/K8nZWRqe+n3nCF5BD49F/p+B1zjhQtbrTv63H6",
-	"ErPyyfq7XiJqb0Lr7fKIZMrsFZdjFphcLTroE0Efy+NP5A2/15Cu5bFNxg8cDI1vz5C5l2lBr4sUjy6A",
-	"o/0ydESJCAyefLwTzyR2a10R+/R/5g+N/dzfDQWt/aDT9/aSts5oRGsb50EvrwL9rmh9NA9Ko+JXD3e+",
-	"lM3X49UGUq25VPWM5EYd0IG+VeisxkCDAgJyAw5yMEG3qeOInAdSbqLgdL9HdfWcFepKf9NSKxz6V7nB",
-	"8zI2Lq7D96VUunHAqG4Enat0bbrjObwvxGo2TMAcysl+374kQf1m/O1aWc2XsUXqqnzmIzq+2DHrf6/+",
-	"XKP6g1pMmXvu8l9AVBq6r94K+jYUdzsi7GnwHULG2JQCm6jt0kQKhE8suEo7+O6L5GBS6hHc7SQKh99N",
-	"co0GsWpk/FCOa0VhbUS//wMpvnysjhN1HLo4hi9io9v9OFcutShgA9rWGM9ls6xxOn6UaH56qnFAaX2Y",
-	"/+nsT2enm7tkjnGSqRt/7Aj6/Bxdc7ic7Q59Ro2T/TAG2P1xCToG2b6pYRfjFGeqQQ/j7Ms3l/8TAAD/",
-	"/w==",
+	"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",
 }
 
 // decodeSpec returns the embedded OpenAPI spec as raw JSON bytes,

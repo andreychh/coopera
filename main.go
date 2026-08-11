@@ -47,8 +47,14 @@ func run() error {
 		return err
 	}
 
+	// One seal both stamps passes and reads them back, because one key
+	// does both. The two halves are asked for separately — the handlers
+	// want stamping, the gate wants reading — and neither is handed more
+	// than it needs.
+	stamp := seal.NewJWT(key)
+
 	strict := api.NewStrictHandlerWithOptions(
-		api.NewServer(pool, post.NewLog(), seal.NewJWT(key)),
+		api.NewServer(pool, post.NewLog(), stamp),
 		nil,
 		api.StrictHTTPServerOptions{
 			RequestErrorHandlerFunc:  api.RequestError,
@@ -58,7 +64,7 @@ func run() error {
 	handler := api.HandlerWithOptions(strict, api.StdHTTPServerOptions{
 		BaseURL:     "/v1",
 		BaseRouter:  mux,
-		Middlewares: []api.MiddlewareFunc{api.NewGate(pool)},
+		Middlewares: []api.MiddlewareFunc{api.NewGate(pool, stamp)},
 	})
 
 	port, exists := os.LookupEnv("PORT")

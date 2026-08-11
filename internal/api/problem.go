@@ -43,6 +43,14 @@ func writeProblem(w http.ResponseWriter, status int, detail string) {
 	if detail != "" {
 		problem = NewDetailedProblem(status, detail)
 	}
+	sendProblem(w, problem)
+}
+
+// sendProblem writes a problem already built, for callers that decide
+// the status and the wording together and would otherwise have to hand
+// back two values.
+func sendProblem(w http.ResponseWriter, problem Problem) {
+	status := problem.Status
 
 	w.Header().Set("Content-Type", "application/problem+json")
 	w.WriteHeader(status)

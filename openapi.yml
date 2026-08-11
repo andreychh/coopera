@@ -155,10 +155,18 @@ paths:
       summary: Sign out
       description: >
         Ends the session the presented token belongs to, on this device only — the other devices a
-        person is signed in on know nothing of it. The refresh token dies with the session, so
-        nothing can be renewed. The access token is not recalled and keeps working until it expires:
-        for those few minutes the pass outlives what it opens. Signing out twice is not an error —
-        the second attempt finds nothing left to end and answers the same way.
+        person is signed in on know nothing of it.
+
+        It takes effect at once, including for the access token just used. That token is not
+        recalled and cannot be: it is believed on its signature alone. But every guarded operation
+        asks after the session behind the token it was shown, and from here on the answer is that
+        there is none. The refresh token goes the same way and for the same reason — it buys keys to
+        a session, and there is no longer a session to buy them for. Neither is crossed out one by
+        one; both die of what they point at.
+
+        Signing out twice answers 401 rather than 204. The second attempt arrives holding a pass
+        that no longer stands, and is turned away before it can be read as a request at all — the
+        same answer every other operation now gives it.
       security:
         - bearerAuth: [ ]
       responses:
@@ -167,7 +175,8 @@ paths:
 
         '401':
           description: >
-            The access token is not accepted, so there is no session to speak of.
+            The pass shown is not accepted — unreadable, expired, or belonging to a session that has
+            already ended. The three are answered alike, and signing out a second time lands here.
           content:
             application/problem+json:
               schema:
@@ -238,8 +247,8 @@ paths:
         Who the caller is and whether they have named themselves yet. The state is read from here
         rather than inferred elsewhere: it outlives any single moment, and someone who closed the
         app on the naming screen still has to be asked again.
-      parameters:
-        - $ref: '#/components/parameters/XUserId'
+      security:
+        - bearerAuth: [ ]
       responses:
         '200':
           description: Successful response
@@ -278,8 +287,8 @@ paths:
         Names the person for the first time. Until this happens almost everything is closed to them:
         a name is what others see, and until there is one there is nothing to show. Doing it twice
         is not a malformed request but a sign that it is long done — hence 409 rather than 400.
-      parameters:
-        - $ref: '#/components/parameters/XUserId'
+      security:
+        - bearerAuth: [ ]
       requestBody:
         required: true
         content:
@@ -336,8 +345,8 @@ paths:
         Creates a team and makes the caller its owner. The caller must have introduced themselves
         first: a team has members, members are shown to one another, and someone without a name has
         nothing to show.
-      parameters:
-        - $ref: '#/components/parameters/XUserId'
+      security:
+        - bearerAuth: [ ]
       requestBody:
         required: true
         content:
@@ -403,7 +412,6 @@ paths:
           schema:
             type: string
             format: uuid
-        - $ref: '#/components/parameters/XUserId'
       responses:
         '200':
           description: Team found
@@ -451,8 +459,8 @@ paths:
         Returns teams where the caller has an active membership, whatever their role in it, most
         recently joined first. A team left is a team gone from this list. Having no teams is not a
         failure but an ordinary state, and answers with an empty list.
-      parameters:
-        - $ref: '#/components/parameters/XUserId'
+      security:
+        - bearerAuth: [ ]
       responses:
         '200':
           description: Caller's teams
@@ -501,7 +509,6 @@ paths:
           schema:
             type: string
             format: uuid
-        - $ref: '#/components/parameters/XUserId'
       requestBody:
         required: false
         content:
@@ -562,7 +569,6 @@ paths:
           schema:
             type: string
             enum: [ active, expired, revoked ]
-        - $ref: '#/components/parameters/XUserId'
       responses:
         '200':
           description: Invite links
@@ -613,7 +619,6 @@ paths:
           required: true
           schema:
             type: string
-        - $ref: '#/components/parameters/XUserId'
       responses:
         '204':
           description: Invite link revoked
@@ -671,7 +676,6 @@ paths:
           required: true
           schema:
             type: string
-        - $ref: '#/components/parameters/XUserId'
       responses:
         '200':
           description: >
@@ -745,17 +749,6 @@ components:
         The access token from a pass, sent as `Authorization: Bearer <token>`. Never a cookie: a
         header has to be set deliberately, so a page on another site cannot make the browser send
         one, and a whole class of forged requests stops existing.
-
-  parameters:
-    XUserId:
-      name: X-User-Id
-      in: header
-      required: true
-      description: >
-        Temporary placeholder until real authentication exists. Identifies the caller.
-      schema:
-        type: string
-        format: uuid
 
   schemas:
     CreateCodeRequest:
