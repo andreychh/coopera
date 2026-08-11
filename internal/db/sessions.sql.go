@@ -11,6 +11,45 @@ import (
 	"github.com/google/uuid"
 )
 
+const endSession = `-- name: EndSession :exec
+UPDATE sessions
+SET revoked_at = NOW()
+WHERE
+    id = $1  -- noqa: RF02
+    AND user_id = $2  -- noqa: RF02
+    AND revoked_at IS NULL
+`
+
+type EndSessionParams struct {
+	SessionID uuid.UUID
+	UserID    uuid.UUID
+}
+
+// Closes a session. Nothing is deleted: the row stays and carries the
+// moment it ended, because a journal records what happened rather than
+// tidies it away.
+//
+// The keys to this session are not touched, and need not be. A refresh
+// token buys keys to a session, and every question about one is asked
+// through the session behind it; from here on the answer is that it is
+// closed. Crossing the keys out separately would put the same fact in
+// two places, and the two would part company at the first sign-out that
+// raced a renewal — the key written a moment later would carry no mark
+// and look alive.
+//
+// Two conditions guard the write, and neither reports anything. The
+// person is named so that this can only ever close a session of theirs,
+// whoever calls it and however wrongly. And a session already closed is
+// left alone, so that the moment recorded stays the moment it ended
+// rather than the moment somebody asked again.
+//
+// How many rows were touched is not asked, because both answers are the
+// same success: someone who wants out is out either way.
+func (q *Queries) EndSession(ctx context.Context, arg EndSessionParams) error {
+	_, err := q.db.Exec(ctx, endSession, arg.SessionID, arg.UserID)
+	return err
+}
+
 const getPass = `-- name: GetPass :one
 SELECT u.username
 FROM users AS u
@@ -50,6 +89,38 @@ func (q *Queries) GetPass(ctx context.Context, arg GetPassParams) (*string, erro
 	var username *string
 	err := row.Scan(&username)
 	return username, err
+}
+
+const getSpentRefreshToken = `-- name: GetSpentRefreshToken :one
+SELECT
+    t.session_id,
+    s.user_id
+FROM refresh_tokens AS t
+INNER JOIN sessions AS s ON t.session_id = s.id
+WHERE
+    t.hash = $1  -- noqa: RF02
+    AND t.consumed_at IS NOT NULL
+`
+
+type GetSpentRefreshTokenRow struct {
+	SessionID uuid.UUID
+	UserID    uuid.UUID
+}
+
+// Asks whether a key that would not open anything is one already spent,
+// and if so, whose session it belonged to.
+//
+// A key is spent once and replaced; a second showing means a copy of it
+// exists somewhere. Which of the two hands is the rightful one cannot be
+// known from here, so nothing is guessed — the session ends for both.
+//
+// Expiry and closure are deliberately not asked about. Both are already
+// past helping, and neither says anything the holder can act on.
+func (q *Queries) GetSpentRefreshToken(ctx context.Context, hash string) (GetSpentRefreshTokenRow, error) {
+	row := q.db.QueryRow(ctx, getSpentRefreshToken, hash)
+	var i GetSpentRefreshTokenRow
+	err := row.Scan(&i.SessionID, &i.UserID)
+	return i, err
 }
 
 const insertRefreshToken = `-- name: InsertRefreshToken :one
@@ -97,4 +168,47 @@ func (q *Queries) InsertSession(ctx context.Context, userID uuid.UUID) (uuid.UUI
 	var id uuid.UUID
 	err := row.Scan(&id)
 	return id, err
+}
+
+const spendRefreshToken = `-- name: SpendRefreshToken :one
+UPDATE refresh_tokens AS t
+SET consumed_at = NOW()
+FROM sessions AS s
+WHERE
+    t.hash = $1  -- noqa: RF02
+    AND t.session_id = s.id
+    AND t.consumed_at IS NULL
+    AND t.expires_at > NOW()
+    AND s.revoked_at IS NULL
+RETURNING t.session_id, s.user_id
+`
+
+type SpendRefreshTokenRow struct {
+	SessionID uuid.UUID
+	UserID    uuid.UUID
+}
+
+// Spends a key and says whose session it opened. Nothing comes back
+// unless the key was good in every way at once: known, unspent, not yet
+// expired, and belonging to a session still open.
+//
+// The session is checked here rather than anywhere else because renewal
+// is the one door the gate does not stand in front of — an access token
+// is expired at exactly the moment renewal is wanted, so there is
+// nothing for the gate to read. Without this join a session closed by
+// signing out would go on renewing itself forever.
+//
+// The conditions sit in the statement that writes, not in a look taken
+// beforehand, and that is what stops two callers from spending one key.
+// The second blocks on the row; waking, Postgres re-reads it and checks
+// these conditions again, finds consumed_at set, and updates nothing.
+//
+// Why nothing came back is not worked out here. Only the failing path
+// needs to know, and only one of the reasons calls for anything to be
+// done about it.
+func (q *Queries) SpendRefreshToken(ctx context.Context, hash string) (SpendRefreshTokenRow, error) {
+	row := q.db.QueryRow(ctx, spendRefreshToken, hash)
+	var i SpendRefreshTokenRow
+	err := row.Scan(&i.SessionID, &i.UserID)
+	return i, err
 }

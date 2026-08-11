@@ -66,6 +66,25 @@ func (t RefreshToken) Hash() string {
 	return hex.EncodeToString(sum[:])
 }
 
+// RefreshTokenNotUsableError says the key shown buys nothing.
+//
+// Four ways lead here: no such key, its month has passed, the session it
+// opened has been closed, or it was spent already. They are one refusal
+// on purpose. The holder can do exactly one thing about any of them —
+// sign in again — and telling them apart would be of use to nobody
+// except whoever holds a stolen copy.
+//
+// The fourth is not only a refusal. A key is spent once and replaced, so
+// a second showing means a copy of it is loose. Which of the two hands
+// is the rightful one cannot be known, so the session ends for both: the
+// rightful holder signs in again, the other cannot. That inconvenience
+// is what noticing the theft at all costs.
+type RefreshTokenNotUsableError struct{}
+
+func (RefreshTokenNotUsableError) Error() string {
+	return "refresh token is not usable"
+}
+
 // Pass is the pair of keys to a session, and not the session itself: a
 // session lasts from signing in until signing out, while these are
 // replaced many times over its life.
