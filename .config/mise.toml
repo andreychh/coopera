@@ -23,6 +23,7 @@ legacy_version_file = false
 "npm:markdownlint-cli2" = "0.23.0"
 "npm:renovate" = "44.18.0"
 "npm:squawk-cli" = "2.59.0"
+"npm:@redocly/cli" = "2.47.0"
 "pipx:reuse" = "6.2.0"
 "pipx:yamllint" = "1.38.0"
 "pipx:sqlfluff" = "4.2.2"

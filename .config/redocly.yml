@@ -1,0 +1,136 @@
+# SPDX-FileCopyrightText: 2025-2026 Andrey Chernykh
+# SPDX-License-Identifier: MIT
+extends:
+  - all
+apis:
+  coopera:
+    root: ../openapi.yml
+rules:
+  required-string-property-missing-min-length: 'off'
+  scalar-property-missing-example: 'off'
+  tags-alphabetical: 'off'
+  no-server-example.com: 'off'
+  response-mime-type:
+    severity: error
+    allowedValues:
+      - application/json
+      - application/problem+json
+  request-mime-type:
+    severity: error
+    allowedValues:
+      - application/json
+  response-contains-header:
+    severity: error
+    names:
+      '201':
+        - Location
+      '429':
+        - Retry-After
+  no-http-verbs-in-paths:
+    severity: error
+    splitIntoWords: true
+  array-parameter-serialization:
+    severity: error
+    in:
+      - query
+  path-segment-plural:
+    severity: error
+    exceptions:
+      - auth
+      - me
+      - current
+      - refresh
+      - introduction
+  rule/no-bare-array-response:
+    subject:
+      type: Schema
+      property: type
+    where:
+      - subject:
+          type: MediaType
+        assertions:
+          defined: true
+    assertions:
+      notPattern: /^array$/
+    message: A body must be an object, so that it can gain fields later without changing shape.
+  rule/no-body-on-get-or-delete:
+    subject:
+      type: Operation
+      filterInParentKeys:
+        - get
+        - delete
+    assertions:
+      disallowed:
+        - requestBody
+    message: A GET or a DELETE asks by its address alone, never by a body.
+  rule/no-content-on-204:
+    subject:
+      type: Response
+      filterInParentKeys:
+        - '204'
+    assertions:
+      disallowed:
+        - content
+    message: A 204 says there is no body; it must not describe one.
+  rule/schema-names-pascal-case:
+    subject:
+      type: NamedSchemas
+    assertions:
+      casing: PascalCase
+    message: Schema names are PascalCase.
+  rule/property-names-snake-case:
+    subject:
+      type: SchemaProperties
+    assertions:
+      casing: snake_case
+    message: Property names are snake_case.
+  rule/parameter-names-snake-case:
+    subject:
+      type: Parameter
+      property: name
+    assertions:
+      casing: snake_case
+    message: Parameter names are snake_case.
+  rule/single-success-code:
+    subject:
+      type: Responses
+    assertions:
+      mutuallyExclusive:
+        - '200'
+        - '201'
+        - '202'
+        - '204'
+    message: An operation must answer success with exactly one status code.
+  rule/no-anyof:
+    subject:
+      type: Schema
+    assertions:
+      disallowed:
+        - anyOf
+    message: anyOf is not allowed. Use oneOf with a discriminator.
+  rule/oneof-needs-discriminator:
+    subject:
+      type: Schema
+    where:
+      - subject:
+          type: Schema
+          property: oneOf
+        assertions:
+          defined: true
+    assertions:
+      required:
+        - discriminator
+    message: A oneOf must name the property that tells its branches apart.
+  rule/path-params-on-path-item:
+    subject:
+      type: Parameter
+      property: in
+    where:
+      - subject:
+          type: Operation
+        assertions:
+          defined: true
+    assertions:
+      notPattern: /^path$/
+    message: A path parameter belongs to the path item, not to a single operation.
+telemetry: 'off'

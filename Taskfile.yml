@@ -40,6 +40,7 @@ tasks:
       - lint:typos
       - lint:sql
       - lint:migrations
+      - lint:openapi
 
   lint:go:
     desc: Check Go code quality
@@ -106,6 +107,14 @@ tasks:
       - 'migrations/*.sql'
     cmds:
       - squawk --config .config/squawk.toml migrations/*.sql
+
+  lint:openapi:
+    desc: Check OpenAPI description quality
+    sources:
+      - 'openapi.yml'
+      - '.config/redocly.yml'
+    cmds:
+      - redocly lint --config=.config/redocly.yml --lint-config=error
 
   # --- Format ---
 
