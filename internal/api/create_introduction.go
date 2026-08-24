@@ -47,7 +47,14 @@ func (s Server) CreateIntroduction(
 		), nil
 	}
 
-	return CreateIntroduction201JSONResponse(user), nil
+	// The address is the one the person had all along: introducing
+	// yourself settles a state rather than making a new place to look.
+	return CreateIntroduction201JSONResponse{
+		Body: user,
+		Headers: CreateIntroduction201ResponseHeaders{
+			Location: new("/v1/users/me"),
+		},
+	}, nil
 }
 
 // createIntroductionError is a type switch rather than a chain of checks

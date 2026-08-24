@@ -38,7 +38,15 @@ func (s Server) CreateSession(
 		return createSessionError(createErr), nil
 	}
 
-	return CreateSession201JSONResponse(newPass(pass)), nil
+	// Every session answers from the same address: it is reached through
+	// the pass that holds it, so there is nothing in a URL to tell one
+	// session from another.
+	return CreateSession201JSONResponse{
+		Body: newPass(pass),
+		Headers: CreateSession201ResponseHeaders{
+			Location: new("/v1/auth/sessions/current"),
+		},
+	}, nil
 }
 
 // createSessionError is a type switch rather than a chain of checks so

@@ -27,19 +27,22 @@ func (s Server) AcceptInviteLink(
 
 	// Kept in its own variable: assigning into the err above would widen
 	// it back to error and the sum would stop being checked.
-	team, joined, acceptErr := usecase.NewAcceptInviteLink(
+	team, acceptErr := usecase.NewAcceptInviteLink(
 		s.pool, actor.ID, domain.Code(req.Code),
 	).Exec(ctx)
 	if acceptErr != nil {
 		return acceptInviteLinkError(acceptErr), nil
 	}
 
-	// 201 says a membership came into being; someone who was already in
-	// the team gets 200, because nothing did.
-	if !joined {
-		return AcceptInviteLink200JSONResponse(newTeam(team)), nil
-	}
-	return AcceptInviteLink201JSONResponse(newTeam(team)), nil
+	// What came into being is a membership, and a membership has no
+	// address of its own, so Location points at the team the new member
+	// can now reach.
+	return AcceptInviteLink201JSONResponse{
+		Body: newTeam(team),
+		Headers: AcceptInviteLink201ResponseHeaders{
+			Location: new("/v1/teams/" + team.ID.String()),
+		},
+	}, nil
 }
 
 // acceptInviteLinkError is a type switch rather than a chain of checks
@@ -47,7 +50,7 @@ func (s Server) AcceptInviteLink(
 // [domain.AcceptInviteLinkError] breaks the build here instead of
 // quietly becoming a 500.
 func acceptInviteLinkError(err domain.AcceptInviteLinkError) AcceptInviteLinkResponseObject {
-	switch err.(type) {
+	switch e := err.(type) {
 	case domain.UserNotFoundError:
 		return AcceptInviteLink401ApplicationProblemPlusJSONResponse(
 			NewProblem(http.StatusUnauthorized),
@@ -56,6 +59,15 @@ func acceptInviteLinkError(err domain.AcceptInviteLinkError) AcceptInviteLinkRes
 		return AcceptInviteLink404ApplicationProblemPlusJSONResponse(
 			NewProblem(http.StatusNotFound),
 		)
+	case domain.AlreadyMemberError:
+		// The team is named because the caller came holding a code, and a
+		// code says nothing about which team stands behind it.
+		return AcceptInviteLink409ApplicationProblemPlusJSONResponse{
+			TeamId: e.TeamID.String(),
+			Detail: new("Already a member of this team"),
+			Status: http.StatusConflict,
+			Title:  http.StatusText(http.StatusConflict),
+		}
 	case domain.InviteLinkNotUsableError:
 		return AcceptInviteLink410ApplicationProblemPlusJSONResponse(
 			NewProblem(http.StatusGone),

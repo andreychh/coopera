@@ -9,6 +9,12 @@ info:
   description: >
     Coopera is a routine task tracker for teams. The system records events (who did what and
     when) and does not resolve conflicts within a team.
+  contact:
+    name: Andrey Chernykh
+    url: https://github.com/andreychh/coopera
+  license:
+    name: MIT
+    url: https://github.com/andreychh/coopera/blob/main/LICENSE
 
 servers:
   - url: http://localhost:8080/v1
@@ -35,6 +41,7 @@ paths:
         account already exists behind that address: telling the two apart would turn this into a
         directory of registered people. The code travels by mail only and is never part of any
         response.
+      security: [ ]
       requestBody:
         required: true
         content:
@@ -96,6 +103,7 @@ paths:
         whether the address is known, and that is what this API refuses to say. The code is checked
         together with the address it was issued for — six digits are not unique, and alone they
         identify nobody.
+      security: [ ]
       requestBody:
         required: true
         content:
@@ -108,6 +116,15 @@ paths:
           description: >
             Signed in. The answer does not say whether the account was born just now: that is a
             state, not an event, and it is read from the person, not from this moment.
+          headers:
+            Location:
+              description: >
+                Where the session answers from. Every session shares that one address: a session is
+                reached through the pass that holds it, so there is nothing in a URL to tell one
+                from another.
+              schema:
+                type: string
+                format: uri
           content:
             application/json:
               schema:
@@ -199,6 +216,7 @@ paths:
         replaced: it lasts from signing in until signing out, and these are only its keys. The token
         presented here is spent in the act — a second use of the same one means a copy is loose, and
         then the session ends for everyone holding it, the rightful owner included.
+      security: [ ]
       requestBody:
         required: true
         content:
@@ -299,6 +317,14 @@ paths:
       responses:
         '201':
           description: Introduced
+          headers:
+            Location:
+              description: >
+                Where the named person is read from. It is the address they had all along:
+                introducing yourself settles a state rather than making a new place to look.
+              schema:
+                type: string
+                format: uri
           content:
             application/json:
               schema:
@@ -399,19 +425,22 @@ paths:
                 $ref: '#/components/schemas/Problem'
 
   /teams/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        description: The team to read.
+        schema:
+          type: string
+          format: uuid
     get:
       operationId: getTeam
       tags: [ teams ]
       summary: Get a team
       description: >
         Returns a team by its id.
-      parameters:
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: string
-            format: uuid
+      security:
+        - bearerAuth: [ ]
       responses:
         '200':
           description: Team found
@@ -467,9 +496,7 @@ paths:
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/Team'
+                $ref: '#/components/schemas/TeamList'
 
         '400':
           description: Invalid request
@@ -496,19 +523,76 @@ paths:
                 $ref: '#/components/schemas/Problem'
 
   /teams/{team_id}/invite-links:
+    parameters:
+      - name: team_id
+        in: path
+        required: true
+        description: The team the links belong to.
+        schema:
+          type: string
+          format: uuid
+    get:
+      operationId: listInviteLinks
+      tags: [ invite-links ]
+      summary: List the team's invite links
+      description: >
+        Returns invite links for the team, optionally filtered by status. Only the team's owner
+        may list them.
+      security:
+        - bearerAuth: [ ]
+      parameters:
+        - name: status
+          in: query
+          required: false
+          description: >
+            Keeps only the links in that state. Without it every link the team has comes back,
+            spent and revoked ones included.
+          schema:
+            type: string
+            enum: [ active, expired, revoked ]
+      responses:
+        '200':
+          description: Invite links
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InviteLinkList'
+
+        '400':
+          description: Invalid request
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+
+        '403':
+          description: >
+            The caller may not see this team's invite links. Whether the team does not exist, the
+            caller does not belong to it, or belongs to it without owning it is deliberately not
+            distinguished, so that someone outside a team cannot learn that it exists. Do not read
+            this answer as proof that the team is real. An owner whose team has no invite links
+            gets an empty list, not this. A caller who has not introduced themselves is refused
+            here too, before any of the above is looked at.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+
+        '500':
+          description: Internal server error
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+
     post:
       operationId: createInviteLink
       tags: [ invite-links ]
       summary: Create an invite link
       description: >
         Creates a link that can be used to join the team. Only the team's owner may create one.
-      parameters:
-        - name: team_id
-          in: path
-          required: true
-          schema:
-            type: string
-            format: uuid
+      security:
+        - bearerAuth: [ ]
       requestBody:
         required: false
         content:
@@ -518,6 +602,12 @@ paths:
       responses:
         '201':
           description: Invite link created
+          headers:
+            Location:
+              description: URL of the created invite link
+              schema:
+                type: string
+                format: uri
           content:
             application/json:
               schema:
@@ -549,76 +639,22 @@ paths:
               schema:
                 $ref: '#/components/schemas/Problem'
 
-    get:
-      operationId: listInviteLinks
-      tags: [ invite-links ]
-      summary: List the team's invite links
-      description: >
-        Returns invite links for the team, optionally filtered by status. Only the team's owner
-        may list them.
-      parameters:
-        - name: team_id
-          in: path
-          required: true
-          schema:
-            type: string
-            format: uuid
-        - name: status
-          in: query
-          required: false
-          schema:
-            type: string
-            enum: [ active, expired, revoked ]
-      responses:
-        '200':
-          description: Invite links
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/InviteLink'
-
-        '400':
-          description: Invalid request
-          content:
-            application/problem+json:
-              schema:
-                $ref: '#/components/schemas/Problem'
-
-        '403':
-          description: >
-            The caller may not see this team's invite links. Whether the team does not exist, the
-            caller does not belong to it, or belongs to it without owning it is deliberately not
-            distinguished, so that someone outside a team cannot learn that it exists. Do not read
-            this answer as proof that the team is real. An owner whose team has no invite links
-            gets an empty list, not this. A caller who has not introduced themselves is refused
-            here too, before any of the above is looked at.
-          content:
-            application/problem+json:
-              schema:
-                $ref: '#/components/schemas/Problem'
-
-        '500':
-          description: Internal server error
-          content:
-            application/problem+json:
-              schema:
-                $ref: '#/components/schemas/Problem'
-
   /invite-links/{code}:
+    parameters:
+      - name: code
+        in: path
+        required: true
+        description: The invite link to revoke.
+        schema:
+          type: string
     delete:
       operationId: revokeInviteLink
       tags: [ invite-links ]
       summary: Revoke an invite link
       description: >
         Marks the invite link as revoked. Only the owner of the team it belongs to may revoke it.
-      parameters:
-        - name: code
-          in: path
-          required: true
-          schema:
-            type: string
+      security:
+        - bearerAuth: [ ]
       responses:
         '204':
           description: Invite link revoked
@@ -661,33 +697,36 @@ paths:
                 $ref: '#/components/schemas/Problem'
 
   /invite-links/{code}/acceptances:
+    parameters:
+      - name: code
+        in: path
+        required: true
+        description: The invite link being accepted.
+        schema:
+          type: string
     post:
       operationId: acceptInviteLink
       tags: [ invite-links ]
       summary: Join a team via an invite link
       description: >
-        Adds the caller as a member of the team the invite link belongs to. Accepting is
-        idempotent: someone who is already a member is asking for something that already holds,
-        so the call succeeds and changes nothing. The caller must have introduced themselves
-        first — a team sees its members by name.
-      parameters:
-        - name: code
-          in: path
-          required: true
-          schema:
-            type: string
+        Adds the caller as a member of the team the invite link belongs to. Joining happens once:
+        someone who is already a member is told so rather than answered as though they had just
+        joined, so that a success here always means the same thing. The caller must have
+        introduced themselves first — a team sees its members by name.
+      security:
+        - bearerAuth: [ ]
       responses:
-        '200':
-          description: >
-            Already a member of the team, so nothing changed. The link's use count was not
-            raised, because it counts people who joined rather than times it was opened.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Team'
-
         '201':
           description: Joined the team
+          headers:
+            Location:
+              description: >
+                Where the team just joined is read from. What came into being here is a membership,
+                and a membership has no address of its own — the team is what the new member can
+                now reach.
+              schema:
+                type: string
+                format: uri
           content:
             application/json:
               schema:
@@ -722,6 +761,19 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/Problem'
+
+        '409':
+          description: >
+            Already a member of this team, so there is nothing left to join. Doing it twice is not
+            a malformed request but a sign that it is long done, and it is read the same way as
+            introducing yourself twice. The link's use count is not raised: it counts people who
+            joined rather than times it was opened. The team is named in the answer because the
+            caller arrives holding a code, and a code says nothing about which team stands behind
+            it.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/AlreadyMemberProblem'
 
         '410':
           description: >
@@ -899,6 +951,20 @@ components:
           format: date-time
       required: [ id, name, created_at ]
 
+    TeamList:
+      description: >
+        Teams wrapped in an object rather than handed over as a bare array. A list eventually needs
+        things said about it — where the next page starts, how many there are in all — and a bare
+        array leaves nowhere to say them without changing the shape of every answer that came
+        before.
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Team'
+      required: [ items ]
+
     CreateTeamRequest:
       type: object
       properties:
@@ -933,6 +999,19 @@ components:
         state:
           $ref: '#/components/schemas/InviteLinkState'
       required: [ code, use_count, created_at, state ]
+
+    InviteLinkList:
+      description: >
+        Invite links in an object, for the same reason teams are: a team that has issued many of
+        them will one day be answered a page at a time, and the room for saying so has to exist
+        before it is needed.
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/InviteLink'
+      required: [ items ]
 
     InviteLinkState:
       oneOf:
@@ -1007,3 +1086,16 @@ components:
             attempts_left:
               type: integer
           required: [ attempts_left ]
+
+    AlreadyMemberProblem:
+      description: >
+        Names the team the caller already belongs to, so that a refusal still answers the question
+        the call was asking.
+      allOf:
+        - $ref: '#/components/schemas/Problem'
+        - type: object
+          properties:
+            team_id:
+              type: string
+              format: uuid
+          required: [ team_id ]

@@ -32,7 +32,7 @@ func (s Server) ListMyTeams(
 		return listMyTeamsError(listErr), nil
 	}
 
-	return ListMyTeams200JSONResponse(newTeams(teams)), nil
+	return ListMyTeams200JSONResponse{Items: newTeams(teams)}, nil
 }
 
 // listMyTeamsError is a type switch rather than a chain of checks so

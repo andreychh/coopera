@@ -51,7 +51,7 @@ func (s Server) ListInviteLinks(
 		), nil
 	}
 
-	return ListInviteLinks200JSONResponse(body), nil
+	return ListInviteLinks200JSONResponse{Items: body}, nil
 }
 
 // listInviteLinksError is a type switch rather than a chain of checks so

@@ -5,13 +5,17 @@ package domain
 
 // AcceptInviteLinkError is everything that can go wrong once joining a
 // team by invitation has begun: [InviteLinkNotFoundError] is 404,
-// [InviteLinkNotUsableError] is 410, [UserNotFoundError] is 401,
-// [UnexpectedError] is 500. Malformed input is absent on purpose — the
-// handler answers 400 before the usecase runs.
+// [AlreadyMemberError] is 409, [InviteLinkNotUsableError] is 410,
+// [UserNotFoundError] is 401, [UnexpectedError] is 500. Malformed input
+// is absent on purpose — the handler answers 400 before the usecase
+// runs.
 //
-// There is no case for "already a member". Someone who accepts an
-// invitation is asking to be in the team, and if they already are, the
-// asking is satisfied: repeating it is an outcome, not a failure.
+// [AlreadyMemberError] is a failure rather than an outcome. Joining
+// happens once, and reporting a second attempt as success would make one
+// success code stand for two different things — a membership that came
+// into being and one that was already there — with nothing in the answer
+// to tell the caller which they got. Naming it a conflict is the same
+// reading introducing yourself twice already gets.
 //
 // Revocation and expiry are one case, not two. Either way the person
 // needs a fresh invitation, so the difference cannot change what they
@@ -33,6 +37,8 @@ type AcceptInviteLinkError interface {
 }
 
 func (InviteLinkNotFoundError) acceptInviteLinkError() {}
+
+func (AlreadyMemberError) acceptInviteLinkError() {}
 
 func (InviteLinkNotUsableError) acceptInviteLinkError() {}
 

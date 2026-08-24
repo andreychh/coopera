@@ -61,7 +61,12 @@ func (s Server) CreateInviteLink(
 		), nil
 	}
 
-	return CreateInviteLink201JSONResponse(item), nil
+	return CreateInviteLink201JSONResponse{
+		Body: item,
+		Headers: CreateInviteLink201ResponseHeaders{
+			Location: new("/v1/invite-links/" + item.Code),
+		},
+	}, nil
 }
 
 // createInviteLinkError is a type switch rather than a chain of

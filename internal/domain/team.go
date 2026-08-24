@@ -71,3 +71,16 @@ type NotTeamOwnerError struct {
 func (e NotTeamOwnerError) Error() string {
 	return fmt.Sprintf("caller is not owner of team %s", e.TeamID)
 }
+
+// AlreadyMemberError says the actor already belongs to the team an
+// invitation leads to, so there is nothing left to join. It names the
+// team on purpose: the caller arrives holding a code, and a code says
+// nothing about which team stands behind it, so a refusal that named
+// nothing would leave them knowing less than the question they asked.
+type AlreadyMemberError struct {
+	TeamID ID
+}
+
+func (e AlreadyMemberError) Error() string {
+	return fmt.Sprintf("caller is already a member of team %s", e.TeamID)
+}
