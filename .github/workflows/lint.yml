@@ -24,6 +24,7 @@ jobs:
           - typos
           - sql
           - migrations
+          - openapi
     timeout-minutes: 15
     runs-on: ubuntu-24.04
     permissions:
