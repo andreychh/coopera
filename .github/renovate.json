@@ -27,6 +27,21 @@
       ]
     },
     {
+      "description": "Go raises the language version, so it travels in a PR of its own",
+      "matchManagers": [
+        "mise",
+        "gomod"
+      ],
+      "matchFileNames": [
+        ".config/mise.toml",
+        "go.mod"
+      ],
+      "matchDepNames": [
+        "go"
+      ],
+      "groupName": "go"
+    },
+    {
       "description": "Bump the root go.mod go directive so the language version stays in sync with the mise toolchain",
       "matchManagers": [
         "gomod"
