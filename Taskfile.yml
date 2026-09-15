@@ -161,6 +161,7 @@ tasks:
     desc: Check for known vulnerabilities (SARIF)
     cmds:
       - |
+        set -o pipefail
         govulncheck -format sarif ./... | jq '
           (.runs[].tool.driver.rules[]?
             | select(.properties? and .properties.tags?)
