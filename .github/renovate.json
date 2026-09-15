@@ -58,6 +58,19 @@
       ],
       "depNameTemplate": "jdx/mise",
       "datasourceTemplate": "github-releases"
+    },
+    {
+      "description": "govulncheck is pinned by package path, but its versions live on the module",
+      "customType": "regex",
+      "managerFilePatterns": [
+        "/^\\.config/mise\\.toml$/"
+      ],
+      "matchStrings": [
+        "\"go:golang\\.org/x/vuln/cmd/govulncheck\" = \"(?<currentValue>[^\"]+)\""
+      ],
+      "depNameTemplate": "golang.org/x/vuln",
+      "datasourceTemplate": "go",
+      "extractVersionTemplate": "^v(?<version>.+)$"
     }
   ]
 }
