@@ -148,6 +148,17 @@ linters:
       default: all
     nolintlint:
       require-specific: true
+  exclusions:
+    rules:
+      # A test keeps its cases, their types and the loop over them in one
+      # function, so its length and branching grow with the number of cases,
+      # not with the complexity of its logic.
+      - path: _test\.go
+        linters:
+          - funlen
+          - gocognit
+          - gocyclo
+          - maintidx
 formatters:
   enable:
     - gofumpt
