@@ -75,12 +75,10 @@ func (s JWT) Stamp(
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims{
 		SessionID: sessionID.String(),
-		RegisteredClaims: jwt.RegisteredClaims{
-			ID:        unique.String(),
-			Subject:   personID.String(),
-			IssuedAt:  jwt.NewNumericDate(now),
-			ExpiresAt: jwt.NewNumericDate(now.Add(accessLifetime)),
-		},
+		ID:        unique.String(),
+		Subject:   personID.String(),
+		IssuedAt:  jwt.NewNumericDate(now),
+		ExpiresAt: jwt.NewNumericDate(now.Add(accessLifetime)),
 	})
 
 	signed, err := token.SignedString(s.key)

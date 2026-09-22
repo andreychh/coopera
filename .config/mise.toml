@@ -8,7 +8,7 @@ always_keep_download = false
 legacy_version_file = false
 
 [tools]
-"go" = "1.26.5"
+"go" = "1.27.1"
 "aqua:caarlos0/svu" = "3.4.1"
 "aqua:crate-ci/typos" = "1.50.1"
 "aqua:golangci/golangci-lint" = "2.13.2"
