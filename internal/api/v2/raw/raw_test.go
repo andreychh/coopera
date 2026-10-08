@@ -10,6 +10,7 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/andreychh/coopera/internal/api/v2/raw"
 )
@@ -28,6 +29,24 @@ func TestRequest_Context(t *testing.T) {
 
 		if got != "carried" {
 			t.Errorf("Context().Value = %v, want the value of the original context", got)
+		}
+	})
+}
+
+func TestRequest_RemoteAddr(t *testing.T) {
+	t.Parallel()
+
+	t.Run("returns the address the request arrived from", func(t *testing.T) {
+		t.Parallel()
+
+		const addr = "[2001:db8::1]:54321"
+		origin := newRequest(t, "/")
+		origin.RemoteAddr = addr
+
+		got := serve(t, "/", origin).RemoteAddr()
+
+		if got != addr {
+			t.Errorf("RemoteAddr() = %q, want %q", got, addr)
 		}
 	})
 }
@@ -170,7 +189,7 @@ func serve(t *testing.T, pattern string, origin *http.Request) raw.Request {
 		func(_ http.ResponseWriter, r raw.Request) {
 			got, served = r, true
 		},
-	)))
+	), 1<<20, time.Minute))
 	mux.ServeHTTP(httptest.NewRecorder(), origin)
 
 	if !served {

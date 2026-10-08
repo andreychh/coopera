@@ -7,6 +7,7 @@ package identified
 import (
 	"net/http"
 
+	"github.com/andreychh/coopera/internal/api/v2/pipeline"
 	"github.com/andreychh/coopera/internal/api/v2/raw"
 	"github.com/google/uuid"
 )
@@ -27,17 +28,10 @@ func (r Request) ID() uuid.UUID {
 }
 
 // Handler responds to a request that has an identifier.
-type Handler interface {
-	ServeHTTP(w http.ResponseWriter, r Request)
-}
+type Handler = pipeline.Handler[Request]
 
 // HandlerFunc adapts an ordinary function to a [Handler].
-type HandlerFunc func(w http.ResponseWriter, r Request)
-
-// ServeHTTP implements [Handler] by calling f.
-func (f HandlerFunc) ServeHTTP(w http.ResponseWriter, r Request) {
-	f(w, r)
-}
+type HandlerFunc = pipeline.HandlerFunc[Request]
 
 // Checkpoint is a [raw.Handler] that gives each request a new identifier and
 // reports it in the X-Request-ID response header. An X-Request-ID sent by the

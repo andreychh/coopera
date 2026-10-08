@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
 	"github.com/andreychh/coopera/internal/api/v2/identified"
 	"github.com/andreychh/coopera/internal/api/v2/raw"
@@ -24,7 +25,7 @@ func TestCheckpoint_ServeHTTP(t *testing.T) {
 			func(_ http.ResponseWriter, r identified.Request) {
 				id = r.ID()
 			},
-		)))
+		)), 1<<20, time.Minute)
 		recorder := httptest.NewRecorder()
 		checkpoint.ServeHTTP(recorder, request)
 
