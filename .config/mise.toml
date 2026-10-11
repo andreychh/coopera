@@ -10,10 +10,10 @@ legacy_version_file = false
 [tools]
 "go" = "1.27.1"
 "aqua:caarlos0/svu" = "3.4.1"
-"aqua:crate-ci/typos" = "1.50.2"
+"aqua:crate-ci/typos" = "1.50.3"
 "aqua:golangci/golangci-lint" = "2.14.0"
 "aqua:goreleaser/goreleaser" = "2.18.2"
-"aqua:go-task/task" = "3.53.1"
+"aqua:go-task/task" = "3.54.0"
 "aqua:rhysd/actionlint" = "1.7.12"
 "aqua:tamasfe/taplo" = "0.10.0"
 "aqua:golang-migrate/migrate" = "4.20.1"
@@ -21,17 +21,17 @@ legacy_version_file = false
 "go:golang.org/x/vuln/cmd/govulncheck" = "1.8.0"
 "go:github.com/oapi-codegen/oapi-codegen/v2/cmd/oapi-codegen" = "2.8.0"
 "npm:markdownlint-cli2" = "0.23.3"
-"npm:renovate" = { version = "44.115.5", trust_policy_excludes = ["@yarnpkg/libzip@3.2.2"] }
+"npm:renovate" = { version = "44.132.5", trust_policy_excludes = ["@yarnpkg/libzip@3.2.2"] }
 "npm:squawk-cli" = "2.66.0"
-"npm:@redocly/cli" = "2.54.3"
+"npm:@redocly/cli" = "2.57.0"
 "pipx:reuse" = "6.2.0"
 "pipx:yamllint" = "1.38.0"
-"pipx:sqlfluff" = "4.3.0"
+"pipx:sqlfluff" = "4.4.0"
 
 # indirect
 "node" = "24.21.0"
-"pipx" = "1.17.6"
-"python" = "3.14.7"
+"pipx" = "1.17.11"
+"python" = "3.14.8"
 "aqua:koalaman/shellcheck" = "0.11.0"
 
 [env]
