@@ -29,7 +29,7 @@ legacy_version_file = false
 "pipx:sqlfluff" = "4.4.0"
 
 # indirect
-"node" = "24.22.2"
+"node" = "26.13.0"
 "pipx" = "1.18.9"
 "python" = "3.15.2"
 "aqua:koalaman/shellcheck" = "0.11.0"
